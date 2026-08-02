@@ -12,7 +12,6 @@ import {
   type ClientQuestion,
   type SnapshotQuestion,
 } from "@/lib/grading";
-import { sendDiscordExamReport } from "@/lib/discord";
 import { ensureSchema } from "@/lib/init-schema";
 import type { User } from "@prisma/client";
 
@@ -206,30 +205,9 @@ export async function submitExam(
     return created;
   });
 
-  // Kirim laporan real-time ke channel pusdik & simpan ID pesan Discord agar
-  // bisa ikut terhapus saat rekap dihapus admin. (Gagal kirim tidak
-  // memengaruhi hasil ujian.)
-  const discordMessageId = await sendDiscordExamReport({
-    username: attempt.user.username,
-    displayName: attempt.user.displayName,
-    robloxId: Number(attempt.user.robloxId),
-    avatarUrl: attempt.user.avatarUrl,
-    policeRank: attempt.user.policeGroupRank,
-    score: graded.score,
-    maxScore: graded.maxScore,
-    mcqScore: graded.mcqScore,
-    essayScore: graded.essayScore,
-    status: graded.status,
-    periodName: attempt.period.name,
-    details: graded.details,
-  });
-  if (discordMessageId) {
-    await prisma.examResult.update({
-      where: { id: result.id },
-      data: { discordMessageId },
-    });
-  }
-
+  // Laporan Discord TIDAK dikirim di sini (bisa melewati batas timeout
+  // fungsi di platform serverless). Klien memanggil /api/exam/report
+  // setelah submit berhasil; endpoint itu yang mengirim laporan.
   return { ok: true, resultId: result.id };
 }
 

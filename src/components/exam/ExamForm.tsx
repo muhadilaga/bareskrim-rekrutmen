@@ -61,6 +61,15 @@ export function ExamForm({
         setSubmitting(false);
         return;
       }
+      // Kirim laporan Discord di request terpisah (best-effort) agar
+      // respons submit tidak menunggu webhook dan tidak kena timeout.
+      if (json.resultId) {
+        fetch("/api/exam/report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resultId: json.resultId }),
+        }).catch(() => {});
+      }
       router.replace("/hasil");
     } catch {
       setError("Kesalahan jaringan saat mengirim. Coba lagi.");

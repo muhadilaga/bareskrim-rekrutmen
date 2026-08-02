@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ResultCard } from "@/components/result/ResultCard";
@@ -41,6 +41,20 @@ export function HasilChecker({ kkm }: { kkm: number }) {
       setBusy(false);
     }
   }
+
+  // Pengaman: bila hasil masih baru dan laporan Discord belum sempat terkirim
+  // saat submit, kirim ulang lewat /api/exam/report (idempoten - tidak
+  // mengirim duplikat karena dicek discordMessageId di server).
+  useEffect(() => {
+    if (!result) return;
+    const fresh = Date.now() - new Date(result.submittedAt).getTime() < 5 * 60_000;
+    if (!fresh) return;
+    fetch("/api/exam/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resultId: result.id }),
+    }).catch(() => {});
+  }, [result]);
 
   if (result) {
     return (

@@ -138,7 +138,7 @@ export async function sendDiscordExamReport(report: ExamReportInput): Promise<st
   };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10_000);
+  const timer = setTimeout(() => controller.abort(), 5_000);
   try {
     // ?wait=true WAJIB agar Discord mengembalikan objek pesan (berisi id-nya).
     // Tanpa ini Discord membalas 204 No Content (body kosong) sehingga id pesan
