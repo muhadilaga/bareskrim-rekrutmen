@@ -11,11 +11,17 @@ function getSecret(): Uint8Array {
 export async function middleware(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value;
 
-  if (token && getJwtSecret().length >= 32) {
+  // Defensif: jangan sampai middleware melempar 500 di Edge runtime.
+  // Bila JWT_SECRET belum tersedia (env), token dianggap tidak valid ->
+  // diarahkan ke /login seperti biasa.
+  if (token) {
     try {
-      const { payload } = await jwtVerify(token, getSecret());
-      if (typeof payload.userId === "string") {
-        return NextResponse.next();
+      const secret = getJwtSecret();
+      if (secret && secret.length >= 32) {
+        const { payload } = await jwtVerify(token, getSecret());
+        if (typeof payload.userId === "string") {
+          return NextResponse.next();
+        }
       }
     } catch {
       // token invalid -> redirect login

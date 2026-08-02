@@ -236,7 +236,9 @@ export async function POST(req: Request) {
     const sanitized = sanitizeError(raw);
     let hint = "";
     const m = raw;
-    if (m.includes("DATABASE_URL")) {
+    if (m.includes("JWT_SECRET")) {
+      hint = " JWT_SECRET belum diatur/terbaca di environment Vercel (min 32 karakter).";
+    } else if (m.includes("DATABASE_URL")) {
       hint = " DATABASE_URL belum diisi.";
     } else if (m.includes("P2021")) {
       hint = " Tabel database belum dibuat (auto-init gagal).";
@@ -254,8 +256,14 @@ export async function POST(req: Request) {
       hint = " Tidak bisa terhubung ke database Supabase.";
     } else if (m.includes("P1012")) {
       hint = " Kesalahan konfigurasi database.";
+    } else if (m.includes("Roblox API unreachable")) {
+      hint = " Gagal menjangkau API Roblox dari server (kemungkinan IP Vercel diblokir/di-rate-limit oleh Roblox).";
     } else if (m.includes("429") || m.includes("Roblox API error")) {
       hint = " API Roblox sedang membatasi permintaan. Coba lagi nanti.";
+    } else if (m.includes("P2002")) {
+      hint = " Data duplikat di database.";
+    } else {
+      hint = " Detail: " + sanitized;
     }
     // Detail teknis HANYA dicatat di log server, tidak dikirim ke client.
     console.error("verify detail", sanitized);
