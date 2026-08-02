@@ -40,6 +40,33 @@ body {
   color: transparent;
 }
 
+/* Teks putih-emas mengkilat (shimmer) */
+.gold-shine {
+  background: linear-gradient(
+    110deg,
+    #ffffff 20%,
+    #f5e0a0 35%,
+    #d4af37 50%,
+    #f5e0a0 65%,
+    #ffffff 80%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: gold-shine-move 4s linear infinite;
+}
+
+@keyframes gold-shine-move {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* Garis emas dekoratif */
 .gold-line {
   height: 1px;

@@ -33,7 +33,6 @@ export function Navbar() {
           Mulai Ujian
         </Link>
       </div>
-      <div className="gold-line" />
     </header>
   );
 }
