@@ -271,7 +271,7 @@ export async function POST(req: Request) {
       {
         success: false,
         code: "INTERNAL",
-        build: "v5",
+        build: "v6",
         message: `Terjadi kesalahan server. Coba lagi.${hint}`,
       },
       { status: 500 }

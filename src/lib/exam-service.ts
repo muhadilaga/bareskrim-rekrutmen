@@ -4,6 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { CONFIG } from "@/lib/constants";
+import { Prisma } from "@prisma/client";
 import {
   buildQuestionSet,
   gradeExam,
@@ -131,7 +132,8 @@ export type SubmitExamResult =
   | { ok: true; resultId: string }
   | { ok: false; code: "NOT_FOUND" | "ALREADY_SUBMITTED" | "EXPIRED" | "INVALID"; message: string };
 
-// Submit & auto-grade secara server-side, lalu kirim laporan ke Discord
+// Submit & auto-grade secara server-side (laporan Discord dikirim
+// terpisah lewat /api/exam/report agar submit tidak kena timeout).
 export async function submitExam(
   user: User,
   input: SubmitExamInput
@@ -139,7 +141,6 @@ export async function submitExam(
   await ensureSchema();
   const attempt = await prisma.examAttempt.findUnique({
     where: { id: input.attemptId },
-    include: { user: true, period: true },
   });
 
   if (!attempt || attempt.userId !== user.id) {
@@ -169,8 +170,14 @@ export async function submitExam(
 
   const graded = gradeExam(snapshot, answersMap);
 
-  const result = await prisma.$transaction(async (tx) => {
-    const created = await tx.examResult.create({
+  // CATATAN: jangan pakai $transaction(async ...) interaktif di sini.
+  // Dengan Supabase pooler (pgbouncer=true) di lingkungan serverless,
+  // transaksi multi-perintah sering gagal P2028 "Transaction not found"
+  // karena koneksi di-recycle di tengah transaksi. Operasi dibuat
+  // berurutan; bila gagal parsial, auto-heal membiarkan casis mencoba lagi.
+  let result: { id: string };
+  try {
+    result = await prisma.examResult.create({
       data: {
         attemptId: attempt.id,
         score: graded.score,
@@ -182,27 +189,45 @@ export async function submitExam(
         answersJson: graded.details as unknown as object,
       },
     });
-
-    for (const d of graded.details) {
-      const qid = snapshot.find((s) => s.id === d.questionId)?.id;
-      if (!qid) continue;
-      await tx.examAnswer.create({
-        data: {
-          attemptId: attempt.id,
-          questionId: qid,
-          answer: d.userAnswer,
-          isCorrect: d.type === "MCQ" ? d.isCorrect : null,
-          earnedPoints: d.earned,
-        },
-      });
+  } catch (e) {
+    // Retry setelah kegagalan parsial: hasil sudah pernah dibuat
+    // (ExamResult.attemptId unik) -> cukup kembalikan hasil yang ada.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      const existing = await prisma.examResult.findUnique({ where: { attemptId: attempt.id } });
+      if (existing) {
+        if (!attempt.submittedAt) {
+          await prisma.examAttempt.update({
+            where: { id: attempt.id },
+            data: { submittedAt: new Date() },
+          });
+        }
+        return { ok: true, resultId: existing.id };
+      }
     }
+    throw e;
+  }
 
-    await tx.examAttempt.update({
-      where: { id: attempt.id },
-      data: { submittedAt: new Date() },
-    });
+  const answerData = graded.details
+    .map((d) => {
+      const qid = snapshot.find((s) => s.id === d.questionId)?.id;
+      if (!qid) return null;
+      return {
+        attemptId: attempt.id,
+        questionId: qid,
+        answer: d.userAnswer,
+        isCorrect: d.type === "MCQ" ? d.isCorrect : null,
+        earnedPoints: d.earned,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
-    return created;
+  if (answerData.length > 0) {
+    await prisma.examAnswer.createMany({ data: answerData });
+  }
+
+  await prisma.examAttempt.update({
+    where: { id: attempt.id },
+    data: { submittedAt: new Date() },
   });
 
   // Laporan Discord TIDAK dikirim di sini (bisa melewati batas timeout
