@@ -22,6 +22,7 @@ export function CasisCard({
             alt={user.displayName}
             width={112}
             height={112}
+            loading="lazy"
             className="relative h-28 w-28 rounded-full border-2 border-gold object-cover"
           />
         </div>

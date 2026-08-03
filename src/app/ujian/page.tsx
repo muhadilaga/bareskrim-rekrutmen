@@ -24,7 +24,7 @@ export default async function ExamPage() {
     if (session.code === "RANK_BLOCKED") {
       return (
         <div className="flex min-h-[70vh] items-center justify-center px-4">
-          <Card strong className="w-full max-w-md p-8 text-center">
+          <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
             <div className="text-4xl">⛔</div>
             <h1 className="mt-4 font-display text-xl font-bold text-red-300">Akses Ditolak</h1>
             <p className="mt-3 text-sm text-zinc-400">{session.message}</p>
@@ -37,7 +37,7 @@ export default async function ExamPage() {
     }
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-4">
-        <Card strong className="w-full max-w-md p-8 text-center">
+        <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
           <div className="text-4xl">🕐</div>
           <h1 className="mt-4 font-display text-xl font-bold gold-text">Ujian Belum Tersedia</h1>
           <p className="mt-3 text-sm text-zinc-400">{session.message}</p>
@@ -51,7 +51,7 @@ export default async function ExamPage() {
 
   return (
     <div className="bg-hero-radial min-h-[70vh] px-4 py-8">
-      <div className="mb-8 text-center">
+      <div className="mb-8 text-center animate-slide-up">
         <h1 className="font-display text-2xl font-bold gold-text md:text-3xl">
           UJIAN REKRUTMEN BARESKRIM POLRI
         </h1>

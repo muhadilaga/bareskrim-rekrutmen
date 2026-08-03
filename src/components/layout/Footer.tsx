@@ -11,11 +11,17 @@ export function Footer() {
           <img
             src="/logos/logo-header.png"
             alt="Bareskrim Polri"
+            width={64}
+            height={64}
+            loading="lazy"
             className="h-16 w-auto object-contain"
           />
           <img
             src="/logos/logo-footer.png"
             alt="Bareskrim Polri"
+            width={64}
+            height={64}
+            loading="lazy"
             className="h-16 w-auto object-contain"
           />
         </div>

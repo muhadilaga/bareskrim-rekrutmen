@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Logo } from "@/components/ui/Logo";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const links = [
   { href: "/", label: "Beranda" },
@@ -34,31 +35,36 @@ export function Navbar() {
           ))}
         </nav>
 
-        {/* Desktop CTA */}
-        <Link
-          href="/login"
-          className="hidden rounded-md border border-gold/40 bg-gradient-to-r from-crimson-800 to-crimson px-4 py-2 text-sm font-semibold text-gold shadow-glow transition hover:from-crimson hover:to-crimson-700 md:inline-block"
-        >
-          Mulai Ujian
-        </Link>
+        <div className="hidden items-center gap-2 md:flex">
+          <ThemeToggle />
+          <Link
+            href="/login"
+            className="rounded-md border border-gold/40 bg-gradient-to-r from-crimson-800 to-crimson px-4 py-2 text-sm font-semibold text-gold shadow-glow transition hover:from-crimson hover:to-crimson-700"
+          >
+            Mulai Ujian
+          </Link>
+        </div>
 
-        {/* Hamburger button (mobile only) */}
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="inline-flex items-center justify-center rounded-md p-2 text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold md:hidden"
-          aria-label={open ? "Tutup menu" : "Buka menu"}
-        >
-          {open ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
+        {/* Mobile buttons */}
+        <div className="flex items-center gap-1 md:hidden">
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex items-center justify-center rounded-md p-2 text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold"
+            aria-label={open ? "Tutup menu" : "Buka menu"}
+          >
+            {open ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Mobile dropdown menu */}

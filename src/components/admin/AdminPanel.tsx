@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -129,7 +130,7 @@ export function AdminPanel() {
 
   if (!authed) {
     return (
-      <Card strong className="mx-auto w-full max-w-md p-8">
+      <Card strong className="mx-auto w-full max-w-md p-8 animate-scale-in">
         <h2 className="font-display text-lg font-bold gold-text">Masuk Admin</h2>
         <div className="gold-line my-3" />
         <div className="relative">

@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ToastProvider } from "@/components/ui/Toast";
+import { MobileCTA } from "@/components/ui/MobileCTA";
 
 export const metadata: Metadata = {
   title: "Rekrutmen Bareskrim Polri RP",
@@ -10,8 +12,6 @@ export const metadata: Metadata = {
   icons: { icon: "/shield.svg" },
 };
 
-// Pastikan viewport mobile diterapkan dengan benar (width=device-width)
-// sehingga panel tidak terpotong/lengket tapak pada smartphone.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id">
+    <html lang="id" className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -31,9 +31,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="flex min-h-screen flex-col">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <ToastProvider>
+          <Navbar />
+          <main className="flex-1 pb-16 md:pb-0">{children}</main>
+          <Footer />
+          <MobileCTA />
+        </ToastProvider>
       </body>
     </html>
   );

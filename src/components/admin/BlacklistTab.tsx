@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useToastContext } from "@/components/ui/Toast";
 
 interface BlacklistTabProps {
   headers: Record<string, string>;
@@ -38,6 +40,7 @@ export function BlacklistTab({ headers }: BlacklistTabProps) {
   const [pendidikan, setPendidikan] = useState<BlacklistEntryItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const toast = useToastContext();
 
   const [channelRefs, setChannelRefs] = useState<{
     guildId: string | null;
@@ -84,7 +87,12 @@ export function BlacklistTab({ headers }: BlacklistTabProps) {
     const res = await op();
     const json = await res.json();
     setMsg({ ok: json.ok, text: json.message ?? (res.ok ? "Berhasil." : "Terjadi kesalahan.") });
-    if (json.ok && thenLoad) await loadAll();
+    if (json.ok) {
+      toast.success(json.message ?? "Berhasil.");
+      if (thenLoad) await loadAll();
+    } else {
+      toast.error(json.message ?? "Terjadi kesalahan.");
+    }
     setBusy(false);
   }
 

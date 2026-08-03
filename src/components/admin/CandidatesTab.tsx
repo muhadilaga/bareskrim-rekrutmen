@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
+import { useToastContext } from "@/components/ui/Toast";
 
 interface CandidatesTabProps {
   headers: Record<string, string>;
@@ -79,6 +81,7 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
   const [busy, setBusy] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const toast = useToastContext();
 
   const loadPeriods = useCallback(async () => {
     const res = await fetch("/api/admin/period", { headers });
@@ -119,6 +122,8 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
     });
     const json = await res.json();
     setMsg({ ok: json.ok, text: json.message ?? (res.ok ? "Rekap dihapus." : "Gagal menghapus.") });
+    if (json.ok) toast.success("Rekap berhasil dihapus.");
+    else toast.error(json.message ?? "Gagal menghapus.");
     setDeletingId(null);
     if (json.ok) await loadRows();
   }
@@ -175,7 +180,12 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-3 py-6 text-center text-sm text-zinc-500">
-                  {busy ? "Memuat..." : "Belum ada hasil ujian."}
+                  {busy ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                      <span>Memuat data...</span>
+                    </div>
+                  ) : "Belum ada hasil ujian."}
                 </td>
               </tr>
             ) : (
