@@ -18,12 +18,15 @@
   }
 
   html:not(.dark) {
-    --bg: #f8f8f8;
-    --bg-gradient: linear-gradient(180deg, #f0f0f0 0%, #f8f8f8 40%, #e8e8e8 100%);
-    --text: #18181b;
-    --text-muted: #71717a;
-    --card-bg: rgba(0, 0, 0, 0.03);
-    --card-border: rgba(0, 0, 0, 0.08);
+    --bg: #faf5f0;
+    --bg-gradient:
+      radial-gradient(1100px 600px at 50% -5%, rgba(123, 17, 19, 0.12), transparent 60%),
+      radial-gradient(900px 700px at 100% 100%, rgba(212, 175, 55, 0.10), transparent 60%),
+      linear-gradient(180deg, #fef7ee 0%, #faf5f0 40%, #f5ede4 100%);
+    --text: #2c1810;
+    --text-muted: #6b5a50;
+    --card-bg: rgba(123, 17, 19, 0.04);
+    --card-border: rgba(123, 17, 19, 0.12);
   }
 
   html {
@@ -43,27 +46,121 @@
     overflow-x: hidden;
   }
 
-  /* Light mode overrides */
+  /* ============================================
+     LIGHT MODE — Tema Merah Emas Bareskrim
+     ============================================ */
+
+  /* Body text */
   html:not(.dark) body {
-    color: #18181b;
+    color: #2c1810;
   }
 
+  /* Glass card — merah-emas transparan */
   html:not(.dark) .glass {
-    border-color: rgba(0, 0, 0, 0.08);
-    background-color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(123, 17, 19, 0.15);
+    background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(250,235,220,0.75));
+    backdrop-filter: blur(20px);
   }
 
   html:not(.dark) .glass-strong {
-    border-color: rgba(0, 0, 0, 0.1);
-    background-color: rgba(255, 255, 255, 0.85);
+    border-color: rgba(123, 17, 19, 0.2);
+    background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(245,230,210,0.88));
+    backdrop-filter: blur(24px);
   }
 
+  /* Gold text — emas terang untuk background terang */
   html:not(.dark) .gold-text {
-    background: linear-gradient(120deg, #92700c, #b8941e 45%, #d4af37 75%, #92700c);
+    background: linear-gradient(120deg, #9a6b0c, #c49b20 30%, #d4af37 55%, #c49b20 80%, #9a6b0c);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
+  }
+
+  /* Gold shine — shimmer emas untuk light */
+  html:not(.dark) .gold-shine {
+    background: linear-gradient(
+      110deg,
+      #7b1113 15%,
+      #d4af37 35%,
+      #f5d67a 50%,
+      #d4af37 65%,
+      #7b1113 85%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: gold-shine-move 4s linear infinite;
+  }
+
+  /* Gold line — garis emas lebih solid */
+  html:not(.dark) .gold-line {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #d4af37 30%, #7b1113 50%, #d4af37 70%, transparent);
+  }
+
+  /* Navbar — header merah emas */
+  html:not(.dark) header.glass-strong {
+    background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(250,230,210,0.85));
+    border-bottom-color: rgba(212, 175, 55, 0.3);
+    backdrop-filter: blur(20px);
+  }
+
+  /* Hero background — gradient merah emas terang */
+  html:not(.dark) .bg-hero-radial {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(123,17,19,0.08), transparent 60%),
+      radial-gradient(1000px 700px at 100% 100%, rgba(212,175,55,0.12), transparent 60%),
+      linear-gradient(135deg, #fef7ee, #faf5f0, #f5ede4);
+  }
+
+  /* Hero overlay — tidak terlalu gelap */
+  html:not(.dark) .bg-hero-radial > [aria-hidden]:nth-child(2) {
+    background: rgba(255,255,255,0.4) !important;
+  }
+
+  /* Badge emas untuk light */
+  html:not(.dark) [class*="border-gold"] {
+    border-color: rgba(212, 175, 55, 0.4);
+  }
+
+  /* Button gold — lebih vibrant di light */
+  html:not(.dark) .from-gold-300,
+  html:not(.dark) .via-gold,
+  html:not(.dark) .to-gold-600 {
+    filter: brightness(0.95);
+  }
+
+  /* Card hover emas */
+  html:not(.dark) .hover\:border-gold\/30:hover {
+    border-color: rgba(212, 175, 55, 0.4);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+  }
+
+  /* Chevronquered pattern — subtle red */
+  html:not(.dark) .chequered {
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(123, 17, 19, 0.04) 0 12px,
+      transparent 12px 24px
+    );
+  }
+
+  /* Footer — merah gelap emas */
+  html:not(.dark) footer {
+    background: linear-gradient(135deg, rgba(123,17,19,0.06), rgba(212,175,55,0.04));
+    border-top-color: rgba(123, 17, 19, 0.12);
+  }
+
+  /* Scrollbar light — merah emas */
+  html:not(.dark) ::-webkit-scrollbar-track {
+    background: linear-gradient(180deg, #faf5f0, #f0e8de);
+  }
+  html:not(.dark) ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #7b1113, #d4af37);
+    border-radius: 8px;
   }
 }
 
@@ -139,12 +236,12 @@
   );
 }
 
-/* Scrollbar light mode */
+/* Scrollbar light mode — merah emas */
 html:not(.dark) ::-webkit-scrollbar-track {
-  background: #e8e8e8;
+  background: linear-gradient(180deg, #faf5f0, #f0e8de);
 }
 html:not(.dark) ::-webkit-scrollbar-thumb {
-  background: linear-gradient(#b8941e, #d4af37);
+  background: linear-gradient(180deg, #7b1113, #d4af37);
 }
 
 /* Entrance animations */
@@ -214,16 +311,61 @@ html:not(.dark) ::-webkit-scrollbar-thumb {
   opacity: 0;
 }
 
-/* Light mode card text overrides */
-html:not(.dark) .text-zinc-100 { color: #18181b; }
-html:not(.dark) .text-zinc-200 { color: #27272a; }
-html:not(.dark) .text-zinc-300 { color: #3f3f46; }
-html:not(.dark) .text-zinc-400 { color: #52525b; }
-html:not(.dark) .text-zinc-500 { color: #71717a; }
-html:not(.dark) .text-zinc-600 { color: #a1a1aa; }
-html:not(.dark) .bg-white\/5 { background-color: rgba(0, 0, 0, 0.04); }
-html:not(.dark) .bg-white\/10 { background-color: rgba(0, 0, 0, 0.06); }
-html:not(.dark) .border-white\/10 { border-color: rgba(0, 0, 0, 0.08); }
-html:not(.dark) .border-white\/15 { border-color: rgba(0, 0, 0, 0.1); }
-html:not(.dark) .bg-black\/30 { background-color: rgba(0, 0, 0, 0.04); }
-html:not(.dark) .bg-black\/20 { background-color: rgba(0, 0, 0, 0.03); }
+/* Light mode — teks merah emas */
+html:not(.dark) .text-zinc-100 { color: #2c1810; }
+html:not(.dark) .text-zinc-200 { color: #3d2518; }
+html:not(.dark) .text-zinc-300 { color: #5a3d2a; }
+html:not(.dark) .text-zinc-400 { color: #7a5a42; }
+html:not(.dark) .text-zinc-500 { color: #9a7a62; }
+html:not(.dark) .text-zinc-600 { color: #b89a82; }
+
+/* Light mode — background merah emas transparan */
+html:not(.dark) .bg-white\/5 { background-color: rgba(123, 17, 19, 0.04); }
+html:not(.dark) .bg-white\/10 { background-color: rgba(123, 17, 19, 0.06); }
+html:not(.dark) .bg-white\/15 { background-color: rgba(123, 17, 19, 0.08); }
+
+/* Light mode — border merah emas */
+html:not(.dark) .border-white\/10 { border-color: rgba(123, 17, 19, 0.1); }
+html:not(.dark) .border-white\/15 { border-color: rgba(123, 17, 19, 0.15); }
+
+/* Light mode — background gelap transparan */
+html:not(.dark) .bg-black\/30 { background-color: rgba(123, 17, 19, 0.05); }
+html:not(.dark) .bg-black\/20 { background-color: rgba(123, 17, 19, 0.03); }
+
+/* Light mode — emas border & shadow */
+html:not(.dark) .border-gold\/20 { border-color: rgba(212, 175, 55, 0.3); }
+html:not(.dark) .border-gold\/30 { border-color: rgba(212, 175, 55, 0.4); }
+html:not(.dark) .border-gold\/40 { border-color: rgba(212, 175, 55, 0.5); }
+html:not(.dark) .shadow-glow { box-shadow: 0 0 30px rgba(212, 175, 55, 0.25); }
+
+/* Light mode — input focus emas */
+html:not(.dark) .focus\:border-gold\/60:focus {
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+/* Light mode — hover crimson */
+html:not(.dark) .hover\:bg-crimson-800\/60:hover {
+  background-color: rgba(123, 17, 19, 0.12);
+}
+
+/* Light mode — badge green */
+html:not(.dark) .border-emerald-500\/40 {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+html:not(.dark) .bg-emerald-500\/10 {
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
+/* Light mode — badge red */
+html:not(.dark) .border-red-500\/40 {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+html:not(.dark) .bg-red-500\/10 {
+  background-color: rgba(239, 68, 68, 0.08);
+}
+
+/* Light mode — countdown timer */
+html:not(.dark) .border-white\/20 {
+  border-color: rgba(123, 17, 19, 0.15);
+}
