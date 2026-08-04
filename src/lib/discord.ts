@@ -170,6 +170,41 @@ export async function sendDiscordExamReport(report: ExamReportInput): Promise<st
   }
 }
 
+// Kirim notifikasi singkat ke channel instruktur (aksi admin / pengumuman).
+// Best-effort: gagal tidak melempar error.
+export async function sendAdminNotification(title: string, message: string): Promise<void> {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  const payload: DiscordPayload = {
+    username: process.env.DISCORD_BOT_NAME ?? "Sistem Rekrutmen Bareskrim Polri",
+    embeds: [
+      {
+        title,
+        description: message,
+        color: 0xd4af37,
+        timestamp: new Date().toISOString(),
+        footer: { text: "Sistem Rekrutmen Bareskrim Polri | Panel Admin" },
+      },
+    ],
+  };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5_000);
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    console.error("Admin notification webhook failed", e);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Hapus laporan yang sudah dikirim ke channel pusdik.
 // Dipanggil saat rekap nilai dihapus di panel admin.
 export interface DiscordDeleteResult {

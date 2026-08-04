@@ -34,6 +34,16 @@ function rankBlockedResponse(rankName: string | null) {
   );
 }
 
+// Apakah user sudah absen pada periode aktif? (by userId terverifikasi)
+async function needsAbsen(userId: string): Promise<boolean> {
+  const activePeriod = await prisma.examPeriod.findFirst({ where: { isActive: true } });
+  if (!activePeriod) return false;
+  const count = await prisma.attendance.count({
+    where: { periodId: activePeriod.id, tahap: "AKADEMIK", userId },
+  });
+  return count === 0;
+}
+
 export async function POST(req: Request) {
   const limited = verifyLimiter.check(clientIp(req));
   if (!limited.ok) {
@@ -79,9 +89,12 @@ export async function POST(req: Request) {
           where: { id: cached.id },
           data: { discordUsername: parsed.data.discordUsername },
         });
+        const mustAbsen = await needsAbsen(cached.id);
         await createSessionCookie(cached.id, Number(cached.robloxId));
         return NextResponse.json({
           success: true,
+          code: mustAbsen ? "NO_ATTENDANCE" : undefined,
+          needsAbsen: mustAbsen,
           user: {
             robloxId: Number(cached.robloxId),
             username: cached.username,
@@ -217,10 +230,33 @@ export async function POST(req: Request) {
       return rankBlockedResponse(policeRole?.roleName ?? null);
     }
 
+    // 10) Link absensi: update attendance records yangbelum di-link ke user
+    try {
+      const activePeriod = await prisma.examPeriod.findFirst({
+        where: { isActive: true },
+      });
+      if (activePeriod && parsed.data.discordUsername) {
+        await prisma.attendance.updateMany({
+          where: {
+            periodId: activePeriod.id,
+            discordUserId: parsed.data.discordUsername.trim(),
+            userId: null,
+          },
+          data: { userId: user.id },
+        });
+      }
+    } catch (e) {
+      console.error("Failed to link attendance:", e);
+      // Tidak fatal, user bisa coba lagi
+    }
+
+    const mustAbsen = await needsAbsen(user.id);
     await createSessionCookie(user.id, Number(user.robloxId));
 
     return NextResponse.json({
       success: true,
+      code: mustAbsen ? "NO_ATTENDANCE" : undefined,
+      needsAbsen: mustAbsen,
       user: {
         robloxId: Number(user.robloxId),
         username: user.username,

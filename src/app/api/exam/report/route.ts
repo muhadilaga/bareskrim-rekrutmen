@@ -66,12 +66,58 @@ export async function POST(req: Request) {
         where: { id: result.id },
         data: { discordMessageId: messageId },
       });
+      // Retry berhasil, hapus dari queue jika ada
+      await prisma.pendingDiscordReport.deleteMany({ where: { resultId: result.id } });
       return NextResponse.json({ ok: true, message: "Laporan Discord terkirim." });
     }
 
-    return NextResponse.json({ ok: true, message: "Hasil tersimpan, laporan Discord gagal dikirim." });
+    // Gagal mengirim Discord - simpan ke queue untuk retry
+    const payload = buildRetryPayload(result, details);
+    await prisma.pendingDiscordReport.upsert({
+      where: { resultId: result.id },
+      create: { resultId: result.id, payload },
+      update: { payload, attempts: { increment: 1 } },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message: "Hasil tersimpan, laporan Discord gagal dikirim dan dimasukkan ke antrean retry.",
+      queued: true,
+    });
   } catch (e) {
     console.error("exam report error", e);
     return NextResponse.json({ ok: false, message: "Terjadi kesalahan server." }, { status: 500 });
   }
+}
+
+// Helper: build payload JSON untuk retry
+function buildRetryPayload(
+  result: {
+    id: string;
+    score: number;
+    maxScore: number;
+    mcqScore: number;
+    essayScore: number;
+    status: string;
+    attempt: {
+      user: { username: string; displayName: string; robloxId: number; avatarUrl: string | null; policeGroupRank: string | null };
+      period: { name: string };
+    };
+  },
+  details: GradedAnswerDetail[]
+): Record<string, unknown> {
+  return {
+    username: result.attempt.user.username,
+    displayName: result.attempt.user.displayName,
+    robloxId: Number(result.attempt.user.robloxId),
+    avatarUrl: result.attempt.user.avatarUrl,
+    policeRank: result.attempt.user.policeGroupRank,
+    score: result.score,
+    maxScore: result.maxScore,
+    mcqScore: result.mcqScore,
+    essayScore: result.essayScore,
+    status: result.status,
+    periodName: result.attempt.period.name,
+    details,
+  };
 }

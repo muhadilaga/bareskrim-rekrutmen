@@ -71,6 +71,7 @@ export async function POST(req: Request) {
         essayScore: result.essayScore,
         status: result.status,
         passed: result.passed,
+        kkm: result.attempt.period.passThreshold ?? 75,
         submittedAt: result.submittedAt.toISOString(),
         answersJson: [] as never,
         attempt: {

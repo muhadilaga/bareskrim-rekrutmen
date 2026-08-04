@@ -18,7 +18,43 @@ import type { User } from "@prisma/client";
 
 export type ExamSessionResult =
   | { ok: true; attemptId: string; questions: ClientQuestion[]; remainingSeconds: number; period: { name: string; description: string | null } }
-  | { ok: false; code: "NO_ACTIVE_PERIOD" | "ALREADY_SUBMITTED" | "RANK_BLOCKED"; message: string };
+  | { ok: false; code: "NO_ACTIVE_PERIOD" | "ALREADY_SUBMITTED" | "RANK_BLOCKED" | "PERIOD_CLOSED" | "NO_ATTENDANCE" | "NO_ROLE"; message: string };
+
+// Cek apakah user sudah absen pada periode tertentu.
+// HANYA berdasarkan userId (identitas terverifikasi) — TIDAK berdasarkan
+// discordUserId karena itu input bebas user dan bisa dipalsukan (orang lain
+// bisa meniru username Discord casis yang sudah absen).
+export async function hasAttendance(userId: string, periodId: string) {
+  return prisma.attendance.findFirst({
+    where: {
+      periodId,
+      tahap: "AKADEMIK",
+      userId,
+    },
+  });
+}
+
+// Cek role "Tahap Akademik" di Discord via bot. Return:
+//   { ok: true, hasRole: boolean }  atau  { ok: false } bila bot tak terjangkau.
+async function checkAcademicRole(discordUsername: string): Promise<{ ok: boolean; hasRole: boolean }> {
+  try {
+    const res = await fetch(
+      `${CONFIG.discordBotApiUrl}/api/check-role/${encodeURIComponent(discordUsername)}/${encodeURIComponent("Tahap Akademik")}`,
+      {
+        headers: { "x-bot-secret": CONFIG.discordBotSecret },
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      return { ok: true, hasRole: data.hasRole === true };
+    }
+    return { ok: false, hasRole: false };
+  } catch (e) {
+    console.error("checkAcademicRole bot error:", e);
+    return { ok: false, hasRole: false };
+  }
+}
 
 // Mulai / lanjutkan sesi ujian untuk user pada periode aktif
 export async function startExamSession(user: User): Promise<ExamSessionResult> {
@@ -46,6 +82,27 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
       ok: false,
       code: "NO_ACTIVE_PERIOD",
       message: "Periode rekrutmen belum dibuka oleh instruktur.",
+    };
+  }
+
+  // Cek apakah periode sudah ditutup (closedAt)
+  if (period.closedAt && new Date() > period.closedAt) {
+    return {
+      ok: false,
+      code: "PERIOD_CLOSED",
+      message: "Periode ujian sudah ditutup oleh instruktur. Tidak bisa mengakses soal lagi.",
+    };
+  }
+
+  // Gerbang absensi: tanpa record absen, soal tidak bisa diakses
+  // lewat halaman maupun API (session). Attendance yang belum ter-link
+  // ke user (userId kosong) di-link otomatis di sini.
+  const attendance = await hasAttendance(user.id, period.id);
+  if (!attendance) {
+    return {
+      ok: false,
+      code: "NO_ATTENDANCE",
+      message: "Anda belum melakukan absensi untuk periode ini. Silakan absen terlebih dahulu.",
     };
   }
 
@@ -92,7 +149,10 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
     prisma.question.findMany({ where: { type: "ESSAY", isActive: true } }),
   ]);
 
-  if (mcqs.length < CONFIG.mcqCount || essays.length < CONFIG.essayCount) {
+  const mcqCount = period.mcqCount ?? CONFIG.mcqCount;
+  const essayCount = period.essayCount ?? CONFIG.essayCount;
+
+  if (mcqs.length < mcqCount || essays.length < essayCount) {
     return {
       ok: false,
       code: "NO_ACTIVE_PERIOD",
@@ -100,10 +160,25 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
     };
   }
 
+  // Gerbang role "Tahap Akademik": hanya berlaku saat memulai attempt baru.
+  // Jika bot tidak terjangkau, check dianggap lolos (tidak memblokir semua user
+  // gara-gara bot down); hanya ditolak bila bot menjawab & role tidak ada.
+  if (user.discordUsername) {
+    const roleCheck = await checkAcademicRole(user.discordUsername);
+    if (roleCheck.ok && !roleCheck.hasRole) {
+      return {
+        ok: false,
+        code: "NO_ROLE",
+        message:
+          "Role Tahap Akademik belum terpasang di Discord Anda. Hubungi admin untuk melakukan absensi / verifikasi ulang terlebih dahulu.",
+      };
+    }
+  }
+
   // Subset soal dipilih oleh seed periode (sama utk semua casis), tetapi
   // urutan soal & posisi opsi diacak per username agar tiap casis berbeda.
   const userSeed = hashString(`${period.id}:${user.id}`);
-  const snapshot = buildQuestionSet(mcqs, essays, period.seed, userSeed);
+  const snapshot = buildQuestionSet(mcqs, essays, period.seed, userSeed, mcqCount, essayCount);
 
   const attempt = await prisma.examAttempt.create({
     data: {
@@ -130,7 +205,7 @@ export interface SubmitExamInput {
 
 export type SubmitExamResult =
   | { ok: true; resultId: string }
-  | { ok: false; code: "NOT_FOUND" | "ALREADY_SUBMITTED" | "EXPIRED" | "INVALID"; message: string };
+  | { ok: false; code: "NOT_FOUND" | "ALREADY_SUBMITTED" | "EXPIRED" | "INVALID" | "NO_ATTENDANCE"; message: string };
 
 // Submit & auto-grade secara server-side (laporan Discord dikirim
 // terpisah lewat /api/exam/report agar submit tidak kena timeout).
@@ -141,10 +216,22 @@ export async function submitExam(
   await ensureSchema();
   const attempt = await prisma.examAttempt.findUnique({
     where: { id: input.attemptId },
+    include: { period: true },
   });
 
   if (!attempt || attempt.userId !== user.id) {
     return { ok: false, code: "NOT_FOUND", message: "Sesi ujian tidak ditemukan." };
+  }
+
+  // Gerbang absensi: submit ditolak bila attendance untuk periode ini hilang
+  // (misal absen dihapus admin di tengah pengerjaan).
+  const attendance = await hasAttendance(user.id, attempt.periodId);
+  if (!attendance) {
+    return {
+      ok: false,
+      code: "NO_ATTENDANCE",
+      message: "Absensi Anda untuk periode ini tidak ditemukan. Hubungi admin.",
+    };
   }
 
   if (attempt.submittedAt) {
@@ -168,7 +255,7 @@ export async function submitExam(
     answersMap[a.questionId] = a.answer.slice(0, 4000);
   }
 
-  const graded = gradeExam(snapshot, answersMap);
+  const graded = gradeExam(snapshot, answersMap, attempt.period.passThreshold ?? CONFIG.kkm);
 
   // CATATAN: jangan pakai $transaction(async ...) interaktif di sini.
   // Dengan Supabase pooler (pgbouncer=true) di lingkungan serverless,

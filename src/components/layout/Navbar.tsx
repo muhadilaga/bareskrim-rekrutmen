@@ -6,7 +6,7 @@ import { Logo } from "@/components/ui/Logo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const links = [
-  { href: "/", label: "Beranda" },
+  { href: "/absen", label: "Absen" },
   { href: "/login", label: "Daftar Ujian" },
   { href: "/hasil", label: "Hasil" },
   { href: "/admin", label: "Admin" },
@@ -14,38 +14,62 @@ const links = [
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 glass-strong border-b border-gold/20">
+    <header className="fixed top-0 z-50 w-full border-b border-gold/20 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/30">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/">
-          <Logo />
-        </Link>
-
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-1 md:flex">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="rounded-md px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="hidden items-center gap-2 md:flex">
-          <ThemeToggle />
+        {/* Logo + Home button */}
+        <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center">
+            <Logo />
+          </Link>
           <Link
-            href="/login"
-            className="rounded-md border border-gold/40 bg-gradient-to-r from-crimson-800 to-crimson px-4 py-2 text-sm font-semibold text-gold shadow-glow transition hover:from-crimson hover:to-crimson-700"
+            href="/"
+            className="hidden items-center gap-2 rounded-md border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-4 py-2 text-sm font-semibold text-crimson-950 shadow-glow transition hover:brightness-110 sm:inline-flex"
+            title="Beranda"
           >
-            Mulai Ujian
+            <span>🏠</span>
+            <span>Beranda</span>
           </Link>
         </div>
 
-        {/* Mobile buttons */}
+        {/* Desktop: satu tombol dropdown + toggle */}
+        <div className="hidden items-center gap-2 md:flex">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-md border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-4 py-2 text-sm font-semibold text-crimson-950 shadow-glow transition hover:brightness-110"
+              aria-label="Menu navigasi"
+            >
+              <span>⚙️</span>
+              <span>Menu</span>
+            </button>
+
+            {menuOpen && (
+              <nav
+                className="absolute top-full right-0 z-50 mt-2 w-48 rounded-md border border-gold/20 bg-black/80 backdrop-blur-sm shadow-glow"
+              >
+                <div className="flex flex-col py-1">
+                  {links.map((l) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setMenuOpen(false)}
+                      className="px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold"
+                    >
+                      {l.label}
+                    </Link>
+                  ))}
+                </div>
+              </nav>
+            )}
+          </div>
+          <ThemeToggle />
+        </div>
+
+        {/* Mobile: hamburger */}
         <div className="flex items-center gap-1 md:hidden">
           <ThemeToggle />
           <button
@@ -67,9 +91,9 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile dropdown menu */}
+      {/* Mobile dropdown */}
       {open && (
-        <nav className="border-t border-white/10 px-4 pb-4 pt-2 md:hidden">
+        <nav className="border-t border-white/10 bg-black/50 px-4 pb-4 pt-2 md:hidden">
           <div className="flex flex-col gap-1">
             {links.map((l) => (
               <Link
@@ -82,13 +106,6 @@ export function Navbar() {
               </Link>
             ))}
           </div>
-          <Link
-            href="/login"
-            onClick={() => setOpen(false)}
-            className="mt-2 block rounded-md border border-gold/40 bg-gradient-to-r from-crimson-800 to-crimson px-4 py-2.5 text-center text-sm font-semibold text-gold shadow-glow transition hover:from-crimson hover:to-crimson-700"
-          >
-            Mulai Ujian
-          </Link>
         </nav>
       )}
     </header>

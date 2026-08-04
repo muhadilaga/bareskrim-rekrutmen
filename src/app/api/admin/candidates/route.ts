@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getAdminKey } from "@/lib/constants";
 import { deleteDiscordExamReport } from "@/lib/discord";
 import { ensureSchema } from "@/lib/init-schema";
+import { logAdminAction } from "@/lib/audit";
 
 function isAdmin(req: Request): boolean {
   return req.headers.get("x-admin-key") === getAdminKey();
@@ -50,6 +51,7 @@ export async function GET(req: Request) {
       periodName: r.attempt.period.name,
       submittedAt: r.submittedAt,
       discordMessageId: r.discordMessageId ?? null,
+      answersJson: r.answersJson ?? [],
     }));
 
     return NextResponse.json({ ok: true, rows });
@@ -77,10 +79,14 @@ export async function DELETE(req: Request) {
 
   try {
     await ensureSchema();
-    const result = await prisma.examResult.findUnique({ where: { id } });
+    const result = await prisma.examResult.findUnique({
+      where: { id },
+      include: { attempt: { include: { user: { select: { username: true } } } } },
+    });
     if (!result) {
       return NextResponse.json({ ok: false, message: "Rekap nilai tidak ditemukan." }, { status: 404 });
     }
+    const targetUsername = result.attempt?.user?.username ?? result.attemptId;
 
     // Hapus laporan Discord terkait (best-effort; kegagalan tidak membatalkan hapus DB).
     let discordNote = "Tanpa laporan Discord tersimpan (rekap lama).";
@@ -101,6 +107,11 @@ export async function DELETE(req: Request) {
     }
 
     await prisma.examAttempt.delete({ where: { id: result.attemptId } });
+    await logAdminAction({
+      action: "HAPUS_REKAP",
+      target: targetUsername,
+      detail: { score: result.score, status: result.status },
+    });
     return NextResponse.json({
       ok: true,
       message: `Rekap nilai dihapus. ${discordNote} Casis dapat mengikuti ujian kembali.`,

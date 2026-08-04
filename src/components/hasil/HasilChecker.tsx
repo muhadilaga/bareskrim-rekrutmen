@@ -16,7 +16,7 @@ interface HasilApiResponse {
   result?: ResultPayload;
 }
 
-export function HasilChecker({ kkm }: { kkm: number }) {
+export function HasilChecker({ kkm: defaultKkm }: { kkm: number }) {
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +85,7 @@ export function HasilChecker({ kkm }: { kkm: number }) {
             Kembali ke Beranda
           </Link>
         </div>
-        <ResultCard result={result} kkm={kkm} showAnswers={false} />
+        <ResultCard result={result} kkm={result.kkm ?? defaultKkm} showAnswers={false} />
       </div>
     );
   }

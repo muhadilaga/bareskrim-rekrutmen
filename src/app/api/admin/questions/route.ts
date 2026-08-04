@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma, QuestionType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAdminKey } from "@/lib/constants";
+import { logAdminAction } from "@/lib/audit";
 
 function isAdmin(req: Request): boolean {
   return req.headers.get("x-admin-key") === getAdminKey();
@@ -81,6 +82,12 @@ export async function POST(req: Request) {
               points: data.points,
             },
           });
+
+    await logAdminAction({
+      action: "TAMBAH_SOAL",
+      target: data.type === "MCQ" ? "MCQ" : "ESSAY",
+      detail: { points: data.points },
+    });
 
     return NextResponse.json({ ok: true, question });
   } catch (e) {

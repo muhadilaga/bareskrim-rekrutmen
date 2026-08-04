@@ -51,6 +51,10 @@ const statements: string[] = [
   `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "discordUsername" TEXT;`,
   `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "policeGroupRankNumber" INTEGER;`,
   `ALTER TABLE "ExamResult" ADD COLUMN IF NOT EXISTS "discordMessageId" TEXT;`,
+  // Kolom konfigurasi periode (jumlah soal + KKM)
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "mcqCount" INTEGER;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "essayCount" INTEGER;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "passThreshold" INTEGER NOT NULL DEFAULT 75;`,
 
   // ===== Periode Rekrutmen =====
   `CREATE TABLE IF NOT EXISTS "ExamPeriod" (
@@ -141,6 +145,28 @@ const statements: string[] = [
      CONSTRAINT "VerdictEntry_pkey" PRIMARY KEY ("id")
    );`,
 
+  // ===== Audit Log Admin =====
+  `CREATE TABLE IF NOT EXISTS "AdminLog" (
+     "id" TEXT NOT NULL,
+     "action" TEXT NOT NULL,
+     "target" TEXT,
+     "detail" JSONB,
+     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     CONSTRAINT "AdminLog_pkey" PRIMARY KEY ("id")
+   );`,
+
+  // ===== Antrean Laporan Discord (retry) =====
+  `CREATE TABLE IF NOT EXISTS "PendingDiscordReport" (
+     "id" TEXT NOT NULL,
+     "resultId" TEXT NOT NULL,
+     "payload" JSONB NOT NULL,
+     "attempts" INTEGER NOT NULL DEFAULT 0,
+     "lastError" TEXT,
+     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     CONSTRAINT "PendingDiscordReport_pkey" PRIMARY KEY ("id")
+   );`,
+
   // ===== Index Unik =====
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_robloxId_key" ON "User"("robloxId");`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");`,
@@ -159,6 +185,10 @@ const statements: string[] = [
   `CREATE INDEX IF NOT EXISTS "BlacklistEntry_category_idx" ON "BlacklistEntry"("category");`,
   `CREATE INDEX IF NOT EXISTS "BlacklistEntry_username_idx" ON "BlacklistEntry"("username");`,
   `CREATE INDEX IF NOT EXISTS "VerdictEntry_username_idx" ON "VerdictEntry"("username");`,
+  `CREATE INDEX IF NOT EXISTS "AdminLog_createdAt_idx" ON "AdminLog"("createdAt");`,
+  `CREATE INDEX IF NOT EXISTS "AdminLog_action_idx" ON "AdminLog"("action");`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "PendingDiscordReport_resultId_key" ON "PendingDiscordReport"("resultId");`,
+  `CREATE INDEX IF NOT EXISTS "PendingDiscordReport_createdAt_idx" ON "PendingDiscordReport"("createdAt");`,
 ];
 
 export async function schemaExists(): Promise<boolean> {

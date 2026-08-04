@@ -37,6 +37,10 @@ export function LoginForm() {
         setError(json.message ?? "Verifikasi gagal.");
         return;
       }
+      if (json.code === "NO_ATTENDANCE") {
+        router.push("/absen?peringatan=absen");
+        return;
+      }
       setVerified(json);
     } catch {
       setError("Terjadi kesalahan jaringan. Coba lagi.");

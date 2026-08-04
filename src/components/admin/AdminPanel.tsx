@@ -1,12 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { CandidatesTab } from "@/components/admin/CandidatesTab";
 import { BlacklistTab } from "@/components/admin/BlacklistTab";
+import { CasisManagement } from "@/components/admin/CasisManagement";
+import { useToastContext } from "@/components/ui/Toast";
+
+interface Stats {
+  totalUsers: number;
+  totalAttendance: number;
+  totalAttempts: number;
+  totalResults: number;
+  passedResults: number;
+  failedResults: number;
+  inProgress: number;
+  passRate: number;
+  mcqCount: number;
+  essayCount: number;
+  periodId: string | null;
+}
+
+interface LogItem {
+  id: string;
+  action: string;
+  target: string | null;
+  detail: Record<string, unknown> | null;
+  createdAt: string;
+}
 
 interface PeriodItem {
   id: string;
@@ -14,9 +38,22 @@ interface PeriodItem {
   description: string | null;
   isActive: boolean;
   seed: number;
+  mcqCount: number | null;
+  essayCount: number | null;
+  passThreshold: number;
   openedAt: string;
   closedAt: string | null;
-  _count: { attempts: number };
+  _count: { attempts: number; attendances: number };
+  attempts: Array<{
+    id: string;
+    submittedAt: string | null;
+    user: { id: string; username: string; displayName: string; avatarUrl: string | null };
+  }>;
+  attendances: Array<{
+    id: string;
+    discordUserId: string | null;
+    user: { id: string; username: string; displayName: string } | null;
+  }>;
 }
 
 interface QuestionItem {
@@ -31,7 +68,9 @@ interface QuestionItem {
 }
 
 export function AdminPanel() {
-  const [key, setKey] = useState("");
+  const [key, setKey] = useState(
+    () => (typeof window !== "undefined" ? (sessionStorage.getItem("admin_key") ?? "") : "")
+  );
   const [showKey, setShowKey] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [periods, setPeriods] = useState<PeriodItem[]>([]);
@@ -39,10 +78,54 @@ export function AdminPanel() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [dbReady, setDbReady] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"periode" | "bank" | "rekap" | "data">("periode");
+  const [tab, setTab] = useState<"periode" | "bank" | "rekap" | "casis" | "data" | "log">("periode");
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [logs, setLogs] = useState<LogItem[]>([]);
+  const headers = { "Content-Type": "application/json", "x-admin-key": key };
+  const toast = useToastContext();
+
+  // Download backup JSON
+  const downloadBackup = useCallback(async () => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/backup", { headers });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setMsg(json);
+        setBusy(false);
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bareskrim-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      setMsg({ ok: true, text: "Backup JSON berhasil diunduh!" });
+    } catch {
+      setMsg({ ok: false, text: "Gagal mengunduh backup." });
+    } finally {
+      setBusy(false);
+    }
+  }, [headers]);
 
   // form periode
   const [periodName, setPeriodName] = useState("");
+  const [periodMcq, setPeriodMcq] = useState("");
+  const [periodEssay, setPeriodEssay] = useState("");
+  const [periodKkm, setPeriodKkm] = useState("");
+  // form edit periode (tanggal + konfigurasi)
+  const [editingDates, setEditingDates] = useState<{
+    id: string;
+    openedAt: string;
+    closedAt: string;
+    mcqCount: string;
+    essayCount: string;
+    passThreshold: string;
+  } | null>(null);
   // form soal
   const [qType, setQType] = useState<"MCQ" | "ESSAY">("MCQ");
   const [qPrompt, setQPrompt] = useState("");
@@ -51,7 +134,16 @@ export function AdminPanel() {
   const [qKeywords, setQKeywords] = useState("");
   const [qPoints, setQPoints] = useState(4);
 
-  const headers = { "Content-Type": "application/json", "x-admin-key": key };
+  // Auto-login saat mount jika sudah ada kunci tersimpan di session.
+  const initialCheckRef = useRef(false);
+  useEffect(() => {
+    if (initialCheckRef.current) return;
+    initialCheckRef.current = true;
+    if (sessionStorage.getItem("admin_key")) {
+      load();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const load = useCallback(async () => {
     const [p, q, d] = await Promise.all([
@@ -59,9 +151,15 @@ export function AdminPanel() {
       fetch("/api/admin/questions", { headers }),
       fetch("/api/admin/init", { headers }),
     ]);
-    if (!p.ok || !q.ok) {
+    // Hanya batalkan authed bila kunci ditolak server (401/403).
+    // Kegagalan lain (network, 5xx) TIDAK membuat user keluar.
+    if (p.status === 401 || p.status === 403 || q.status === 401 || q.status === 403) {
       setAuthed(false);
       setMsg({ ok: false, text: "Kunci admin salah." });
+      return;
+    }
+    if (!p.ok || !q.ok) {
+      setMsg({ ok: false, text: "Gagal memuat data. Coba lagi." });
       return;
     }
     const pj = await p.json();
@@ -71,7 +169,18 @@ export function AdminPanel() {
     setQuestions(qj.questions);
     setDbReady(dj?.initialized ?? true);
     setAuthed(true);
-  }, [headers]);
+    // Simpan kunci agar tidak perlu memasukkan ulang saat pindah panel/refresh.
+    if (key) sessionStorage.setItem("admin_key", key);
+    // Muat statistik & log secara best-effort
+    fetch("/api/admin/stats", { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((sj) => setStats(sj?.stats ?? null))
+      .catch(() => {});
+    fetch("/api/admin/logs?limit=30", { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((lj) => setLogs(lj?.logs ?? []))
+      .catch(() => {});
+  }, [headers, key]);
 
   async function initDb() {
     setBusy(true);
@@ -86,14 +195,55 @@ export function AdminPanel() {
   async function openPeriod() {
     if (!periodName.trim()) return;
     setBusy(true);
+    const body: Record<string, unknown> = { name: periodName.trim() };
+    if (periodMcq.trim()) body.mcqCount = Number(periodMcq.trim());
+    if (periodEssay.trim()) body.essayCount = Number(periodEssay.trim());
+    if (periodKkm.trim()) body.passThreshold = Number(periodKkm.trim());
     const res = await fetch("/api/admin/period", {
       method: "POST",
       headers,
-      body: JSON.stringify({ name: periodName.trim() }),
+      body: JSON.stringify(body),
     });
     const json = await res.json();
     setMsg(json);
     setPeriodName("");
+    setPeriodMcq("");
+    setPeriodEssay("");
+    setPeriodKkm("");
+    setBusy(false);
+    if (json.ok) await load();
+  }
+
+  // Format ISO -> nilai input datetime-local (waktu lokal browser)
+  function toLocalInputValue(d: string | null): string {
+    if (!d) return "";
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(
+      dt.getHours()
+    )}:${pad(dt.getMinutes())}`;
+  }
+
+  async function savePeriodDates() {
+    if (!editingDates) return;
+    setBusy(true);
+    const body: Record<string, unknown> = { periodId: editingDates.id, action: "edit" };
+    if (editingDates.openedAt) body.openedAt = new Date(editingDates.openedAt).toISOString();
+    if (editingDates.closedAt) body.closedAt = new Date(editingDates.closedAt).toISOString();
+    else body.closedAt = null;
+    if (editingDates.mcqCount.trim()) body.mcqCount = Number(editingDates.mcqCount.trim());
+    if (editingDates.essayCount.trim()) body.essayCount = Number(editingDates.essayCount.trim());
+    if (editingDates.passThreshold.trim())
+      body.passThreshold = Number(editingDates.passThreshold.trim());
+    const res = await fetch("/api/admin/period", {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    setMsg(json);
+    setEditingDates(null);
     setBusy(false);
     if (json.ok) await load();
   }
@@ -228,6 +378,28 @@ export function AdminPanel() {
         </Card>
       )}
 
+      {/* Ringkasan Statistik */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "Casis Terdaftar", value: stats.totalUsers, icon: "👥" },
+            { label: "Absensi", value: stats.totalAttendance, icon: "✅" },
+            { label: "Ujian Selesai", value: stats.totalResults, icon: "📝" },
+            { label: "Lulus", value: `${stats.passedResults} (${stats.passRate}%)`, icon: "🎖️" },
+          ].map((s) => (
+            <Card key={s.label} strong className="p-4">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{s.icon}</span>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-zinc-400">{s.label}</p>
+                  <p className="font-display text-xl font-bold gold-text">{s.value}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
       {/* Navigasi tab */}
       <div className="flex overflow-hidden rounded-lg border border-white/15">
         {(
@@ -235,7 +407,9 @@ export function AdminPanel() {
             ["periode", "Periode"],
             ["bank", "Bank Soal"],
             ["rekap", "Rekap Nilai"],
+            ["casis", "Kelola Casis"],
             ["data", "Putusan & Blacklist"],
+            ["log", "Audit Log"],
           ] as [typeof tab, string][]
         ).map(([t, label]) => (
           <button
@@ -250,15 +424,107 @@ export function AdminPanel() {
         ))}
       </div>
 
+      {tab === "log" && (
+        <Card strong className="p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-bold gold-text">📋 Audit Log</h2>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={async () => {
+                  if (!confirm("Retry semua laporan Discord yang gagal? Maksimal 3x per laporan."))
+                    return;
+                  setBusy(true);
+                  const res = await fetch("/api/cron/discord-retry", { method: "GET", headers });
+                  const json = await res.json();
+                  setMsg(json);
+                  setBusy(false);
+                  if (json.ok) {
+                    toast.success(json.message);
+                    if (json.processed > 0) await load();
+                  } else {
+                    toast.error(json.message ?? "Gagal retry.");
+                  }
+                }}
+                disabled={busy}
+                className="text-xs text-gold/80 underline-offset-2 hover:text-gold hover:underline disabled:opacity-50"
+              >
+                Retry Discord
+              </button>
+              <button
+                onClick={() =>
+                  fetch("/api/admin/logs?limit=30", { headers })
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((lj) => setLogs(lj?.logs ?? []))
+                    .catch(() => {})
+                }
+                className="text-xs text-gold/80 underline-offset-2 hover:underline"
+              >
+                Muat ulang
+              </button>
+              <button
+                onClick={async () => {
+                  if (!confirm("Hapus seluruh log audit? Tindakan ini tidak dapat dibatalkan."))
+                    return;
+                  setBusy(true);
+                  const res = await fetch("/api/admin/logs", { method: "DELETE", headers });
+                  const json = await res.json();
+                  setMsg(json);
+                  setBusy(false);
+                  if (json.ok) {
+                    setLogs([]);
+                    toast.success(json.message);
+                  } else {
+                    toast.error(json.message ?? "Gagal menghapus log.");
+                  }
+                }}
+                disabled={busy || logs.length === 0}
+                className="text-xs text-red-400/80 underline-offset-2 hover:text-red-300 hover:underline disabled:opacity-50"
+              >
+                Hapus Semua Log
+              </button>
+            </div>
+          </div>
+          <div className="gold-line my-3" />
+          {logs.length === 0 ? (
+            <p className="text-sm text-zinc-500">Belum ada aktivitas admin tercatat.</p>
+          ) : (
+            <div className="space-y-2">
+              {logs.map((log) => (
+                <div key={log.id} className="rounded-lg border border-white/10 bg-white/5 p-3">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="rounded bg-crimson-800/60 px-2 py-0.5 font-mono text-xs font-bold text-gold">
+                      {log.action}
+                    </span>
+                    {log.target && <span className="text-zinc-200">{log.target}</span>}
+                    <span className="ml-auto font-mono text-xs text-zinc-500">
+                      {new Date(log.createdAt).toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                  {log.detail && Object.keys(log.detail).length > 0 && (
+                    <pre className="mt-2 whitespace-pre-wrap font-mono text-xs text-zinc-400">
+                      {JSON.stringify(log.detail, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
       {tab === "periode" && (
         <>
       {/* Periode */}
       <Card strong className="p-6">
         <h2 className="font-display text-lg font-bold gold-text">🕐 Kelola Periode Rekrutmen</h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          Membuka periode baru otomatis menutup periode lama dan mengacak ulang bank soal dengan seed
-          baru.
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Button variant="ghost" onClick={downloadBackup} disabled={busy} className="shrink-0">
+            {busy ? "Membuat backup..." : "Unduh Backup JSON"}
+          </Button>
+        </div>
+        <div className="mt-1 text-xs text-zinc-500">
+          <p>Membuka periode baru otomatis menutup periode lama dan mengacak ulang bank soal dengan seed baru.</p>
+        </div>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <input
             value={periodName}
@@ -269,26 +535,388 @@ export function AdminPanel() {
           <Button variant="gold" onClick={openPeriod} disabled={busy}>
             {busy ? "Proses..." : "Buka Periode Baru"}
           </Button>
+          <Button variant="ghost" onClick={load} disabled={busy} className="shrink-0">
+            {busy ? "Memuat..." : "Refresh Data"}
+          </Button>
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              Jumlah Soal MCQ (kosong = default 15)
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={periodMcq}
+              onChange={(e) => setPeriodMcq(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+              placeholder="15"
+              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              Jumlah Soal Essay (kosong = default 5)
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={periodEssay}
+              onChange={(e) => setPeriodEssay(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+              placeholder="5"
+              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              KKM / Nilai Lulus (kosong = default 75)
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={1000}
+              value={periodKkm}
+              onChange={(e) => setPeriodKkm(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
+              placeholder="75"
+              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+            />
+          </div>
         </div>
 
-        <div className="mt-5 space-y-2">
-          {periods.map((p) => (
-            <div
-              key={p.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3"
-            >
-              <div>
-                <p className="text-sm font-semibold text-zinc-100">{p.name}</p>
-                <p className="text-xs text-zinc-500">
-                  Seed: {p.seed} · Peserta: {p._count.attempts} ·{" "}
-                  {new Date(p.openedAt).toLocaleString("id-ID")}
-                </p>
+        <div className="mt-5 space-y-3">
+          {periods.map((p) => {
+            const mengerjakan = p.attempts.filter((a) => !a.submittedAt);
+            const selesai = p.attempts.filter((a) => a.submittedAt);
+            const absenOnly = p.attendances.filter(
+              (a) => !p.attempts.some((at) => at.user.id === a.user?.id)
+            );
+
+            return (
+              <div
+                key={p.id}
+                className="rounded-lg border border-white/10 bg-white/5 px-4 py-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-100">{p.name}</p>
+                    <p className="text-xs text-zinc-500">
+                      Seed: {p.seed} · Dibuka: {new Date(p.openedAt).toLocaleString("id-ID")}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      Soal: {p.mcqCount ?? "15"} MCQ · {p.essayCount ?? "5"} Essay · KKM: {p.passThreshold}
+                    </p>
+                    {p.closedAt && (
+                      <p className="text-xs text-red-400">
+                        Ditutup: {new Date(p.closedAt).toLocaleString("id-ID")}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge tone={p.isActive ? "green" : "neutral"}>
+                      {p.isActive ? "AKTIF" : "DITUTUP"}
+                    </Badge>
+                    <button
+                      onClick={() =>
+                        setEditingDates((cur) =>
+                          cur?.id === p.id
+                            ? null
+                            : {
+                                id: p.id,
+                                openedAt: toLocalInputValue(p.openedAt),
+                                closedAt: toLocalInputValue(p.closedAt),
+                                mcqCount: p.mcqCount != null ? String(p.mcqCount) : "",
+                                essayCount: p.essayCount != null ? String(p.essayCount) : "",
+                                passThreshold: String(p.passThreshold),
+                              }
+                        )
+                      }
+                      className="rounded-md border border-gold/40 px-2.5 py-1 text-xs text-gold transition hover:bg-gold/10"
+                    >
+                      {editingDates?.id === p.id ? "Batal" : "Edit Periode"}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm(p.isActive ? "Tutup periode ini?" : "Buka kembali periode ini?"))
+                          return;
+                        const action = p.isActive ? "close" : "reopen";
+                        const res = await fetch("/api/admin/period", {
+                          method: "PATCH",
+                          headers,
+                          body: JSON.stringify({ periodId: p.id, action }),
+                        });
+                        const json = await res.json();
+                        setMsg({ ok: json.ok, text: json.message });
+                        if (json.ok) await load();
+                      }}
+                      className={`rounded-md border px-2.5 py-1 text-xs transition ${
+                        p.isActive
+                          ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
+                          : "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+                      }`}
+                    >
+                      {p.isActive ? "Tutup" : "Buka"}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm("Reset ujian periode ini? Semua attempt dan hasil akan dihapus, tetapi attendance tetap. Casfis bisa mengikuti ujian lagi."))
+                          return;
+                        const res = await fetch("/api/admin/period", {
+                          method: "PATCH",
+                          headers,
+                          body: JSON.stringify({ periodId: p.id, action: "reset" }),
+                        });
+                        const json = await res.json();
+                        setMsg({ ok: json.ok, text: json.message });
+                        if (json.ok) {
+                          toast.success(json.message);
+                          await load();
+                        } else {
+                          toast.error(json.message ?? "Gagal mereset.");
+                        }
+                      }}
+                      className="rounded-md border border-orange-500/40 px-2.5 py-1 text-xs text-orange-400 transition hover:bg-orange-500/10"
+                    >
+                      Reset Ujian
+                    </button>
+                  </div>
+                </div>
+
+                {/* Form edit periode */}
+                {editingDates?.id === p.id && (
+                  <div className="mt-3 rounded-lg border border-gold/20 bg-gold/5 p-4">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                          Tanggal Dibuka
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={editingDates.openedAt}
+                          onChange={(e) =>
+                            setEditingDates((cur) =>
+                              cur ? { ...cur, openedAt: e.target.value } : cur
+                            )
+                          }
+                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                          Tanggal Ditutup (kosongkan = tanpa tanggal tutup)
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={editingDates.closedAt}
+                          onChange={(e) =>
+                            setEditingDates((cur) =>
+                              cur ? { ...cur, closedAt: e.target.value } : cur
+                            )
+                          }
+                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                          Jumlah Soal MCQ (kosong = default 15)
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={editingDates.mcqCount}
+                          onChange={(e) =>
+                            setEditingDates((cur) =>
+                              cur
+                                ? {
+                                    ...cur,
+                                    mcqCount: e.target.value.replace(/[^0-9]/g, "").slice(0, 2),
+                                  }
+                                : cur
+                            )
+                          }
+                          placeholder="15"
+                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                          Jumlah Soal Essay (kosong = default 5)
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={editingDates.essayCount}
+                          onChange={(e) =>
+                            setEditingDates((cur) =>
+                              cur
+                                ? {
+                                    ...cur,
+                                    essayCount: e.target.value.replace(/[^0-9]/g, "").slice(0, 2),
+                                  }
+                                : cur
+                            )
+                          }
+                          placeholder="5"
+                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                          KKM / Nilai Lulus
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={1000}
+                          value={editingDates.passThreshold}
+                          onChange={(e) =>
+                            setEditingDates((cur) =>
+                              cur
+                                ? {
+                                    ...cur,
+                                    passThreshold: e.target.value.replace(/[^0-9]/g, "").slice(0, 4),
+                                  }
+                                : cur
+                            )
+                          }
+                          placeholder="75"
+                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <Button
+                        variant="gold"
+                        onClick={savePeriodDates}
+                        disabled={busy}
+                        className="shrink-0"
+                      >
+                        {busy ? "Menyimpan..." : "Simpan Perubahan"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setEditingDates(null)}
+                        disabled={busy}
+                        className="shrink-0"
+                      >
+                        Batal
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Daftar Peserta */}
+                <div className="mt-3 border-t border-white/5 pt-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    Peserta ({p._count.attendances} absen · {p._count.attempts} ujian)
+                  </p>
+
+                  {p.attendances.length === 0 && p.attempts.length === 0 ? (
+                    <p className="text-xs text-zinc-600">Belum ada peserta.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {p.attendances.map((a) => {
+                        const attempt = p.attempts.find((at) => at.user.id === a.user?.id);
+                        const isDone = attempt?.submittedAt != null;
+                        const isWorking = attempt && !attempt.submittedAt;
+
+                        return (
+                          <div
+                            key={a.id}
+                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${
+                              isWorking
+                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                                : isDone
+                                  ? "border-white/10 bg-white/5 text-zinc-400"
+                                  : "border-gold/30 bg-gold/5 text-gold"
+                            }`}
+                            title={
+                              isWorking
+                                ? "Sedang mengerjakan"
+                                : isDone
+                                  ? `Selesai - ${new Date(attempt.submittedAt!).toLocaleString("id-ID")}`
+                                  : "Sudah absen, belum mulai"
+                            }
+                          >
+                            <span>{a.user?.displayName ?? a.discordUserId ?? "?"}</span>
+                            {isWorking && <span className="animate-pulse">●</span>}
+                            {isDone && <span>✓</span>}
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const name = a.user?.displayName ?? a.discordUserId ?? "?";
+                                if (!window.confirm(`Hapus absensi & ujian "${name}" dari periode ini?`))
+                                  return;
+                                const res = await fetch(`/api/admin/attendance?id=${encodeURIComponent(a.id)}`, {
+                                  method: "DELETE",
+                                  headers,
+                                });
+                                const json = await res.json();
+                                setMsg({ ok: json.ok, text: json.message });
+                                if (json.ok) {
+                                  toast.success(json.message);
+                                  await load();
+                                } else {
+                                  toast.error(json.message ?? "Gagal menghapus.");
+                                }
+                              }}
+                              aria-label="Hapus absensi"
+                              className="rounded px-1 text-xs text-zinc-500 transition hover:text-red-400"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+
+                      {/* Attempt tanpa absensi */}
+                      {p.attempts
+                        .filter((at) => !p.attendances.some((a) => a.user?.id === at.user.id))
+                        .map((at) => (
+                          <div
+                            key={at.id}
+                            className="flex items-center gap-1.5 rounded-md border border-red-400/30 bg-red-500/5 px-2 py-1 text-xs text-red-300"
+                            title={
+                              at.submittedAt
+                                ? `Ujian (tanpa absen) - Selesai ${new Date(at.submittedAt).toLocaleString("id-ID")}`
+                                : "Ujian (tanpa absen) - Sedang mengerjakan"
+                            }
+                          >
+                            <span>{at.user.displayName}</span>
+                            {at.submittedAt ? <span>✓</span> : <span className="animate-pulse">●</span>}
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!window.confirm(`Hapus ujian "${at.user.displayName}" dari periode ini?`))
+                                  return;
+                                const res = await fetch(`/api/admin/users?userId=${encodeURIComponent(at.user.id)}&periodId=${encodeURIComponent(p.id)}`, {
+                                  method: "DELETE",
+                                  headers,
+                                });
+                                const json = await res.json();
+                                setMsg({ ok: json.ok, text: json.message });
+                                if (json.ok) {
+                                  toast.success(json.message);
+                                  await load();
+                                } else {
+                                  toast.error(json.message ?? "Gagal menghapus.");
+                                }
+                              }}
+                              aria-label="Hapus ujian"
+                              className="rounded px-1 text-xs text-zinc-500 transition hover:text-red-400"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <Badge tone={p.isActive ? "green" : "neutral"}>
-                {p.isActive ? "AKTIF" : "DITUTUP"}
-              </Badge>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
         </>
@@ -389,6 +1017,7 @@ export function AdminPanel() {
       )}
 
       {tab === "rekap" && <CandidatesTab headers={headers} />}
+      {tab === "casis" && <CasisManagement headers={headers} onDeleted={() => load()} />}
       {tab === "data" && <BlacklistTab headers={headers} />}
     </div>
   );

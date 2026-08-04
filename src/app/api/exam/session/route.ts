@@ -25,9 +25,15 @@ export async function GET() {
 
   const result = await startExamSession(user);
   if (!result.ok) {
+    const status =
+      result.code === "ALREADY_SUBMITTED"
+        ? 409
+        : result.code === "NO_ATTENDANCE" || result.code === "NO_ROLE"
+          ? 403
+          : 400;
     return NextResponse.json(
       { ok: false, code: result.code, message: result.message },
-      { status: result.code === "ALREADY_SUBMITTED" ? 409 : 400 }
+      { status }
     );
   }
 

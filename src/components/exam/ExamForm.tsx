@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ClientQuestion } from "@/types";
 import { Card } from "@/components/ui/Card";
@@ -23,11 +23,29 @@ export function ExamForm({
   remainingSeconds?: number;
 }) {
   const router = useRouter();
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const saved = window.localStorage.getItem(`brk_answers_${attemptId}`);
+      return saved ? (JSON.parse(saved) as Record<string, string>) : {};
+    } catch {
+      return {};
+    }
+  });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const submittedRef = useRef(false);
+
+  // Simpan jawaban ke localStorage agar auto-submit saat waktu habis
+  // tetap mengirim jawaban asli meskipun halaman di-refresh.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(`brk_answers_${attemptId}`, JSON.stringify(answers));
+    } catch {
+      // abaikan bila storage penuh / tidak tersedia
+    }
+  }, [answers, attemptId]);
 
   const durationSeconds = durationMinutes * 60;
   const initialSeconds = remainingSeconds ?? durationSeconds;
@@ -60,6 +78,11 @@ export function ExamForm({
         submittedRef.current = false;
         setSubmitting(false);
         return;
+      }
+      try {
+        window.localStorage.removeItem(`brk_answers_${attemptId}`);
+      } catch {
+        // abaikan
       }
       // Kirim laporan Discord di request terpisah (best-effort) agar
       // respons submit tidak menunggu webhook dan tidak kena timeout.

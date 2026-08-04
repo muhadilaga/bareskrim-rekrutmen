@@ -53,7 +53,8 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  attempts ExamAttempt[]
+  attempts   ExamAttempt[]
+  attendances Attendance[]
 
   @@index([username])
 }
@@ -67,10 +68,15 @@ model ExamPeriod {
   description String?
   isActive    Boolean  @default(false)
   seed        Int      @unique // seed acak -> menentukan subset & urutan soal periode ini
+  // Konfigurasi periode (opsional; null = pakai nilai default di constants.ts)
+  mcqCount     Int? // jumlah soal pilihan ganda yang keluar
+  essayCount   Int? // jumlah soal essay yang keluar
+  passThreshold Int  @default(75) // nilai minimum untuk LULUS (KKM)
   openedAt    DateTime @default(now())
   closedAt    DateTime?
 
-  attempts ExamAttempt[]
+  attempts   ExamAttempt[]
+  attendances Attendance[]
 
   @@index([isActive])
 }
@@ -187,4 +193,53 @@ model VerdictEntry {
   createdAt DateTime      @default(now())
 
   @@index([username])
+}
+
+// ------------------------------------------------------------
+// Absensi Try Out (1x per periode per casis)
+// ------------------------------------------------------------
+model Attendance {
+  id            String   @id @default(cuid())
+  userId        String?  // nullable: diisi saat user login pertama kali
+  periodId      String
+  tahap         String   @default("AKADEMIK") // AKADEMIK = ujian+interview+fisik
+  status        String   @default("HADIR")
+  discordUserId String?  // Username Discord untuk assign role & linking
+  createdAt     DateTime @default(now())
+
+  user   User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  period ExamPeriod  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, periodId, tahap])
+  @@index([periodId])
+  @@index([discordUserId])
+}
+
+// ------------------------------------------------------------
+// Audit Log - jejak aksi instruktur/admin di panel
+// ------------------------------------------------------------
+model AdminLog {
+  id        String   @id @default(cuid())
+  action    String // mis. "BUKA_PERIODE", "HAPUS_CASIS", "TUTUP_PERIODE"
+  target    String? // target yang terkena aksi (username / nama periode / ID)
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+}
+
+// ------------------------------------------------------------
+// Antrean Laporan Discord yang gagal terkirim (retry otomatis)
+// ------------------------------------------------------------
+model PendingDiscordReport {
+  id        String   @id @default(cuid())
+  resultId  String   @unique
+  payload   Json // ExamReportInput yang akan dikirim
+  attempts  Int      @default(0)
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
 }

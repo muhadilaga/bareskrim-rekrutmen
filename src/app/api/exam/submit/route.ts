@@ -55,7 +55,9 @@ export async function POST(req: Request) {
           ? 409
           : result.code === "EXPIRED"
             ? 410
-            : 400;
+            : result.code === "NO_ATTENDANCE"
+              ? 403
+              : 400;
     return NextResponse.json({ ok: false, code: result.code, message: result.message }, { status });
   }
 

@@ -1,0 +1,18 @@
+{
+  "name": "bareskrim-rekrutmen-bot",
+  "version": "1.0.0",
+  "description": "Discord Bot untuk Sistem Rekrutmen Bareskrim Polri",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

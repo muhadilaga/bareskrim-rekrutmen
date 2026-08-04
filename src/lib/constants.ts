@@ -19,6 +19,10 @@ export const CONFIG = {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean),
+  // Discord Bot API
+  discordBotApiUrl: process.env.DISCORD_BOT_API_URL ?? "http://localhost:3001",
+  discordBotSecret: process.env.DISCORD_BOT_SECRET ?? "BareskrimBotSecret2026",
+  tahapAkademikRoleId: process.env.TAHAP_AKADEMIK_ROLE_ID ?? "",
 } as const;
 
 export const REDIRECT_BLOCKED_MESSAGE =

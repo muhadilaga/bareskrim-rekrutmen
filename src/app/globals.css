@@ -40,10 +40,49 @@
     -moz-osx-font-smoothing: grayscale;
     color: var(--text);
     background-color: var(--bg);
-    background-image: var(--bg-gradient);
+    background-image: var(--bg-gradient),
+      /* Grid pattern tipis merah emas */
+      linear-gradient(rgba(212, 175, 55, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212, 175, 55, 0.02) 1px, transparent 1px);
+    background-size: auto, 50px 50px;
     background-attachment: scroll;
     min-height: 100vh;
     overflow-x: hidden;
+  }
+
+  /* Body background effects — api dan bintang */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: 
+      /* Bintang kecil */ radial-gradient(2px 2px at 10% 20%, rgba(212, 175, 55, 0.3) 0%, transparent 50%),
+      radial-gradient(2px 2px at 25% 15%, rgba(212, 175, 55, 0.2) 0%, transparent 50%),
+      radial-gradient(1.5px 1.5px at 40% 30%, rgba(212, 175, 55, 0.25) 0%, transparent 50%),
+      radial-gradient(2px 2px at 60% 10%, rgba(212, 175, 55, 0.15) 0%, transparent 50%),
+      radial-gradient(1.5px 1.5px at 75% 25%, rgba(212, 175, 55, 0.2) 0%, transparent 50%),
+      radial-gradient(2px 2px at 90% 15%, rgba(212, 175, 55, 0.25) 0%, transparent 50%);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  /* Api kecil di pojok belakang */
+  body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: 
+      /* Api kanan bawah */ radial-gradient(circle at 85% 85%, rgba(212, 175, 55, 0.04) 0%, transparent 30%),
+      /* Api kiri atas */ radial-gradient(circle at 10% 10%, rgba(212, 175, 55, 0.03) 0%, transparent 25%);
+    pointer-events: none;
   }
 
   /* ============================================
@@ -53,6 +92,42 @@
   /* Body text */
   html:not(.dark) body {
     color: #2c1810;
+  }
+
+  /* Light mode body effects — bintang dan api yang lebih lembut */
+  html:not(.dark) body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: 
+      /* Bintang kecil - merah muda emas */ radial-gradient(2px 2px at 10% 20%, rgba(123, 17, 19, 0.1) 0%, transparent 50%),
+      radial-gradient(2px 2px at 25% 15%, rgba(123, 17, 19, 0.08) 0%, transparent 50%),
+      radial-gradient(1.5px 1.5px at 40% 30%, rgba(123, 17, 19, 0.09) 0%, transparent 50%),
+      radial-gradient(2px 2px at 60% 10%, rgba(123, 17, 19, 0.07) 0%, transparent 50%),
+      radial-gradient(1.5px 1.5px at 75% 25%, rgba(123, 17, 19, 0.08) 0%, transparent 50%),
+      radial-gradient(2px 2px at 90% 15%, rgba(123, 17, 19, 0.09) 0%, transparent 50%);
+    opacity: 0.8;
+    pointer-events: none;
+  }
+
+  /* Light mode api kecil */
+  html:not(.dark) body::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: 
+      /* Api kanan bawah */ radial-gradient(circle at 85% 85%, rgba(212, 175, 55, 0.06) 0%, transparent 30%),
+      /* Api kiri atas */ radial-gradient(circle at 10% 10%, rgba(212, 175, 55, 0.05) 0%, transparent 25%),
+      /* Api kanan atas */ radial-gradient(circle at 90% 10%, rgba(212, 175, 55, 0.05) 0%, transparent 25%);
+    pointer-events: none;
   }
 
   /* Glass card — merah-emas transparan */
@@ -108,12 +183,27 @@
     backdrop-filter: blur(20px);
   }
 
-  /* Hero background — gradient merah emas terang */
+  /* Hero background — gradient merah emas */
   html:not(.dark) .bg-hero-radial {
     background:
-      radial-gradient(1200px 600px at 50% -10%, rgba(123,17,19,0.08), transparent 60%),
-      radial-gradient(1000px 700px at 100% 100%, rgba(212,175,55,0.12), transparent 60%),
-      linear-gradient(135deg, #fef7ee, #faf5f0, #f5ede4);
+      radial-gradient(1200px 600px at 50% -10%, rgba(212, 175, 55, 0.10), transparent 60%),
+      radial-gradient(1000px 700px at 100% 100%, rgba(212, 175, 55, 0.15), transparent 60%),
+      linear-gradient(135deg, #fef7ee 0%, #faf5f0 40%, #f5ede4 100%);
+  }
+
+  /* Dark mode — hero background merah gelap */
+  .bg-hero-radial {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(123, 17, 19, 0.5), transparent 60%),
+      radial-gradient(1000px 700px at 100% 100%, rgba(212, 175, 55, 0.07), transparent 60%),
+      linear-gradient(180deg, #1a080a 0%, #140507 40%, #0c0304 100%);
+  }
+  
+  html:not(.dark) .bg-hero-radial {
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(212, 175, 55, 0.08), transparent 60%),
+      radial-gradient(1000px 700px at 100% 100%, rgba(212, 175, 55, 0.10), transparent 60%),
+      linear-gradient(135deg, #fef7ee 0%, #faf5f0 40%, #f5ede4 100%);
   }
 
   /* Hero overlay — tidak terlalu gelap */
@@ -227,12 +317,21 @@
   border-radius: 8px;
 }
 
-/* Pattern polisi samar */
+/* Pattern polisi samar — merah emas diagonal */
 .chequered {
   background-image: repeating-linear-gradient(
     45deg,
-    rgba(255, 255, 255, 0.03) 0 12px,
-    transparent 12px 24px
+    rgba(123, 17, 19, 0.08) 0 16px,
+    rgba(212, 175, 55, 0.04) 16px 32px
+  );
+}
+
+/* Pattern polisi light mode — emas muda */
+html:not(.dark) .chequered {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(212, 175, 55, 0.06) 0 16px,
+    rgba(123, 17, 19, 0.04) 16px 32px
   );
 }
 
@@ -332,13 +431,11 @@ html:not(.dark) .border-white\/15 { border-color: rgba(123, 17, 19, 0.15); }
 html:not(.dark) .bg-black\/30 { background-color: rgba(123, 17, 19, 0.05); }
 html:not(.dark) .bg-black\/20 { background-color: rgba(123, 17, 19, 0.03); }
 
-/* Light mode — emas border & shadow */
-html:not(.dark) .border-gold\/20 { border-color: rgba(212, 175, 55, 0.3); }
-html:not(.dark) .border-gold\/30 { border-color: rgba(212, 175, 55, 0.4); }
-html:not(.dark) .border-gold\/40 { border-color: rgba(212, 175, 55, 0.5); }
-html:not(.dark) .shadow-glow { box-shadow: 0 0 30px rgba(212, 175, 55, 0.25); }
-
-/* Light mode — input focus emas */
+  /* Light mode — emas border & shadow */
+  html:not(.dark) .border-gold\/20 { border-color: rgba(212, 175, 55, 0.3); }
+  html:not(.dark) .border-gold\/30 { border-color: rgba(212, 175, 55, 0.4); }
+  html:not(.dark) .border-gold\/40 { border-color: rgba(212, 175, 55, 0.5); }
+  html:not(.dark) .shadow-glow { box-shadow: 0 0 30px rgba(212, 175, 55, 0.25); }
 html:not(.dark) .focus\:border-gold\/60:focus {
   border-color: rgba(212, 175, 55, 0.6);
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
@@ -368,4 +465,41 @@ html:not(.dark) .bg-red-500\/10 {
 /* Light mode — countdown timer */
 html:not(.dark) .border-white\/20 {
   border-color: rgba(123, 17, 19, 0.15);
+}
+
+/* Light mode — gold shine */
+html:not(.dark) .gold-shine-light {
+  background: linear-gradient(110deg, #7b1113 15%, #d4af37 35%, #f5d67a 50%, #d4af37 65%, #7b1113 85%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: gold-shine-move 4s linear infinite;
+}
+
+/* Card hover effect — gold border glow */
+.group:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.15);
+  transform: translateY(-2px);
+}
+html:not(.dark) .group:hover {
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+}
+
+/* ============================================
+   BACKGROUND ANIMATIONS — Bintang & Api
+   ============================================ */
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.2); }
+}
+
+@keyframes fire-flicker {
+  0%, 100% { opacity: 0.3; filter: brightness(1) saturate(1); }
+  25% { opacity: 0.5; filter: brightness(1.1) saturate(1.1); }
+  50% { opacity: 0.4; filter: brightness(0.9) saturate(0.9); }
+  75% { opacity: 0.5; filter: brightness(1.05) saturate(1.05); }
 }

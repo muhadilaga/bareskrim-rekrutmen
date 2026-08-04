@@ -77,19 +77,22 @@ function toSnapshot(q: Question, rng: () => number): SnapshotQuestion {
   };
 }
 
-// Bangun 15 MCQ + 5 Essay acak dari bank soal, diurutkan MCQ dahulu lalu Essay.
+// Bangun soal acak dari bank soal, diurutkan MCQ dahulu lalu Essay.
 // - `seed` (periode): memilih SUBSET soal yang sama untuk semua casis (adil).
 // - `userSeed` (opsional, per username): mengacak URUTAN soal & posisi opsi
 //   berbeda tiap casis, sehingga jawaban tidak bisa dikomunikasikan antar user.
+// - `mcqCount`/`essayCount`: jumlah soal per jenis (default dari CONFIG).
 export function buildQuestionSet(
   mcqs: Question[],
   essays: Question[],
   seed: number,
-  userSeed?: number
+  userSeed?: number,
+  mcqCount: number = CONFIG.mcqCount,
+  essayCount: number = CONFIG.essayCount
 ): SnapshotQuestion[] {
   const pickRng = mulberry32(seed);
-  const mcqPick = seededShuffle(mcqs, pickRng).slice(0, CONFIG.mcqCount);
-  const essayPick = seededShuffle(essays, pickRng).slice(0, CONFIG.essayCount);
+  const mcqPick = seededShuffle(mcqs, pickRng).slice(0, mcqCount);
+  const essayPick = seededShuffle(essays, pickRng).slice(0, essayCount);
 
   const rng = userSeed !== undefined ? mulberry32(userSeed) : pickRng;
   const mcqOrdered = seededShuffle(mcqPick, rng);
@@ -141,7 +144,8 @@ export interface GradingResult {
 
 export function gradeExam(
   snapshot: SnapshotQuestion[],
-  answers: Record<string, string>
+  answers: Record<string, string>,
+  kkm: number = CONFIG.kkm
 ): GradingResult {
   let score = 0;
   let maxScore = 0;
@@ -193,7 +197,7 @@ export function gradeExam(
     }
   }
 
-  const passed = score >= CONFIG.kkm;
+  const passed = score >= kkm;
   return {
     score,
     maxScore,

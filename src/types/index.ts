@@ -11,8 +11,10 @@ export interface VerifyResponse {
     | "MATRA_BLOCKED"
     | "RANK_BLOCKED"
     | "BLACKLISTED"
+    | "NO_ATTENDANCE"
     | "INTERNAL";
   message?: string;
+  needsAbsen?: boolean;
   user?: {
     robloxId: number;
     username: string;
@@ -25,7 +27,7 @@ export interface VerifyResponse {
 
 export interface SessionApiResponse {
   ok: boolean;
-  code?: "NO_ACTIVE_PERIOD" | "ALREADY_SUBMITTED" | "RANK_BLOCKED" | "UNAUTHORIZED";
+  code?: "NO_ACTIVE_PERIOD" | "ALREADY_SUBMITTED" | "RANK_BLOCKED" | "NO_ATTENDANCE" | "NO_ROLE" | "UNAUTHORIZED";
   message?: string;
   attemptId?: string;
   questions?: ClientQuestion[];
@@ -61,6 +63,7 @@ export interface ResultPayload {
   essayScore: number;
   status: AttemptStatus;
   passed: boolean;
+  kkm?: number;
   submittedAt: string;
   answersJson: ResultDetail[];
   attempt: {
