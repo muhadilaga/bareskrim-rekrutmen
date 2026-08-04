@@ -28,8 +28,9 @@ yarn-error.log*
 # prisma
 prisma/*.db
 
+# deployment
 .vercel
-.env*
+.netlify
 
 # temp/test files
 test-discord.*

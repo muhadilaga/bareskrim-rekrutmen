@@ -1,56 +1,12 @@
-# 🚀 DEPLOY KE NETLIFY — Panduan "Tinggal Upload"
+# Deploy ke Netlify
 
-Proyek ini sudah **100% dikonfigurasi untuk Netlify**:
+Proyek sudah dikonfigurasi untuk Netlify dengan `@netlify/plugin-nextjs`.
 
-- `netlify.toml` → build command otomatis + plugin Next.js + Node 20
-- `package.json` → `postinstall: prisma generate` (Prisma Client otomatis dibuat saat build)
-- `.nvmrc` → versi Node 20
-- Halaman `/admin` → tombol **"Initialize Database"** (membuat semua tabel tanpa perlu CLI)
-- `prisma/init.sql` → alternatif manual via SQL Editor Supabase
+## Setup
 
----
+### 1. Push ke GitHub
 
-## ⚠️ Penting Sebelum Mulai
-
-Situs ini adalah aplikasi **full-stack** (server components, API, database). Netlify **drag-and-drop
-hanya untuk situs statis** — untuk aplikasi ini gunakan **2 cara resmi** di bawah (sama-sama "tinggal
-klik/1 perintah").
-
-> Tanpa database, website tetap terbuka tetapi ujian tidak berjalan. Siapkan database di Bagian 1.
-
----
-
-## 0️⃣ Siapkan File `.env` (lokal, opsional tapi disarankan)
-
-```bash
-copy .env.example .env
-```
-
-Isi nilai penting Anda. `.env` **tidak** akan di-commit (sudah di `.gitignore`).
-
----
-
-## 1️⃣ Database PostgreSQL (Supabase) — 5 menit
-
-1. Buka [supabase.com](https://supabase.com) → **New project** → buat password → region (mis. Singapore) → **Create**.
-2. Menu **Project Settings → Database → Connection string**.
-3. Tab **URI**, pilih *Direct connection*, klik **Copy**.
-4. Sesuaikan: ubah `:6543` → `:5432` lalu tambahkan `?sslmode=require` di akhir:
-   ```
-   postgresql://postgres.abcdef:[PASSWORD]@db.abcdef.supabase.co:5432/postgres?sslmode=require
-   ```
-5. **Cara A (paling mudah):** lewati langkah 6, tabel akan dibuat otomatis dari tombol
-   *Initialize Database* di `/admin`.
-6. **Cara B (manual):** buka **SQL Editor** di Supabase → paste seluruh isi file
-   `prisma/init.sql` → klik **Run**. (Sekali saja.)
-
-> Simpan string `DATABASE_URL` ini — dipakai di Bagian 3.
-
----
-
-## 2️⃣ Push ke GitHub (sekali saja)
-
-```bash
+```cmd
 cd bareskrim-rekrutmen
 git init
 git add .
@@ -60,102 +16,59 @@ git remote add origin https://github.com/USERNAME/bareskrim-rekrutmen.git
 git push -u origin main
 ```
 
----
+### 2. Deploy di Netlify
 
-## 3️⃣ Deploy ke Netlify
-
-### Cara A — Import dari GitHub (paling disarankan)
-
-1. Buka [app.netlify.com](https://app.netlify.com) → **Add new site → Import an existing project**.
-2. Pilih **GitHub** → pilih repo `bareskrim-rekrutmen`.
-3. Netlify mendeteksi **Next.js** otomatis. Konfirmasi:
+1. Buka [app.netlify.com](https://app.netlify.com) → **Add new site → Import an existing project**
+2. Pilih **GitHub** → pilih repo `bareskrim-rekrutmen`
+3. Build settings otomatis:
    - **Build command:** `npm run build`
    - **Publish directory:** `.next`
-4. **Site settings → Environment variables**, tambahkan:
 
-   | Key | Contoh |
-   |---|---|
-   | `DATABASE_URL` | `postgresql://...?sslmode=require` |
-   | `JWT_SECRET` | string acak ≥32 karakter (contoh: `kodeacak:9f8a7s6d5f4g3h2j`) |
-   | `DISCORD_WEBHOOK_URL` | URL webhook channel pusdik |
-   | `DISCORD_BOT_NAME` | `Sistem Rekrutmen Bareskrim Polri` |
-   | `DISCORD_GUILD_ID` | ID server Discord (untuk link "Buka Channel") |
-   | `DISCORD_PUTUSAN_CHANNEL_ID` | (opsional) ID channel putusan — referensi tampilan |
-   | `DISCORD_BLACKLIST_POLRI_CHANNEL_ID` | (opsional) ID channel blacklist Polri |
-   | `DISCORD_BLACKLIST_PENDIDIKAN_CHANNEL_ID` | (opsional) ID channel blacklist Pendidikan |
-   | `REQUIRED_GROUP_ID` | ID grup `[RI] Republic Indonesia` |
-   | `REQUIRED_GROUP_NAME` | `[RI] Republic Indonesia` |
-   | `POLICE_GROUP_ID` | ID grup Kepolisian |
-   | `POLICE_GROUP_NAME` | `Kepolisian` |
-   | `BANNED_GROUP_IDS` | `1111,2222` (ID TNI AD,TNI AL) |
-   | `BANNED_GROUP_NAMES` | `TNI AD,TNI AL` |
-   | `KKM` | `75` |
-   | `MCQ_COUNT` | `15` |
-   | `ESSAY_COUNT` | `5` |
-   | `MCQ_POINTS` | `4` |
-   | `ESSAY_POINTS` | `8` |
-   | `EXAM_DURATION_MINUTES` | `30` |
-   | `ADMIN_KEY` | kunci admin rahasia Anda |
+### 3. Environment Variables
 
-5. Klik **Deploy site** → tunggu ±2–4 menit sampai **Published**.
+Buka **Site settings → Environment variables**, tambahkan semua ini:
 
-### Cara B — Netlify CLI (tanpa GitHub)
+| Key | Value |
+|-----|-------|
+| `DATABASE_URL` | `postgresql://...?sslmode=require` |
+| `JWT_SECRET` | string acak ≥32 karakter |
+| `ADMIN_KEY` | kunci admin rahasia |
+| `KKM` | `70` |
+| `MCQ_COUNT` | `15` |
+| `ESSAY_COUNT` | `5` |
+| `MCQ_POINTS` | `4` |
+| `ESSAY_POINTS` | `8` |
+| `EXAM_DURATION_MINUTES` | `45` |
+| `REQUIRED_GROUP_ID` | `11902409` |
+| `REQUIRED_GROUP_NAME` | `[RI] Republic Indonesia` |
+| `POLICE_GROUP_ID` | `14460225` |
+| `POLICE_GROUP_NAME` | `Kepolisian` |
+| `MIN_POLICE_RANK` | `225` |
+| `MIN_POLICE_RANK_NAME` | `Bhayangkara Kepala` |
+| `BANNED_GROUP_IDS` | `367050757,34766643` |
+| `BANNED_GROUP_NAMES` | `TNI AD,TNI AL` |
+| `DISCORD_WEBHOOK_URL` | URL webhook channel pusdik |
+| `DISCORD_BOT_NAME` | `Sistem Rekrutmen Bareskrim Polri` |
+| `DISCORD_PUSDIK_WEBHOOK_URL` | URL webhook pusdik |
+| `DISCORD_GUILD_ID` | `1106203569675313232` |
+| `DISCORD_CHANNEL_ID` | `1532464247865610390` |
+| `DISCORD_BOT_TOKEN` | token bot Discord |
+| `TAHAP_AKADEMIK_ROLE_ID` | `1247044385489686539` |
+| `DISCORD_PUTUSAN_CHANNEL_ID` | `1054380482697121792` |
+| `DISCORD_BLACKLIST_POLRI_CHANNEL_ID` | `1465357421512888592` |
+| `DISCORD_BLACKLIST_PENDIDIKAN_CHANNEL_ID` | `1418119877746757714` |
 
-```bash
-npm i -g netlify-cli
-netlify login
-netlify init            # "Create & configure a new site"
-netlify env:set DATABASE_URL "postgresql://..."
-netlify env:set JWT_SECRET "..."
-netlify env:set DISCORD_WEBHOOK_URL "..."
-netlify env:set REQUIRED_GROUP_ID "..."
-netlify env:set POLICE_GROUP_ID "..."
-netlify env:set BANNED_GROUP_IDS "..."
-netlify env:set ADMIN_KEY "..."
-# ... (set env lain yang Anda perlukan)
-netlify deploy --prod --build
-```
+### 4. Aktivasi
 
----
+1. Klik **Deploy site** → tunggu sampai Published
+2. Buka `https://NAMA-SITE.netlify.app/admin`
+3. Masukkan `ADMIN_KEY`
+4. Klik **Initialize Database** jika muncul kartu warning
+5. Tambahkan soal PG (15) dan Essay (5)
+6. Buka periode rekrutmen
 
-## 4️⃣ Aktivasi Awal (tanpa terminal sama sekali)
-
-Setelah site **Published**:
-
-1. Buka `https://NAMA-SITE.netlify.app/admin`
-2. Masukkan `ADMIN_KEY`.
-3. Jika muncul kartu **"⚠️ Database Belum Siap"** → klik **Initialize Database**.
-   (Jika Anda sudah pakai `prisma/init.sql` di Supabase, kartu ini tidak muncul.)
-4. **Tambahkan soal:**
-   - Buat minimal **15 soal Pilihan Ganda** (isi pertanyaan, 4 opsi, pilih radio jawaban benar).
-   - Buat **5 soal Essay** (isi pertanyaan + kata kunci auto-grading, pisahkan koma).
-5. **Buka periode rekrutmen pertama:** isi nama periode → **Buka Periode Baru**.
-6. Selesai! Arahkan casis ke `https://NAMA-SITE.netlify.app`.
-
-> Tips: bila ingin bank soal langsung terisi contoh, jalankan sekali dari PC Anda:
-> `npm install` → set `DATABASE_URL` di `.env` → `npm run db:seed`.
-
----
-
-## 5️⃣ Verifikasi
+### 5. Verifikasi
 
 - `https://NAMA-SITE.netlify.app/api/health` → `{"ok":true,...}`
-- Coba login dengan username Roblox (muncul avatar + pangkat).
-- Submit ujian → hasil langsung tampil → cek channel Discord `pusdik`.
-
----
-
-## 🧯 Troubleshooting
-
-| Gejala | Solusi |
-|---|---|
-| Build gagal | Set `NODE_VERSION = "20"` (sudah otomatis via `netlify.toml`). Pastikan `ADMIN_KEY`/env tidak perlu untuk build. |
-| `PrismaClientInitializationError` | `DATABASE_URL` salah/tidak terisi. Cek env Netlify + `?sslmode=require`. |
-| Halaman admin "Database Belum Siap" | Klik **Initialize Database**, atau jalankan `prisma/init.sql` di Supabase SQL Editor. |
-| Discord tidak terkirim | Cek `DISCORD_WEBHOOK_URL` benar & webhook aktif di channel pusdik. |
-| Tombol "Buka Channel" admin mati | Cek `DISCORD_GUILD_ID` + `DISCORD_*_CHANNEL_ID` sudah diisi di Netlify. |
-| Semua logout tiba-tiba | `JWT_SECRET` berubah. Jangan regen setelah deploy. |
-
----
-
-**Link Anda:** `https://NAMA-SITE.netlify.app` (ganti NAMA-SITE sesuai nama site di Netlify).
+- Login dengan username Roblox
+- Submit ujian → cek Discord channel pusdik

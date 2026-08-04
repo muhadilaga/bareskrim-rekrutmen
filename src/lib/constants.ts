@@ -23,7 +23,7 @@ export const CONFIG = {
   discordBotApiUrl: process.env.DISCORD_BOT_API_URL ?? "http://localhost:3001",
   discordBotSecret: process.env.DISCORD_BOT_SECRET ?? "BareskrimBotSecret2026",
   tahapAkademikRoleId: process.env.TAHAP_AKADEMIK_ROLE_ID ?? "",
-  // Discord REST API (langsung dari Vercel, tanpa bot server)
+  // Discord REST API (langsung dari server, tanpa bot server)
   discordBotToken: process.env.DISCORD_BOT_TOKEN ?? "",
   discordGuildId: process.env.DISCORD_GUILD_ID ?? "",
   discordChannelId: process.env.DISCORD_CHANNEL_ID ?? "",

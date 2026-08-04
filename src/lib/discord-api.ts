@@ -1,6 +1,6 @@
 // ============================================================
 // Discord REST API Helper - Assign & Check Role langsung
-// dari Vercel tanpa bot server terpisah.
+// dari server tanpa bot server terpisah.
 // ============================================================
 
 import { CONFIG } from "@/lib/constants";
