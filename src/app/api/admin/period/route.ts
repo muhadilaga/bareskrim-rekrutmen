@@ -156,7 +156,6 @@ export async function PATCH(req: Request) {
         target: period?.name ?? periodId,
         detail: { deletedResults: deleted[0]?.count ?? 0, deletedAttempts: deleted[1]?.count ?? 0 },
       });
-      await sendAdminNotification("🔄 Reset Ujian Periode", `Ujian pada periode **${period?.name ?? periodId}** telah direset. ${deleted[1]?.count ?? 0} attempt dan ${deleted[0]?.count ?? 0} hasil dihapus.`);
       return NextResponse.json({ ok: true, message: `Reset berhasil. ${deleted[1]?.count ?? 0} attempt, ${deleted[0]?.count ?? 0} hasil dihapus.` });
     } else if (action === "edit") {
       // Edit periode: tanggal (openedAt/closedAt) dan/atau konfigurasi
