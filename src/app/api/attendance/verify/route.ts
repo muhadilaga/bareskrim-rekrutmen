@@ -202,27 +202,8 @@ export async function POST(req: Request) {
         roleAssigned = result.ok;
         roleError = result.ok ? null : result.message;
       } else {
-        // Fallback ke bot server jika ada
-        const botResponse = await fetch(`${CONFIG.discordBotApiUrl}/api/assign-role`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-bot-secret": CONFIG.discordBotSecret,
-          },
-          body: JSON.stringify({
-            userId: discordUsername.trim(),
-            roleName: "Tahap Akademik",
-          }),
-        });
-
-        const botResult = await botResponse.json();
-        console.log("Bot role assignment result:", JSON.stringify(botResult));
-
-        if (botResult.ok) {
-          roleAssigned = true;
-        } else {
-          roleError = botResult.message || "Gagal assign role";
-        }
+        // Bot belum dikonfigurasi - absensi tetap berhasil, role di-assign manual
+        roleError = "Bot belum dikonfigurasi. Hubungi admin untuk assign role.";
       }
     } catch (botError) {
       console.error("Failed to assign role:", botError);

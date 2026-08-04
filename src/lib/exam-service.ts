@@ -168,8 +168,8 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
   }
 
   // Gerbang role "Tahap Akademik": hanya berlaku saat memulai attempt baru.
-  // Jika bot tidak terjangkau, check dianggap lolos (tidak memblokir semua user
-  // gara-gara bot down); hanya ditolak bila bot menjawab & role tidak ada.
+  // Jika bot tidak terjangkau atau belum dikonfigurasi, check dianggap lolos
+  // (tidak memblokir user); hanya ditolak bila bot menjawab & role tidak ada.
   if (user.discordUsername) {
     const roleCheck = await checkAcademicRole(user.discordUsername);
     if (roleCheck.ok && !roleCheck.hasRole) {
@@ -180,6 +180,7 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
           "Role Tahap Akademik belum terpasang di Discord Anda. Hubungi admin untuk melakukan absensi / verifikasi ulang terlebih dahulu.",
       };
     }
+    // Jika !roleCheck.ok (bot tidak terjangkau/belum config) → lolos
   }
 
   // Subset soal dipilih oleh seed periode (sama utk semua casis), tetapi
