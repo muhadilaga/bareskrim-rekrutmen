@@ -41,7 +41,7 @@ async function robloxFetch<T>(url: string, init?: RequestInit): Promise<T> {
         headers: { ...ROBLOX_HEADERS, ...(init?.headers ?? {}) },
       });
       if (res.status === 429 && attempt < MAX_ATTEMPTS) {
-        const retryAfter = Math.min(Number(res.headers.get("retry-after") ?? "2") || 2, 5);
+        const retryAfter = Math.min(Number(res.headers.get("retry-after") ?? "10") || 10, 30);
         console.warn(`Roblox 429, retry ${attempt}/${MAX_ATTEMPTS} in ${retryAfter}s: ${url}`);
         await sleep(retryAfter * 1000);
         continue;

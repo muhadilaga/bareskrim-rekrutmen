@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { randomSeed } from "@/lib/utils";
 import { getAdminKey } from "@/lib/constants";
 import { logAdminAction } from "@/lib/audit";
-import { sendAdminNotification } from "@/lib/discord";
 
 function isAdmin(req: Request): boolean {
   return req.headers.get("x-admin-key") === getAdminKey();
@@ -16,7 +15,7 @@ const OpenPeriodSchema = z.object({
   description: z.string().trim().max(500).optional().default(""),
   mcqCount: z.number().int().min(1).max(50).nullable().optional(),
   essayCount: z.number().int().min(1).max(50).nullable().optional(),
-  passThreshold: z.number().int().min(1).max(1000).optional().default(75),
+  passThreshold: z.number().int().min(1).max(1000).optional().default(70),
 });
 
 // Buka periode rekrutmen baru: periode lama ditutup otomatis,
@@ -43,7 +42,7 @@ export async function POST(req: Request) {
           seed: randomSeed(),
           mcqCount: parsed.data.mcqCount ?? null,
           essayCount: parsed.data.essayCount ?? null,
-          passThreshold: parsed.data.passThreshold ?? 75,
+          passThreshold: parsed.data.passThreshold ?? 70,
         },
       }),
     ]);
@@ -58,10 +57,6 @@ export async function POST(req: Request) {
   }
 
   await logAdminAction({ action: "BUKA_PERIODE", target: parsed.data.name, detail: { description: parsed.data.description } });
-  await sendAdminNotification(
-    "🕐 Periode Rekrutmen Dibuka",
-    `Periode baru **${parsed.data.name}** telah dibuka. Casis dapat mulai absensi dan mengikuti ujian.`
-  );
 
   return NextResponse.json({ ok: true, message: "Periode baru berhasil dibuka." });
 }
@@ -133,7 +128,6 @@ export async function PATCH(req: Request) {
         data: { closedAt: new Date(), isActive: false },
       });
       await logAdminAction({ action: "TUTUP_PERIODE", target: period?.name ?? periodId });
-      await sendAdminNotification("🔒 Periode Ditutup", `Periode **${period?.name ?? periodId}** telah ditutup oleh instruktur.`);
       return NextResponse.json({ ok: true, message: "Periode berhasil ditutup." });
     } else if (action === "reopen") {
       await prisma.examPeriod.update({
@@ -141,7 +135,6 @@ export async function PATCH(req: Request) {
         data: { closedAt: null, isActive: true },
       });
       await logAdminAction({ action: "BUKA_KEMBALI_PERIODE", target: period?.name ?? periodId });
-      await sendAdminNotification("🔓 Periode Dibuka Kembali", `Periode **${period?.name ?? periodId}** dibuka kembali oleh instruktur.`);
       return NextResponse.json({ ok: true, message: "Periode berhasil dibuka kembali." });
     } else if (action === "reset") {
       // Hapus semua attempt + result + answers untuk periode ini,
@@ -200,7 +193,7 @@ export async function PATCH(req: Request) {
         const n = Number(mcqCount);
         if (!Number.isInteger(n) || n < 1 || n > 50) {
           return NextResponse.json(
-            { ok: false, message: "Jumlah soal MCQ tidak valid." },
+            { ok: false, message: "Jumlah soal Pilihan Ganda tidak valid." },
             { status: 400 }
           );
         }

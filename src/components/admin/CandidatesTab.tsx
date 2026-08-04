@@ -23,6 +23,7 @@ interface CandidateRow {
   robloxId: number;
   profileUrl: string | null;
   policeGroupRank: string | null;
+  discordUsername: string | null;
   mcqScore: number;
   essayScore: number;
   score: number;
@@ -35,40 +36,90 @@ interface CandidateRow {
   answersJson: unknown[];
 }
 
-function downloadCsv(rows: CandidateRow[]) {
+function downloadCsv(rows: CandidateRow[], periodName?: string) {
   const esc = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
+
+  // Header
   const header = [
-    "Nama",
-    "Username",
-    "Profil Roblox",
+    "No",
+    "Nama Lengkap",
+    "Username Roblox",
+    "Roblox ID",
+    "Username Discord",
     "Pangkat",
-    "Nilai MCQ",
-    "Nilai Essay",
-    "Total",
+    "PG",
+    "Essay",
+    "Total Nilai",
+    "Persentase",
     "Status",
-    "Periode",
-    "Tanggal",
+    "Waktu Submit",
   ];
-  const lines = rows.map((r) =>
-    [
+
+  // Sort: LULUS dulu, lalu by score desc
+  const sorted = [...rows].sort((a, b) => {
+    if (a.passed !== b.passed) return a.passed ? -1 : 1;
+    return b.score - a.score;
+  });
+
+  // Data rows
+  const lines = sorted.map((r, i) => {
+    const pct = r.maxScore > 0 ? Math.round((r.score / r.maxScore) * 100) : 0;
+    return [
+      i + 1,
       r.displayName,
       r.username,
-      r.profileUrl ?? "",
-      r.policeGroupRank ?? "",
+      r.robloxId ?? "",
+      r.discordUsername ?? "",
+      r.policeGroupRank ?? "-",
       r.mcqScore,
       r.essayScore,
       `${r.score}/${r.maxScore}`,
-      r.status,
-      r.periodName,
-      new Date(r.submittedAt).toLocaleString("id-ID"),
-    ].map(esc).join(","),
-  );
-  const csv = "\ufeff" + [header.join(","), ...lines].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      `${pct}%`,
+      r.status === "LULUS" ? "LULUS" : "TIDAK LULUS",
+      new Date(r.submittedAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
+    ].map(esc).join(";");
+  });
+
+  // Summary
+  const totalLulus = sorted.filter((r) => r.passed).length;
+  const totalTidakLulus = sorted.filter((r) => !r.passed).length;
+  const avgScore = sorted.length > 0
+    ? Math.round(sorted.reduce((s, r) => s + r.score, 0) / sorted.length)
+    : 0;
+
+  const summary = [
+    "",
+    "RINGKASAN",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ].map(esc).join(";");
+
+  const summaryRows = [
+    [`Total Peserta: ${sorted.length}`, "", "", "", "", "", `Lulus: ${totalLulus}`, "", `Tidak Lulus: ${totalTidakLulus}`, "", `Rata-rata: ${avgScore}`, ""].map(esc).join(";"),
+  ];
+
+  // Build CSV with BOM for Excel
+  const csvContent = "\ufeff" + [
+    header.map(esc).join(";"),
+    ...lines,
+    summary,
+    ...summaryRows,
+  ].join("\r\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `rekap-nilai-${new Date().toISOString().slice(0, 10)}.csv`;
+  const name = periodName ? periodName.replace(/[^a-zA-Z0-9]/g, "-") : "semua";
+  a.download = `rekap-nilai-${name}-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -186,7 +237,10 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
           </select>
           <Button
             variant="gold"
-            onClick={() => downloadCsv(filteredRows)}
+            onClick={() => {
+              const pName = periodId ? periods.find((p) => p.id === periodId)?.name : undefined;
+              downloadCsv(filteredRows, pName);
+            }}
             disabled={busy || filteredRows.length === 0}
             className="shrink-0"
           >
@@ -205,7 +259,7 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
                 <th className="px-3 py-2">Nama</th>
                 <th className="px-3 py-2">Username</th>
                 <th className="px-3 py-2">Pangkat</th>
-                <th className="px-3 py-2">MCQ</th>
+                <th className="px-3 py-2">Pilihan Ganda</th>
                 <th className="px-3 py-2">Essay</th>
                 <th className="px-3 py-2">Total</th>
                 <th className="px-3 py-2">Status</th>

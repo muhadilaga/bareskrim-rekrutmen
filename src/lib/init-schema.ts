@@ -54,7 +54,7 @@ const statements: string[] = [
   // Kolom konfigurasi periode (jumlah soal + KKM)
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "mcqCount" INTEGER;`,
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "essayCount" INTEGER;`,
-  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "passThreshold" INTEGER NOT NULL DEFAULT 75;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "passThreshold" INTEGER NOT NULL DEFAULT 70;`,
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isExamOpen" BOOLEAN NOT NULL DEFAULT false;`,
 
   // ===== Periode Rekrutmen =====
@@ -168,6 +168,20 @@ const statements: string[] = [
      CONSTRAINT "PendingDiscordReport_pkey" PRIMARY KEY ("id")
    );`,
 
+  // ===== Absensi =====
+  `CREATE TABLE IF NOT EXISTS "Attendance" (
+     "id" TEXT NOT NULL,
+     "userId" TEXT,
+     "periodId" TEXT NOT NULL,
+     "tahap" TEXT NOT NULL DEFAULT 'AKADEMIK',
+     "status" TEXT NOT NULL DEFAULT 'HADIR',
+     "discordUserId" TEXT,
+     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     CONSTRAINT "Attendance_pkey" PRIMARY KEY ("id"),
+     CONSTRAINT "Attendance_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+     CONSTRAINT "Attendance_periodId_fkey" FOREIGN KEY ("periodId") REFERENCES "ExamPeriod"("id") ON DELETE CASCADE ON UPDATE CASCADE
+   );`,
+
   // ===== Index Unik =====
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_robloxId_key" ON "User"("robloxId");`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");`,
@@ -190,6 +204,9 @@ const statements: string[] = [
   `CREATE INDEX IF NOT EXISTS "AdminLog_action_idx" ON "AdminLog"("action");`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "PendingDiscordReport_resultId_key" ON "PendingDiscordReport"("resultId");`,
   `CREATE INDEX IF NOT EXISTS "PendingDiscordReport_createdAt_idx" ON "PendingDiscordReport"("createdAt");`,
+  `CREATE INDEX IF NOT EXISTS "Attendance_periodId_idx" ON "Attendance"("periodId");`,
+  `CREATE INDEX IF NOT EXISTS "Attendance_discordUserId_idx" ON "Attendance"("discordUserId");`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Attendance_userId_periodId_tahap_key" ON "Attendance"("userId", "periodId", "tahap");`,
 ];
 
 export async function schemaExists(): Promise<boolean> {
@@ -198,7 +215,7 @@ export async function schemaExists(): Promise<boolean> {
       `SELECT (
          (SELECT COUNT(*) FROM information_schema.tables
             WHERE table_schema = 'public'
-              AND table_name IN ('ExamResult', 'BlacklistEntry', 'VerdictEntry')) = 3
+              AND table_name IN ('ExamResult', 'BlacklistEntry', 'VerdictEntry', 'Attendance')) = 4
          AND
          (SELECT COUNT(*) FROM information_schema.columns
             WHERE table_schema = 'public'
@@ -207,6 +224,10 @@ export async function schemaExists(): Promise<boolean> {
          (SELECT COUNT(*) FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = 'ExamResult' AND column_name = 'discordMessageId') = 1
+         AND
+         (SELECT COUNT(*) FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'ExamPeriod' AND column_name = 'isExamOpen') = 1
        ) AS ok`
     );
     return (rows as Array<{ ok: boolean }>)[0]?.ok === true;

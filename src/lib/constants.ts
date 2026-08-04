@@ -1,5 +1,5 @@
 export const CONFIG = {
-  kkm: Number(process.env.KKM ?? 75),
+  kkm: Number(process.env.KKM ?? 70),
   mcqCount: Number(process.env.MCQ_COUNT ?? 15),
   essayCount: Number(process.env.ESSAY_COUNT ?? 5),
   mcqPoints: Number(process.env.MCQ_POINTS ?? 4),
@@ -26,6 +26,7 @@ export const CONFIG = {
   // Discord REST API (langsung dari Vercel, tanpa bot server)
   discordBotToken: process.env.DISCORD_BOT_TOKEN ?? "",
   discordGuildId: process.env.DISCORD_GUILD_ID ?? "",
+  discordChannelId: process.env.DISCORD_CHANNEL_ID ?? "",
 } as const;
 
 export const REDIRECT_BLOCKED_MESSAGE =

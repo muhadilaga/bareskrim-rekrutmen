@@ -19,21 +19,23 @@ async function resolveDiscordUser(
   username: string
 ): Promise<{ id: string; username: string } | null> {
   try {
-    const res = await fetch(
-      `${DISCORD_API}/guilds/${CONFIG.discordGuildId}/members/search?query=${encodeURIComponent(username)}&limit=5`,
-      { headers: botHeaders(), signal: AbortSignal.timeout(10_000) }
-    );
-    if (!res.ok) return null;
+    const url = `${DISCORD_API}/guilds/${CONFIG.discordGuildId}/members/search?query=${encodeURIComponent(username)}&limit=5`;
+    const res = await fetch(url, {
+      headers: botHeaders(),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) {
+      return null;
+    }
     const members: Array<{ user: { id: string; username: string } }> =
       await res.json();
-    // Cari exact match
     const match = members.find(
       (m) =>
         m.user.username.toLowerCase() === username.toLowerCase()
     );
     return match?.user ?? members[0]?.user ?? null;
   } catch (e) {
-    console.error("resolveDiscordUser error:", e);
+    console.error("[Discord] resolveDiscordUser error:", e);
     return null;
   }
 }

@@ -42,6 +42,7 @@ export async function GET(req: Request) {
       robloxId: Number(r.attempt.user.robloxId),
       profileUrl: r.attempt.user.profileUrl,
       policeGroupRank: r.attempt.user.policeGroupRank,
+      discordUsername: r.attempt.user.discordUsername ?? null,
       mcqScore: r.mcqScore,
       essayScore: r.essayScore,
       score: r.score,

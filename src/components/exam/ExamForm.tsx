@@ -37,6 +37,16 @@ export function ExamForm({
   const [error, setError] = useState<string | null>(null);
   const submittedRef = useRef(false);
 
+  // Peringatan saat user mau keluar dari halaman ujian
+  useEffect(() => {
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
   // Simpan jawaban ke localStorage agar auto-submit saat waktu habis
   // tetap mengirim jawaban asli meskipun halaman di-refresh.
   useEffect(() => {

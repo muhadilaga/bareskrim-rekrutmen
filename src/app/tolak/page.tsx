@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/Button";
 import { REDIRECT_BLOCKED_MESSAGE } from "@/lib/constants";
 import Link from "next/link";
 
-export const metadata = { title: "Akses Ditolak - Rekrutmen Bareskrim Polri RP" };
+export const metadata = { title: "Akses Ditolak - Rekrutmen Bareskrim PolriRbx [RI]" };
 
 export default function TolakPage() {
   return (

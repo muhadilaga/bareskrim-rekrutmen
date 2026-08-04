@@ -72,7 +72,7 @@ model ExamPeriod {
   // Konfigurasi periode (opsional; null = pakai nilai default di constants.ts)
   mcqCount     Int? // jumlah soal pilihan ganda yang keluar
   essayCount   Int? // jumlah soal essay yang keluar
-  passThreshold Int  @default(75) // nilai minimum untuk LULUS (KKM)
+  passThreshold Int  @default(70) // nilai minimum untuk LULUS (KKM)
   openedAt    DateTime @default(now())
   closedAt    DateTime?
 

@@ -1,9 +1,8 @@
-// TEST CHANGE: Navbar updated successfully
-
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { prisma } from "@/lib/prisma";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -95,9 +94,23 @@ function StarBackground() {
 }
 
 export default async function HomePage() {
+  const user = await getSessionUser();
   const activePeriod = await prisma.examPeriod
     .findFirst({ where: { isActive: true } })
     .catch(() => null);
+
+  // Cek apakah user punya attempt ujian yang belum submit
+  let hasActiveAttempt = false;
+  if (user && activePeriod) {
+    const attempt = await prisma.examAttempt.findFirst({
+      where: {
+        periodId: activePeriod.id,
+        userId: user.id,
+        submittedAt: null,
+      },
+    });
+    hasActiveAttempt = !!attempt;
+  }
   const closedRecently = await prisma.examPeriod
     .findFirst({
       where: { isActive: false, closedAt: { not: null } },
@@ -106,14 +119,16 @@ export default async function HomePage() {
     .catch(() => null);
 
   return (
-    <div className="relative mx-auto max-w-6xl px-4 pt-16">
+    <div className="relative mx-auto max-w-6xl px-4 pt-20">
       {/* HERO */}
       <section className="relative overflow-hidden py-20 text-center md:py-28">
         {/* Background PNG - ditengah, lebih gelap di light mode */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-no-repeat"
           style={{
             backgroundImage: "url('/logos/background.png')",
+            backgroundPosition: "center 70%",
+            backgroundSize: "cover",
             opacity: 0.3,
           }}
         />
@@ -173,12 +188,27 @@ export default async function HomePage() {
             Bareskrim Polri yang Profesional, Tangguh, dan Berintegritas!
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row animate-slide-up delay-200">
-            <Link
-              href="/absen"
-              className="w-full rounded-lg border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-8 py-3.5 text-center font-semibold text-crimson-950 shadow-glow transition hover:brightness-110 sm:w-auto"
-            >
-              Mulai Sekarang
-            </Link>
+            {activePeriod ? (
+              hasActiveAttempt ? (
+                <Link
+                  href="/ujian"
+                  className="w-full rounded-lg border border-emerald-500/40 bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 px-8 py-3.5 text-center font-semibold text-white shadow-lg transition hover:brightness-110 sm:w-auto"
+                >
+                  Lanjutkan Ujian
+                </Link>
+              ) : (
+                <Link
+                  href="/absen"
+                  className="w-full rounded-lg border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-8 py-3.5 text-center font-semibold text-crimson-950 shadow-glow transition hover:brightness-110 sm:w-auto"
+                >
+                  Mulai Sekarang
+                </Link>
+              )
+            ) : (
+              <span className="w-full rounded-lg border border-white/10 bg-white/5 px-8 py-3.5 text-center text-sm font-semibold text-zinc-500 sm:w-auto cursor-not-allowed">
+                Pendaftaran Belum Dibuka
+              </span>
+            )}
           </div>
           <div className="gold-line mx-auto mt-16 w-2/3" />
         </div>
@@ -188,48 +218,11 @@ export default async function HomePage() {
       {activePeriod && (
         <section className="pb-20">
           <div className="rounded-xl border border-gold/30 bg-gradient-to-r from-gold/15 via-gold/5 to-transparent p-6 animate-fade-in">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gold/20 text-2xl">
-                  🕐
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-display text-base font-bold text-gold">
-                      {activePeriod.name}
-                    </span>
-                    <Badge tone="green">Periode Aktif</Badge>
-                  </div>
-                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                    {activePeriod.description ?? "Pendaftaran ujian Tahap Akademik sedang dibuka."}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    Dibuka{" "}
-                    {new Date(activePeriod.openedAt).toLocaleString("id-ID", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
-                  <p className="mt-2 text-xs font-medium text-gold">
-                    {activePeriod.isExamOpen ? "Ujian sedang dibuka!" : "Login → Absen → Tunggu Jadwal Ujian"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-                <Link
-                  href="/absen"
-                  className="rounded-lg border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-5 py-2.5 text-center text-sm font-semibold text-crimson-950 transition hover:brightness-110"
-                >
-                  Absen Sekarang
-                </Link>
-                <Link
-                  href="/hasil"
-                  className="rounded-lg border border-gold/40 bg-transparent px-5 py-2.5 text-center text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition hover:border-gold/60 hover:bg-white/10"
-                >
-                  Lihat Hasil
-                </Link>
-              </div>
+            <div className="flex items-center justify-center gap-3">
+              <span className="font-display text-base font-bold text-gold">
+                {activePeriod.name}
+              </span>
+              <Badge tone="green">Periode Aktif</Badge>
             </div>
           </div>
         </section>
@@ -254,16 +247,73 @@ export default async function HomePage() {
                   </p>
                 </div>
               </div>
-              <Link
-                href="/hasil"
-                className="shrink-0 rounded-lg border border-gold/40 bg-transparent px-5 py-2.5 text-center text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition hover:border-gold/60 hover:bg-white/10"
-              >
-                Lihat Hasil Anda
-              </Link>
             </div>
           </div>
         </section>
       )}
+
+      {/* ALUR REKRUTMEN */}
+      <section className="pb-20">
+        <h2 className="mb-8 text-center font-display text-2xl font-bold text-zinc-700 dark:text-zinc-100 md:text-3xl animate-slide-up">
+          Alur <span className="gold-text">Rekrutmen</span>
+        </h2>
+        <div className="relative mx-auto max-w-3xl">
+          {/* Garis vertikal penghubung */}
+          <div className="absolute left-6 top-0 h-full w-0.5 bg-gradient-to-b from-gold/50 via-gold/30 to-transparent sm:left-1/2 sm:-translate-x-px" />
+
+          {/* Step 1 */}
+          <div className="relative mb-10 flex items-start gap-6 animate-slide-up delay-100">
+            <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-crimson-900 dark:bg-crimson-950 text-gold font-display font-bold text-lg shadow-lg shadow-gold/10">
+              1
+            </div>
+            <div className="pt-2">
+              <h3 className="font-display text-lg font-bold text-zinc-700 dark:text-gold">Daftar & Login</h3>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Buat akun dengan username Roblox dan Discord kamu. Sistem akan memverifikasi data secara otomatis.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="relative mb-10 flex items-start gap-6 animate-slide-up delay-200">
+            <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-crimson-900 dark:bg-crimson-950 text-gold font-display font-bold text-lg shadow-lg shadow-gold/10">
+              2
+            </div>
+            <div className="pt-2">
+              <h3 className="font-display text-lg font-bold text-zinc-700 dark:text-gold">Absensi</h3>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Lakukan absensi untuk mengonfirmasi kehadiran. Role Tahap Akademik akan diberikan otomatis di Discord.
+              </p>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="relative mb-10 flex items-start gap-6 animate-slide-up delay-300">
+            <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-crimson-900 dark:bg-crimson-950 text-gold font-display font-bold text-lg shadow-lg shadow-gold/10">
+              3
+            </div>
+            <div className="pt-2">
+              <h3 className="font-display text-lg font-bold text-zinc-700 dark:text-gold">Tunggu Jadwal Ujian</h3>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Instruktur akan mengumumkan jadwal sesi ujian melalui Discord. Siapkan diri kamu!
+              </p>
+            </div>
+          </div>
+
+          {/* Step 4 */}
+          <div className="relative flex items-start gap-6 animate-slide-up delay-400">
+            <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-crimson-900 dark:bg-crimson-950 text-gold font-display font-bold text-lg shadow-lg shadow-gold/10">
+              4
+            </div>
+            <div className="pt-2">
+              <h3 className="font-display text-lg font-bold text-zinc-700 dark:text-gold">Kerjakan Ujian</h3>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Kerjakan soal Tahap Akademik sesuai jadwal. Hasil dinilai otomatis dan dikirim ke Discord.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* FEATURES */}
       <section className="pb-20">

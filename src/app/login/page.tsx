@@ -1,6 +1,6 @@
 import { LoginForm } from "@/components/login/LoginForm";
 
-export const metadata = { title: "Login - Rekrutmen Bareskrim Polri RP" };
+export const metadata = { title: "Login - Rekrutmen Bareskrim PolriRbx [RI]" };
 
 export default function LoginPage() {
   return (

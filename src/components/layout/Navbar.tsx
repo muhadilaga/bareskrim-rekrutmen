@@ -4,68 +4,25 @@ import Link from "next/link";
 import { useState } from "react";
 import { Logo } from "@/components/ui/Logo";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-
-const links = [
-  { href: "/absen", label: "Absen" },
-  { href: "/login", label: "Daftar Ujian" },
-  { href: "/hasil", label: "Hasil" },
-  { href: "/admin", label: "Admin" },
-];
+import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEscapeKey(() => setOpen(false));
 
   return (
     <header className="fixed top-0 z-50 w-full border-b border-gold/20 bg-black/50 backdrop-blur supports-[backdrop-filter]:bg-black/30">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        {/* Logo + Home button */}
+        {/* Logo */}
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center">
             <Logo />
           </Link>
-          <Link
-            href="/"
-            className="hidden items-center gap-2 rounded-md border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-4 py-2 text-sm font-semibold text-crimson-950 shadow-glow transition hover:brightness-110 sm:inline-flex"
-            title="Beranda"
-          >
-            <span>🏠</span>
-            <span>Beranda</span>
-          </Link>
         </div>
 
-        {/* Desktop: satu tombol dropdown + toggle */}
+        {/* Desktop: toggle */}
         <div className="hidden items-center gap-2 md:flex">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              className="inline-flex items-center gap-2 rounded-md border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-4 py-2 text-sm font-semibold text-crimson-950 shadow-glow transition hover:brightness-110"
-              aria-label="Menu navigasi"
-            >
-              <span>⚙️</span>
-              <span>Menu</span>
-            </button>
-
-            {menuOpen && (
-              <nav
-                className="absolute top-full right-0 z-50 mt-2 w-48 rounded-md border border-gold/20 bg-black/80 backdrop-blur-sm shadow-glow"
-              >
-                <div className="flex flex-col py-1">
-                  {links.map((l) => (
-                    <Link
-                      key={l.href}
-                      href={l.href}
-                      onClick={() => setMenuOpen(false)}
-                      className="px-4 py-2 text-sm font-medium text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold"
-                    >
-                      {l.label}
-                    </Link>
-                  ))}
-                </div>
-              </nav>
-            )}
-          </div>
           <ThemeToggle />
         </div>
 
@@ -95,16 +52,15 @@ export function Navbar() {
       {open && (
         <nav className="border-t border-white/10 bg-black/50 px-4 pb-4 pt-2 md:hidden">
           <div className="flex flex-col gap-1">
-            {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setOpen(false)}
-                className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold"
-              >
-                {l.label}
-              </Link>
-            ))}
+            <Link href="/" onClick={() => setOpen(false)} className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold">
+              Beranda
+            </Link>
+            <Link href="/absen" onClick={() => setOpen(false)} className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold">
+              Absen
+            </Link>
+            <Link href="/hasil" onClick={() => setOpen(false)} className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold">
+              Hasil
+            </Link>
           </div>
         </nav>
       )}

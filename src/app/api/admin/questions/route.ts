@@ -100,3 +100,49 @@ export async function POST(req: Request) {
     throw e;
   }
 }
+
+export async function DELETE(req: Request) {
+  if (!isAdmin(req)) {
+    return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
+  }
+
+  const body = await req.json().catch(() => null);
+  const { id, deleteAll, type } = body ?? {};
+
+  try {
+    await ensureSchema();
+
+    if (deleteAll) {
+      const where = type ? { type: type as "MCQ" | "ESSAY" } : {};
+      const result = await prisma.question.deleteMany({ where });
+      await logAdminAction({
+        action: "HAPUS_SOAL",
+        target: type ? `Semua ${type}` : "Semua Soal",
+        detail: { count: result.count },
+      });
+      return NextResponse.json({ ok: true, message: `${result.count} soal berhasil dihapus.`, deleted: result.count });
+    }
+
+    if (!id) {
+      return NextResponse.json({ ok: false, message: "ID soal wajib diisi." }, { status: 400 });
+    }
+
+    const existing = await prisma.question.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ ok: false, message: "Soal tidak ditemukan." }, { status: 404 });
+    }
+
+    await prisma.question.delete({ where: { id } });
+    await logAdminAction({
+      action: "HAPUS_SOAL",
+      target: existing.prompt.slice(0, 50),
+      detail: { type: existing.type, points: existing.points },
+    });
+    return NextResponse.json({ ok: true, message: "Soal berhasil dihapus." });
+  } catch (e) {
+    if (isTableMissing(e)) {
+      return NextResponse.json({ ok: false, message: "Database belum diinisialisasi." }, { status: 409 });
+    }
+    throw e;
+  }
+}

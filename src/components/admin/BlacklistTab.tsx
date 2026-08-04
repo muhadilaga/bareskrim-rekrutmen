@@ -408,10 +408,10 @@ function VerdictSection({
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as "LULUS" | "TIDAK_LULUS")}
-            className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none"
+            className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none dark:bg-white/5 dark:text-zinc-100 bg-zinc-800 text-zinc-100"
           >
-            <option value="LULUS">LULUS</option>
-            <option value="TIDAK_LULUS">TIDAK LULUS</option>
+            <option value="LULUS" className="bg-zinc-800 text-zinc-100">LULUS</option>
+            <option value="TIDAK_LULUS" className="bg-zinc-800 text-zinc-100">TIDAK LULUS</option>
           </select>
           <Button
             variant="gold"

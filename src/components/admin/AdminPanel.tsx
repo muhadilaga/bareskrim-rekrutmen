@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { CandidatesTab } from "@/components/admin/CandidatesTab";
 import { BlacklistTab } from "@/components/admin/BlacklistTab";
 import { CasisManagement } from "@/components/admin/CasisManagement";
+import { DiscordMessagesTab } from "@/components/admin/DiscordMessagesTab";
 import { useToastContext } from "@/components/ui/Toast";
 
 interface Stats {
@@ -79,7 +80,7 @@ export function AdminPanel() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [dbReady, setDbReady] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"periode" | "bank" | "rekap" | "casis" | "data" | "log">("periode");
+  const [tab, setTab] = useState<"periode" | "bank" | "rekap" | "casis" | "data" | "log" | "discord">("periode");
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<LogItem[]>([]);
   const headers = { "Content-Type": "application/json", "x-admin-key": key };
@@ -387,6 +388,10 @@ export function AdminPanel() {
             { label: "Absensi", value: stats.totalAttendance, icon: "✅" },
             { label: "Ujian Selesai", value: stats.totalResults, icon: "📝" },
             { label: "Lulus", value: `${stats.passedResults} (${stats.passRate}%)`, icon: "🎖️" },
+            { label: "Tidak Lulus", value: stats.failedResults, icon: "❌" },
+            { label: "Sedang Mengerjakan", value: stats.inProgress, icon: "⏳" },
+            { label: "Soal PG", value: stats.mcqCount, icon: "📋" },
+            { label: "Soal Essay", value: stats.essayCount, icon: "✍️" },
           ].map((s) => (
             <Card key={s.label} strong className="p-4">
               <div className="flex items-center gap-3">
@@ -410,6 +415,7 @@ export function AdminPanel() {
             ["rekap", "Rekap Nilai"],
             ["casis", "Kelola Casis"],
             ["data", "Putusan & Blacklist"],
+            ["discord", "Discord"],
             ["log", "Audit Log"],
           ] as [typeof tab, string][]
         ).map(([t, label]) => (
@@ -543,7 +549,7 @@ export function AdminPanel() {
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              Jumlah Soal MCQ (kosong = default 15)
+                          Jumlah Soal Pilihan Ganda (kosong = default 15)
             </label>
             <input
               type="number"
@@ -571,7 +577,7 @@ export function AdminPanel() {
           </div>
           <div>
             <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              KKM / Nilai Lulus (kosong = default 75)
+              KKM / Nilai Lulus (kosong = default 70)
             </label>
             <input
               type="number"
@@ -605,7 +611,7 @@ export function AdminPanel() {
                       Seed: {p.seed} · Dibuka: {new Date(p.openedAt).toLocaleString("id-ID")}
                     </p>
                     <p className="text-xs text-zinc-500">
-                      Soal: {p.mcqCount ?? "15"} MCQ · {p.essayCount ?? "5"} Essay · KKM: {p.passThreshold}
+                      Soal: {p.mcqCount ?? "15"} Pilihan Ganda · {p.essayCount ?? "5"} Essay · KKM: {p.passThreshold}
                     </p>
                     {p.closedAt && (
                       <p className="text-xs text-red-400">
@@ -746,7 +752,7 @@ export function AdminPanel() {
                       </div>
                       <div>
                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                          Jumlah Soal MCQ (kosong = default 15)
+              Jumlah Soal Pilihan Ganda (kosong = default 15)
                         </label>
                         <input
                           type="number"
@@ -809,7 +815,7 @@ export function AdminPanel() {
                                 : cur
                             )
                           }
-                          placeholder="75"
+                          placeholder="70"
                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
                         />
                       </div>
@@ -1029,13 +1035,70 @@ export function AdminPanel() {
         </div>
 
         <div className="mt-5 max-h-96 space-y-2 overflow-y-auto pr-1">
+          {questions.length > 0 && (
+            <div className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2">
+              <p className="text-xs text-zinc-400">{questions.length} soal total</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (!confirm(`Hapus semua soal ${qType === "MCQ" ? "Pilihan Ganda" : "Essay"}?`)) return;
+                    setBusy(true);
+                    await fetch("/api/admin/questions", {
+                      method: "DELETE",
+                      headers,
+                      body: JSON.stringify({ deleteAll: true, type: qType }),
+                    });
+                    await load();
+                    setBusy(false);
+                  }}
+                  className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
+                >
+                  Hapus Semua {qType === "MCQ" ? "PG" : "Essay"}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm("Hapus SEMUA soal (PG + Essay)?")) return;
+                    setBusy(true);
+                    await fetch("/api/admin/questions", {
+                      method: "DELETE",
+                      headers,
+                      body: JSON.stringify({ deleteAll: true }),
+                    });
+                    await load();
+                    setBusy(false);
+                  }}
+                  className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
+                >
+                  Hapus Semua
+                </button>
+              </div>
+            </div>
+          )}
           {questions.map((q) => (
             <div key={q.id} className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
               <div className="flex items-start justify-between gap-3">
                 <p className="text-sm font-medium text-zinc-200">{q.prompt}</p>
-                <Badge tone={q.type === "MCQ" ? "gold" : "neutral"}>
-                  {q.type === "MCQ" ? `PG · ${q.points}pt` : `Essay · ${q.points}pt`}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge tone={q.type === "MCQ" ? "gold" : "neutral"}>
+                    {q.type === "MCQ" ? `PG · ${q.points}pt` : `Essay · ${q.points}pt`}
+                  </Badge>
+                  <button
+                    onClick={async () => {
+                      if (!confirm("Hapus soal ini?")) return;
+                      setBusy(true);
+                      await fetch("/api/admin/questions", {
+                        method: "DELETE",
+                        headers,
+                        body: JSON.stringify({ id: q.id }),
+                      });
+                      await load();
+                      setBusy(false);
+                    }}
+                    className="rounded-md border border-red-500/40 px-2 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
+                  >
+                    Hapus
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -1047,6 +1110,7 @@ export function AdminPanel() {
       {tab === "rekap" && <CandidatesTab headers={headers} />}
       {tab === "casis" && <CasisManagement headers={headers} onDeleted={() => load()} />}
       {tab === "data" && <BlacklistTab headers={headers} />}
+      {tab === "discord" && <DiscordMessagesTab headers={headers} />}
     </div>
   );
 }

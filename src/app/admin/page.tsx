@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 
-export const metadata = { title: "Admin - Rekrutmen Bareskrim Polri RP" };
+export const metadata = { title: "Admin - Rekrutmen Bareskrim PolriRbx [RI]" };
 
 export default function AdminPage() {
   return (

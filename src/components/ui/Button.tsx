@@ -14,9 +14,10 @@ const variants: Record<ButtonVariant, string> = {
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
+  loading?: boolean;
 }
 
-export function Button({ variant = "primary", className, ...props }: ButtonProps) {
+export function Button({ variant = "primary", className, loading, children, disabled, ...props }: ButtonProps) {
   return (
     <button
       className={cn(
@@ -24,7 +25,11 @@ export function Button({ variant = "primary", className, ...props }: ButtonProps
         variants[variant],
         className
       )}
+      disabled={disabled || loading}
       {...props}
-    />
+    >
+      {loading && <span className="btn-spinner" />}
+      {children}
+    </button>
   );
 }

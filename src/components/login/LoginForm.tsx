@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { CasisCard } from "@/components/casis/CasisCard";
@@ -14,6 +15,14 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verified, setVerified] = useState<VerifyResponse | null>(null);
+  const [noPeriod, setNoPeriod] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/period/active")
+      .then((r) => r.json())
+      .then((d) => setNoPeriod(!d.active))
+      .catch(() => setNoPeriod(true));
+  }, []);
 
   async function handleVerify() {
     if (!username.trim() || !discordUsername.trim()) return;
@@ -47,6 +56,23 @@ export function LoginForm() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (noPeriod) {
+    return (
+      <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+          <span className="text-3xl">🔒</span>
+        </div>
+        <h1 className="font-display text-xl font-bold text-zinc-100">Belum Ada Periode Aktif</h1>
+        <p className="mt-3 text-sm text-zinc-400">
+          Pendaftaran belum dibuka. Pantau server Discord untuk pengumuman periode rekrutmen.
+        </p>
+        <Link href="/" className="mt-6 inline-block">
+          <Button variant="ghost">Kembali ke Beranda</Button>
+        </Link>
+      </Card>
+    );
   }
 
   if (verified?.success && verified.user) {

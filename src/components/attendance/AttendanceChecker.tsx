@@ -2,17 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToastContext } from "@/components/ui/Toast";
 
 export function AttendanceChecker() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [verified, setVerified] = useState(false);
   const [attended, setAttended] = useState(false);
   const [warning, setWarning] = useState(false);
+  const [noPeriod, setNoPeriod] = useState<boolean | null>(null);
+  const [checkingAttendance, setCheckingAttendance] = useState(true);
   const [attendanceData, setAttendanceData] = useState<{
     status: string;
     createdAt: string;
@@ -49,7 +53,25 @@ export function AttendanceChecker() {
 
   useEffect(() => {
     generateCaptcha();
-  }, []);
+    // Cek periode aktif + apakah sudah absen saat mount
+    Promise.all([
+      fetch("/api/period/active").then((r) => r.json()),
+      fetch("/api/attendance/check").then((r) => r.json()),
+    ])
+      .then(([periodData, attendData]) => {
+        setNoPeriod(!periodData.active);
+        if (attendData.attended) {
+          // Sudah absen → redirect ke ujian
+          router.replace("/ujian");
+          return;
+        }
+        setCheckingAttendance(false);
+      })
+      .catch(() => {
+        setNoPeriod(true);
+        setCheckingAttendance(false);
+      });
+  }, [router]);
 
   // Tampilkan peringatan bila diarahkan dari login karena belum absen
   useEffect(() => {
@@ -103,8 +125,28 @@ export function AttendanceChecker() {
     }
   }
 
+  // Tidak ada periode aktif
+  if (noPeriod) {
+    return (
+      <div className="bg-hero-radial flex min-h-[70vh] items-center justify-center px-4 py-16">
+        <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+            <span className="text-3xl">🔒</span>
+          </div>
+          <h1 className="font-display text-xl font-bold text-zinc-100">Belum Ada Periode Aktif</h1>
+          <p className="mt-3 text-sm text-zinc-400">
+            Pendaftaran belum dibuka. Pantau server Discord untuk pengumuman periode rekrutmen.
+          </p>
+          <Link href="/" className="mt-6 inline-block">
+            <Button variant="ghost">Kembali ke Beranda</Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
   // Loading state
-  if (loading) {
+  if (loading || checkingAttendance) {
     return (
       <div className="bg-hero-radial flex min-h-[70vh] items-center justify-center px-4 py-16">
         <Card strong className="w-full max-w-md p-8 text-center space-y-4">
@@ -231,6 +273,11 @@ export function AttendanceChecker() {
               }}
               placeholder="Contoh: BangReskrim_01"
               className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && robloxUsername.trim() && discordUsername.trim() && captchaInput.trim() && Number(captchaInput.trim()) === captchaA + captchaB) {
+                  handleVerify();
+                }
+              }}
             />
           </div>
 
@@ -249,6 +296,11 @@ export function AttendanceChecker() {
               }}
               placeholder="Contoh: bang_reskrim"
               className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && robloxUsername.trim() && discordUsername.trim() && captchaInput.trim() && Number(captchaInput.trim()) === captchaA + captchaB) {
+                  handleVerify();
+                }
+              }}
             />
             <p className="mt-1 text-[11px] text-zinc-500">
               Username Discord yang terdaftar di server pusdik
@@ -273,6 +325,11 @@ export function AttendanceChecker() {
                 }}
                 placeholder="Jawaban"
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && robloxUsername.trim() && discordUsername.trim() && captchaInput.trim() && Number(captchaInput.trim()) === captchaA + captchaB) {
+                    handleVerify();
+                  }
+                }}
               />
               <button
                 type="button"

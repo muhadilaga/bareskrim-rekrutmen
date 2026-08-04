@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
-export const metadata = { title: "Ujian - Rekrutmen Bareskrim Polri RP" };
+export const metadata = { title: "Ujian - Rekrutmen Bareskrim PolriRbx [RI]" };
 
 export default async function ExamPage() {
   const user = await getSessionUser();

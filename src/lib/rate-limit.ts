@@ -56,5 +56,8 @@ export function clientIp(req: Request): string {
 // 10 permintaan verifikasi per menit per IP
 export const verifyLimiter = createRateLimiter({ windowMs: 60_000, max: 10 });
 
+// 5 login per menit per IP
+export const loginLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
+
 // 3 submit per menit per IP (batch jawaban besar, jarang)
 export const submitLimiter = createRateLimiter({ windowMs: 60_000, max: 3 });
