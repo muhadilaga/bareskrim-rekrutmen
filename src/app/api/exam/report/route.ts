@@ -100,7 +100,7 @@ function buildRetryPayload(
     essayScore: number;
     status: string;
     attempt: {
-      user: { username: string; displayName: string; robloxId: number; avatarUrl: string | null; policeGroupRank: string | null };
+      user: { username: string; displayName: string; robloxId: bigint | number; avatarUrl: string | null; policeGroupRank: string | null };
       period: { name: string };
     };
   },
