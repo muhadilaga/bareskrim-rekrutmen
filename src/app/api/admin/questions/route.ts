@@ -4,6 +4,7 @@ import { Prisma, QuestionType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAdminKey } from "@/lib/constants";
 import { logAdminAction } from "@/lib/audit";
+import { ensureSchema } from "@/lib/init-schema";
 
 function isAdmin(req: Request): boolean {
   return req.headers.get("x-admin-key") === getAdminKey();
