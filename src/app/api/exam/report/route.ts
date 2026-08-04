@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth";
 import { ensureSchema } from "@/lib/init-schema";
 import { sendDiscordExamReport } from "@/lib/discord";
 import type { GradedAnswerDetail } from "@/lib/grading";
+import { serializeGradedDetails } from "@/lib/grading";
 
 const ReportSchema = z.object({
   resultId: z.string().min(1),
@@ -108,7 +109,7 @@ function buildRetryPayload(
   },
   details: GradedAnswerDetail[]
 ): Prisma.InputJsonValue {
-  return {
+  const payload = {
     username: result.attempt.user.username,
     displayName: result.attempt.user.displayName,
     robloxId: Number(result.attempt.user.robloxId),
@@ -120,6 +121,7 @@ function buildRetryPayload(
     essayScore: result.essayScore,
     status: result.status,
     periodName: result.attempt.period.name,
-    details,
+    details: serializeGradedDetails(details),
   };
+  return payload as Prisma.InputJsonValue;
 }

@@ -4,6 +4,7 @@
 // ============================================================
 
 import type { Question } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { CONFIG } from "@/lib/constants";
 
 // Deterministic RNG (mulberry32)
@@ -113,6 +114,11 @@ export function hashString(input: string): number {
 
 export function sanitizeForClient(snapshot: SnapshotQuestion[]): ClientQuestion[] {
   return snapshot.map(({ correctKey: _ck, keywords: _kw, ...rest }) => rest);
+}
+
+// Helper: serialize GradedAnswerDetail[] ke format JSON-safe untuk Prisma Json
+export function serializeGradedDetails(details: GradedAnswerDetail[]): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(details)) as Prisma.InputJsonValue;
 }
 
 // ============================================================
