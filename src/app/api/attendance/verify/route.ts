@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { BlacklistCategory, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ensureSchema } from "@/lib/init-schema";
 import { CONFIG } from "@/lib/constants";
 import { verifyLimiter, clientIp } from "@/lib/rate-limit";
 import {
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
   }
 
   try {
+    await ensureSchema();
     const body = await req.json();
     const parsed = VerifySchema.safeParse(body);
 
