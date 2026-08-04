@@ -368,8 +368,8 @@ export function AdminPanel() {
               <h2 className="font-display text-lg font-bold text-red-300">⚠️ Database Belum Siap</h2>
               <p className="mt-1 text-sm text-zinc-400">
                 Tabel belum ditemukan. Klik tombol di samping untuk membuat semua tabel secara
-                otomatis (tidak perlu terminal/CLI). Pastikan <code className="text-gold">DATABASE_URL</code>{" "}
-                sudah diisi di Netlify.
+                otomatis (tidak perlu terminal/CLI).                 Pastikan <code className="text-gold">DATABASE_URL</code>{" "}
+                sudah diisi di environment variables Vercel.
               </p>
             </div>
             <Button variant="gold" onClick={initDb} disabled={busy} className="shrink-0">
