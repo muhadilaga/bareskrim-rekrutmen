@@ -14,7 +14,6 @@ export async function GET() {
       where: { attempts: { lt: 3 } },
       orderBy: { createdAt: "asc" },
       take: 10,
-      include: { result: true },
     });
 
     if (pending.length === 0) {
