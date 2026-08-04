@@ -67,6 +67,7 @@ model ExamPeriod {
   name        String
   description String?
   isActive    Boolean  @default(false)
+  isExamOpen  Boolean  @default(false) // Admin kontrol kapan ujian bisa dikerjakan
   seed        Int      @unique // seed acak -> menentukan subset & urutan soal periode ini
   // Konfigurasi periode (opsional; null = pakai nilai default di constants.ts)
   mcqCount     Int? // jumlah soal pilihan ganda yang keluar

@@ -177,13 +177,13 @@ export default async function HomePage() {
               href="/login"
               className="w-full rounded-lg border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-8 py-3.5 text-center font-semibold text-crimson-950 shadow-glow transition hover:brightness-110 sm:w-auto"
             >
-              Daftar & Ikuti Ujian
+              Mulai Sekarang
             </Link>
             <Link
               href="/hasil"
               className="w-full rounded-lg border border-gold/40 bg-transparent px-8 py-3.5 text-center font-semibold text-zinc-700 dark:text-zinc-200 transition hover:border-gold/60 hover:bg-white/10 sm:w-auto"
             >
-              Lihat Hasil Anda
+              Lihat Hasil
             </Link>
           </div>
           <div className="gold-line mx-auto mt-16 w-2/3" />
@@ -215,8 +215,10 @@ export default async function HomePage() {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
-                    })}{" "}
-                    · Absensi wajib sebelum mengikuti ujian.
+                    })}
+                  </p>
+                  <p className="mt-2 text-xs font-medium text-gold">
+                    {activePeriod.isExamOpen ? "Ujian sedang dibuka!" : "Login → Absen → Tunggu Jadwal Ujian"}
                   </p>
                 </div>
               </div>
@@ -228,10 +230,10 @@ export default async function HomePage() {
                   Absen Sekarang
                 </Link>
                 <Link
-                  href="/login"
+                  href="/hasil"
                   className="rounded-lg border border-gold/40 bg-transparent px-5 py-2.5 text-center text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition hover:border-gold/60 hover:bg-white/10"
                 >
-                  Ikuti Ujian
+                  Lihat Hasil
                 </Link>
               </div>
             </div>

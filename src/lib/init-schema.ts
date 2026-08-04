@@ -55,6 +55,7 @@ const statements: string[] = [
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "mcqCount" INTEGER;`,
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "essayCount" INTEGER;`,
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "passThreshold" INTEGER NOT NULL DEFAULT 75;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isExamOpen" BOOLEAN NOT NULL DEFAULT false;`,
 
   // ===== Periode Rekrutmen =====
   `CREATE TABLE IF NOT EXISTS "ExamPeriod" (

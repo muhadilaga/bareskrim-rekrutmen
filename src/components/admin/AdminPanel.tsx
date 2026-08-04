@@ -37,6 +37,7 @@ interface PeriodItem {
   name: string;
   description: string | null;
   isActive: boolean;
+  isExamOpen: boolean;
   seed: number;
   mcqCount: number | null;
   essayCount: number | null;
@@ -616,6 +617,11 @@ export function AdminPanel() {
                     <Badge tone={p.isActive ? "green" : "neutral"}>
                       {p.isActive ? "AKTIF" : "DITUTUP"}
                     </Badge>
+                    {p.isActive && (
+                      <Badge tone={p.isExamOpen ? "green" : "neutral"}>
+                        {p.isExamOpen ? "UJIAN BUKA" : "UJIAN TUTUP"}
+                      </Badge>
+                    )}
                     <button
                       onClick={() =>
                         setEditingDates((cur) =>
@@ -635,6 +641,28 @@ export function AdminPanel() {
                     >
                       {editingDates?.id === p.id ? "Batal" : "Edit Periode"}
                     </button>
+                    {p.isActive && (
+                      <button
+                        onClick={async () => {
+                          const newExamOpen = !p.isExamOpen;
+                          const res = await fetch("/api/admin/period", {
+                            method: "PATCH",
+                            headers,
+                            body: JSON.stringify({ periodId: p.id, action: "toggleExamOpen", isExamOpen: newExamOpen }),
+                          });
+                          const json = await res.json();
+                          setMsg({ ok: json.ok, text: json.message });
+                          if (json.ok) await load();
+                        }}
+                        className={`rounded-md border px-2.5 py-1 text-xs transition ${
+                          p.isExamOpen
+                            ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+                            : "border-white/20 text-zinc-400 hover:bg-white/10"
+                        }`}
+                      >
+                        {p.isExamOpen ? "Buka Ujian ✓" : "Buka Ujian"}
+                      </button>
+                    )}
                     <button
                       onClick={async () => {
                         if (!window.confirm(p.isActive ? "Tutup periode ini?" : "Buka kembali periode ini?"))

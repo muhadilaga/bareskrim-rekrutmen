@@ -100,6 +100,21 @@ export default async function ExamPage() {
         </div>
       );
     }
+    if (session.code === "EXAM_NOT_OPEN") {
+      return (
+        <div className="flex min-h-[70vh] items-center justify-center px-4">
+          <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
+            <div className="text-4xl">📋</div>
+            <h1 className="mt-4 font-display text-xl font-bold text-gold">Sesi Ujian Belum Dibuka</h1>
+            <p className="mt-3 text-sm text-zinc-400">{session.message}</p>
+            <p className="mt-2 text-xs text-zinc-500">Instruktur akan mengumumkan jadwal ujian melalui Discord.</p>
+            <Link href="/" className="mt-6 inline-block">
+              <Button variant="ghost">Kembali ke Beranda</Button>
+            </Link>
+          </Card>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-[70vh] items-center justify-center px-4">
         <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">

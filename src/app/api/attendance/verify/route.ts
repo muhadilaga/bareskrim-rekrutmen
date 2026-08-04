@@ -206,10 +206,10 @@ export async function POST(req: Request) {
     }
 
     const successMessage = roleAssigned
-      ? "Absensi berhasil! Role Tahap Akademik sudah diberikan."
+      ? "Absensi berhasil! Role Tahap Akademik sudah diberikan. Silakan tunggu jadwal ujian dari instruktur."
       : roleError
         ? `Absensi berhasil, tapi role gagal diberikan: ${roleError}. Hubungi admin untuk assign manual.`
-        : "Absensi berhasil! Role Tahap Akademik akan diberikan oleh admin.";
+        : "Absensi berhasil! Silakan tunggu jadwal ujian dari instruktur.";
 
     return NextResponse.json({
       ok: true,

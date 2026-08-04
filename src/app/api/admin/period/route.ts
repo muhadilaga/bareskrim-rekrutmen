@@ -157,6 +157,15 @@ export async function PATCH(req: Request) {
         detail: { deletedResults: deleted[0]?.count ?? 0, deletedAttempts: deleted[1]?.count ?? 0 },
       });
       return NextResponse.json({ ok: true, message: `Reset berhasil. ${deleted[1]?.count ?? 0} attempt, ${deleted[0]?.count ?? 0} hasil dihapus.` });
+    } else if (action === "toggleExamOpen") {
+      const { isExamOpen } = body ?? {};
+      await prisma.examPeriod.update({
+        where: { id: periodId },
+        data: { isExamOpen: Boolean(isExamOpen) },
+      });
+      const status = isExamOpen ? "DIBUKA" : "DITUTUP";
+      await logAdminAction({ action: `UJIAN_${status}`, target: period?.name ?? periodId });
+      return NextResponse.json({ ok: true, message: `Akses ujian ${isExamOpen ? "dibuka" : "ditutup"}.` });
     } else if (action === "edit") {
       // Edit periode: tanggal (openedAt/closedAt) dan/atau konfigurasi
       // (mcqCount/essayCount/passThreshold). Semua opsional.

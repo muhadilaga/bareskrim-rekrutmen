@@ -19,7 +19,7 @@ import type { User } from "@prisma/client";
 
 export type ExamSessionResult =
   | { ok: true; attemptId: string; questions: ClientQuestion[]; remainingSeconds: number; period: { name: string; description: string | null } }
-  | { ok: false; code: "NO_ACTIVE_PERIOD" | "ALREADY_SUBMITTED" | "RANK_BLOCKED" | "PERIOD_CLOSED" | "NO_ATTENDANCE" | "NO_ROLE"; message: string };
+  | { ok: false; code: "NO_ACTIVE_PERIOD" | "ALREADY_SUBMITTED" | "RANK_BLOCKED" | "PERIOD_CLOSED" | "NO_ATTENDANCE" | "NO_ROLE" | "EXAM_NOT_OPEN"; message: string };
 
 // Cek apakah user sudah absen pada periode tertentu.
 // HANYA berdasarkan userId (identitas terverifikasi) — TIDAK berdasarkan
@@ -80,6 +80,15 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
       ok: false,
       code: "PERIOD_CLOSED",
       message: "Periode ujian sudah ditutup oleh instruktur. Tidak bisa mengakses soal lagi.",
+    };
+  }
+
+  // Cek apakah sesi ujian sudah dibuka admin
+  if (!period.isExamOpen) {
+    return {
+      ok: false,
+      code: "EXAM_NOT_OPEN",
+      message: "Sesi ujian belum dibuka oleh instruktur. Silakan tunggu pengumuman jadwal ujian.",
     };
   }
 
