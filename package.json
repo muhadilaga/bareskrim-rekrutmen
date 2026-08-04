@@ -5,7 +5,7 @@
   "description": "Sistem Rekrutmen & Ujian Online Bareskrim Polri Roblox - Red & Gold",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build && next export",
+    "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "next lint",
