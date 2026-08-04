@@ -174,16 +174,10 @@ export default async function HomePage() {
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row animate-slide-up delay-200">
             <Link
-              href="/login"
+              href="/absen"
               className="w-full rounded-lg border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-8 py-3.5 text-center font-semibold text-crimson-950 shadow-glow transition hover:brightness-110 sm:w-auto"
             >
               Mulai Sekarang
-            </Link>
-            <Link
-              href="/hasil"
-              className="w-full rounded-lg border border-gold/40 bg-transparent px-8 py-3.5 text-center font-semibold text-zinc-700 dark:text-zinc-200 transition hover:border-gold/60 hover:bg-white/10 sm:w-auto"
-            >
-              Lihat Hasil
             </Link>
           </div>
           <div className="gold-line mx-auto mt-16 w-2/3" />
