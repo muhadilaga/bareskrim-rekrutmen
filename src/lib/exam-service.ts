@@ -38,29 +38,11 @@ export async function hasAttendance(userId: string, periodId: string) {
 // Cek role "Tahap Akademik" di Discord.
 // Prioritas: Discord REST API langsung → bot server → skip (lolos)
 async function checkAcademicRole(discordUsername: string): Promise<{ ok: boolean; hasRole: boolean }> {
-  // 1) Coba Discord REST API langsung
   if (CONFIG.discordBotToken && CONFIG.discordGuildId && CONFIG.tahapAkademikRoleId) {
     return checkDiscordRole(discordUsername, "Tahap Akademik");
   }
-
-  // 2) Fallback ke bot server
-  try {
-    const res = await fetch(
-      `${CONFIG.discordBotApiUrl}/api/check-role/${encodeURIComponent(discordUsername)}/${encodeURIComponent("Tahap Akademik")}`,
-      {
-        headers: { "x-bot-secret": CONFIG.discordBotSecret },
-        signal: AbortSignal.timeout(8000),
-      }
-    );
-    const data = await res.json();
-    if (res.ok && data.ok) {
-      return { ok: true, hasRole: data.hasRole === true };
-    }
-    return { ok: false, hasRole: false };
-  } catch (e) {
-    console.error("checkAcademicRole bot error:", e);
-    return { ok: false, hasRole: false };
-  }
+  // Bot belum dikonfigurasi → skip check (lolos)
+  return { ok: false, hasRole: false };
 }
 
 // Mulai / lanjutkan sesi ujian untuk user pada periode aktif
