@@ -1,12 +1,8 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "out"
 
-# Jadwalkan fungsi cron untuk retry laporan Discord yang gagal
-# Setiap 5 menit
-[[scheduled_functions]]
-  name = "discord-retry"
-  interval = "*/5 * * * *"
-
-[functions]
-  included_files = ["src/app/api/cron/**"]
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
