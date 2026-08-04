@@ -30,3 +30,8 @@ prisma/*.db
 
 .vercel
 .env*
+
+# temp/test files
+test-discord.*
+check*.cjs
+push*.cjs

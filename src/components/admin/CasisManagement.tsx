@@ -120,8 +120,9 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
       )
     )
       return;
-    if (!window.confirm("Konfirmasi kedua: Yakin ingin menghapus SEMUA data casis?")) return;
     setDeletingId("__all__");
+    // Yield ke main thread agar UI update sebelum fetch
+    await new Promise((r) => setTimeout(r, 50));
     try {
       const res = await fetch("/api/admin/users?all=1", {
         method: "DELETE",
