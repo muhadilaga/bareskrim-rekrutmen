@@ -44,14 +44,15 @@ export async function listAdminLogs(limit = 50) {
 }
 
 // Hapus seluruh log audit (bulk delete)
-export async function clearAdminLogs(): Promise<{ deleted: number }> {
+export async function clearAdminLogs(): Promise<{ count: number }> {
   try {
-    const result = await prisma.$executeRawUnsafe<{ count: number }>`
+    const result = await prisma.$executeRawUnsafe`
       DELETE FROM "AdminLog"
     `;
-    return { deleted: Number(result?.count ?? 0) };
+    // $executeRawUnsafe returns bigint on PostgreSQL for DELETE
+    return { count: Number(result ?? 0) };
   } catch (e) {
     console.error("clearAdminLogs error:", e);
-    return { deleted: 0 };
+    return { count: 0 };
   }
 }
