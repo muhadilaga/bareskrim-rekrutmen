@@ -90,6 +90,8 @@ export async function POST(req: Request) {
   }
 }
 
+import { Prisma } from "@prisma/client";
+
 // Helper: build payload JSON untuk retry
 function buildRetryPayload(
   result: {
@@ -105,7 +107,7 @@ function buildRetryPayload(
     };
   },
   details: GradedAnswerDetail[]
-): Record<string, unknown> {
+): Prisma.InputJsonValue {
   return {
     username: result.attempt.user.username,
     displayName: result.attempt.user.displayName,
