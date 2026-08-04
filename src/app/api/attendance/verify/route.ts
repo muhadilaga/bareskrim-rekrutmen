@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureSchema } from "@/lib/init-schema";
 import { CONFIG } from "@/lib/constants";
 import { verifyLimiter, clientIp } from "@/lib/rate-limit";
+import { assignDiscordRole } from "@/lib/discord-api";
 import {
   resolveUserByUsername,
   getUserGroups,
@@ -190,34 +191,42 @@ export async function POST(req: Request) {
       },
     });
 
-    // Assign role via Discord Bot
+    // Assign role via Discord (langsung REST API atau bot server)
     let roleAssigned = false;
     let roleError: string | null = null;
 
     try {
-      const botResponse = await fetch(`${CONFIG.discordBotApiUrl}/api/assign-role`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-bot-secret": CONFIG.discordBotSecret,
-        },
-        body: JSON.stringify({
-          userId: discordUsername.trim(),
-          roleName: "Tahap Akademik",
-        }),
-      });
-
-      const botResult = await botResponse.json();
-      console.log("Bot role assignment result:", JSON.stringify(botResult));
-
-      if (botResult.ok) {
-        roleAssigned = true;
+      // Prioritas: gunakan Discord REST API langsung jika token tersedia
+      if (CONFIG.discordBotToken && CONFIG.discordGuildId && CONFIG.tahapAkademikRoleId) {
+        const result = await assignDiscordRole(discordUsername.trim(), "Tahap Akademik");
+        roleAssigned = result.ok;
+        roleError = result.ok ? null : result.message;
       } else {
-        roleError = botResult.message || "Gagal assign role";
+        // Fallback ke bot server jika ada
+        const botResponse = await fetch(`${CONFIG.discordBotApiUrl}/api/assign-role`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-bot-secret": CONFIG.discordBotSecret,
+          },
+          body: JSON.stringify({
+            userId: discordUsername.trim(),
+            roleName: "Tahap Akademik",
+          }),
+        });
+
+        const botResult = await botResponse.json();
+        console.log("Bot role assignment result:", JSON.stringify(botResult));
+
+        if (botResult.ok) {
+          roleAssigned = true;
+        } else {
+          roleError = botResult.message || "Gagal assign role";
+        }
       }
     } catch (botError) {
-      console.error("Failed to assign role via bot:", botError);
-      roleError = "Bot tidak bisa dijangkau. Pastikan bot berjalan di port 3001.";
+      console.error("Failed to assign role:", botError);
+      roleError = `Gagal assign role: ${botError instanceof Error ? botError.message : String(botError)}`;
     }
 
     const successMessage = roleAssigned

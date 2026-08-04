@@ -5,6 +5,7 @@
 import { prisma } from "@/lib/prisma";
 import { CONFIG } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
+import { checkDiscordRole } from "@/lib/discord-api";
 import {
   buildQuestionSet,
   gradeExam,
@@ -34,9 +35,15 @@ export async function hasAttendance(userId: string, periodId: string) {
   });
 }
 
-// Cek role "Tahap Akademik" di Discord via bot. Return:
-//   { ok: true, hasRole: boolean }  atau  { ok: false } bila bot tak terjangkau.
+// Cek role "Tahap Akademik" di Discord.
+// Prioritas: Discord REST API langsung → bot server → skip (lolos)
 async function checkAcademicRole(discordUsername: string): Promise<{ ok: boolean; hasRole: boolean }> {
+  // 1) Coba Discord REST API langsung
+  if (CONFIG.discordBotToken && CONFIG.discordGuildId && CONFIG.tahapAkademikRoleId) {
+    return checkDiscordRole(discordUsername, "Tahap Akademik");
+  }
+
+  // 2) Fallback ke bot server
   try {
     const res = await fetch(
       `${CONFIG.discordBotApiUrl}/api/check-role/${encodeURIComponent(discordUsername)}/${encodeURIComponent("Tahap Akademik")}`,
