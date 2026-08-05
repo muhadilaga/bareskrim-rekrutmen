@@ -10,6 +10,7 @@ import { BlacklistTab } from "@/components/admin/BlacklistTab";
 import { CasisManagement } from "@/components/admin/CasisManagement";
 import { DiscordMessagesTab } from "@/components/admin/DiscordMessagesTab";
 import { useToastContext } from "@/components/ui/Toast";
+import { getSettings } from "@/lib/constants";
 
 interface Stats {
   totalUsers: number;
@@ -1377,35 +1378,35 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 Banned Group IDs (pisahkan koma)
               </label>
-              <input
-                type="text"
-                value={Array.isArray(settings.bannedGroupIds) ? settings.bannedGroupIds.join(",") : settings.bannedGroupIds ?? ""}
-                onChange={(e) => handleChange("bannedGroupIds", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-              />
+                 <input
+                   type="text"
+                   value={Array.isArray(settings.bannedGroupIds) ? settings.bannedGroupIds.join(",") : ""}
+                   onChange={(e) => handleChange("bannedGroupIds", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                   className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                 />
               <p className="mt-1 text-[11px] text-zinc-500">Contoh: 367050757,34766643</p>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 Role ID: Tahap Akademik
               </label>
-              <input
-                type="text"
-                value={settings.tahapAkademikRoleId ?? ""}
-                onChange={(e) => handleChange("tahapAkademikRoleId", e.target.value)}
-                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-              />
+                 <input
+                   type="text"
+                   value={(settings.tahapAkademikRoleId as string) ?? ""}
+                   onChange={(e) => handleChange("tahapAkademikRoleId", e.target.value)}
+                   className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                 />
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 Role ID: Tahap Interview
               </label>
-              <input
-                type="text"
-                value={settings.tahapInterviewRoleId ?? ""}
-                onChange={(e) => handleChange("tahapInterviewRoleId", e.target.value)}
-                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-              />
+                 <input
+                   type="text"
+                   value={(settings.tahapInterviewRoleId as string) ?? ""}
+                   onChange={(e) => handleChange("tahapInterviewRoleId", e.target.value)}
+                   className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                 />
             </div>
           </div>
         </Card>

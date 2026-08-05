@@ -18,11 +18,11 @@ const logger = pino({
     service: "bareskrim-rekrutmen",
     env: process.env.NODE_ENV,
   },
-   formatters: {
-     level: (label: string) => {
-       return label;
-     },
-   },
+  formatters: {
+    level: (label: string, _num: number) => {
+      return { level: label };
+    },
+  },
   timestamp: pino.stdTimeFunctions.isoTime,
 });
 
@@ -32,7 +32,7 @@ export const log = {
   warn: (msg: string, meta?: Record<string, unknown>) => logger.warn(meta, msg),
   error: (msg: string, meta?: Record<string, unknown>) => logger.error(meta, msg),
   fatal: (msg: string, meta?: Record<string, unknown>) => logger.fatal(meta, msg),
-  
+
   // Audit specific loggers
   audit: {
     admin: (action: string, target: string, detail: Record<string, unknown>, userId?: string) =>
@@ -44,11 +44,11 @@ export const log = {
     discord: (event: "role_assign" | "role_remove" | "dm_send" | "webhook", success: boolean, detail: Record<string, unknown>) =>
       logger.info({ type: "audit_discord", event, success, detail }, `Discord: ${event} ${success ? "ok" : "failed"}`),
   },
-  
+
   // Performance timing
   time: (label: string) => logger.time(label),
   timeEnd: (label: string) => logger.timeEnd(label),
-  
+
   // HTTP request logging
   http: (method: string, url: string, status: number, durationMs: number, userId?: string) =>
     logger.info({ type: "http", method, url, status, durationMs, userId }, `${method} ${url} ${status} ${durationMs}ms`),
