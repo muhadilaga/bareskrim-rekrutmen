@@ -45,10 +45,12 @@ export async function GET(req: Request) {
       { headers: botHeaders(), signal: AbortSignal.timeout(10_000) }
     );
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return NextResponse.json({ ok: false, message: `Discord API error: ${res.status}`, detail: err }, { status: 502 });
-    }
+   if (!res.ok) {
+     const err = await res.json().catch(() => ({}));
+     // Log more details for debugging
+     console.error(`[DISCORD_MSGS] Failed to fetch messages: ${res.status}`, err);
+     return NextResponse.json({ ok: false, message: `Discord API error: ${res.status}`, detail: err }, { status: 502 });
+   }
 
     const messages: DiscordMessage[] = await res.json();
 
