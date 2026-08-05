@@ -101,11 +101,12 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3) Ambil keanggotaan grup + avatar
-    const [groups, avatarUrl] = await Promise.all([
-      getUserGroups(userInfo.id),
-      getAvatarHeadshot(userInfo.id),
-    ]);
+     // 3) Ambil keanggotaan grup + avatar
+     const [groups, avatarUrl] = await Promise.all([
+       getUserGroups(userInfo.id),
+       getAvatarHeadshot(userInfo.id),
+     ]);
+     console.log(`[ATTENDANCE_VERIFY] userId=${userInfo.id}, avatarUrl=${avatarUrl}`);
 
     const isIn = (gid: number) => groups.some((g) => g.groupId === gid);
 

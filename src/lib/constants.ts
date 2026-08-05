@@ -1,33 +1,69 @@
-export const CONFIG = {
-  kkm: Number(process.env.KKM ?? 70),
-  mcqCount: Number(process.env.MCQ_COUNT ?? 15),
-  essayCount: Number(process.env.ESSAY_COUNT ?? 5),
-  mcqPoints: Number(process.env.MCQ_POINTS ?? 4),
-  essayPoints: Number(process.env.ESSAY_POINTS ?? 8),
-  examDurationMinutes: Number(process.env.EXAM_DURATION_MINUTES ?? 45),
-  requiredGroupId: Number(process.env.REQUIRED_GROUP_ID ?? 11902409),
-  requiredGroupName: process.env.REQUIRED_GROUP_NAME ?? "[RI] Republic Indonesia",
-  policeGroupId: Number(process.env.POLICE_GROUP_ID ?? 17166238),
-  policeGroupName: process.env.POLICE_GROUP_NAME ?? "Kepolisian",
-  minPoliceRank: Number(process.env.MIN_POLICE_RANK ?? 225),
-  minPoliceRankName: process.env.MIN_POLICE_RANK_NAME ?? "Bhayangkara Kepala",
-  bannedGroupIds: (process.env.BANNED_GROUP_IDS ?? "367050757,34766643")
-    .split(",")
-    .map((s) => Number(s.trim()))
-    .filter((n) => !Number.isNaN(n) && n > 0),
-  bannedGroupNames: (process.env.BANNED_GROUP_NAMES ?? "TNI AD,TNI AL")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean),
-  // Discord Bot API
-  discordBotApiUrl: process.env.DISCORD_BOT_API_URL ?? "http://localhost:3001",
-  discordBotSecret: process.env.DISCORD_BOT_SECRET ?? "BareskrimBotSecret2026",
-  tahapAkademikRoleId: process.env.TAHAP_AKADEMIK_ROLE_ID ?? "",
-  // Discord REST API (langsung dari server, tanpa bot server)
-  discordBotToken: process.env.DISCORD_BOT_TOKEN ?? "",
-  discordGuildId: process.env.DISCORD_GUILD_ID ?? "",
-  discordChannelId: process.env.DISCORD_CHANNEL_ID ?? "",
-} as const;
+let runtimeSettings: Partial<{
+  kkm: number;
+  examDurationMinutes: number;
+  minPoliceRank: number;
+  requiredGroupId: number;
+  requiredGroupName: string;
+  policeGroupId: number;
+  policeGroupName: string;
+  bannedGroupIds: number[];
+  bannedGroupNames: string[];
+  tahapAkademikRoleId: string;
+  tahapInterviewRoleId: string;
+  discordBotToken: string;
+  discordGuildId: string;
+  discordChannelId: string;
+  discordBotApiUrl: string;
+  discordBotSecret: string;
+  discordWebhookUrl: string;
+}> = {};
+
+function getEnvOrRuntime<T>(key: keyof typeof runtimeSettings, envValue: T): T {
+  const runtime = runtimeSettings[key];
+  return runtime !== undefined ? (runtime as T) : envValue;
+}
+
+function buildConfig() {
+  return {
+    kkm: getEnvOrRuntime("kkm", Number(process.env.KKM ?? 70)),
+    mcqCount: Number(process.env.MCQ_COUNT ?? 15),
+    essayCount: Number(process.env.ESSAY_COUNT ?? 5),
+    mcqPoints: Number(process.env.MCQ_POINTS ?? 4),
+    essayPoints: Number(process.env.ESSAY_POINTS ?? 8),
+    examDurationMinutes: getEnvOrRuntime("examDurationMinutes", Number(process.env.EXAM_DURATION_MINUTES ?? 45)),
+    requiredGroupId: getEnvOrRuntime("requiredGroupId", Number(process.env.REQUIRED_GROUP_ID ?? 11902409)),
+    requiredGroupName: getEnvOrRuntime("requiredGroupName", process.env.REQUIRED_GROUP_NAME ?? "[RI] Republic Indonesia"),
+    policeGroupId: getEnvOrRuntime("policeGroupId", Number(process.env.POLICE_GROUP_ID ?? 17166238)),
+    policeGroupName: getEnvOrRuntime("policeGroupName", process.env.POLICE_GROUP_NAME ?? "Kepolisian"),
+    minPoliceRank: getEnvOrRuntime("minPoliceRank", Number(process.env.MIN_POLICE_RANK ?? 225)),
+    minPoliceRankName: process.env.MIN_POLICE_RANK_NAME ?? "Bhayangkara Kepala",
+    bannedGroupIds: getEnvOrRuntime("bannedGroupIds", (process.env.BANNED_GROUP_IDS ?? "367050757,34766643")
+      .split(",")
+      .map((s) => Number(s.trim()))
+      .filter((n) => !Number.isNaN(n) && n > 0)),
+    bannedGroupNames: getEnvOrRuntime("bannedGroupNames", (process.env.BANNED_GROUP_NAMES ?? "TNI AD,TNI AL")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)),
+    // Discord Bot API
+    discordBotApiUrl: getEnvOrRuntime("discordBotApiUrl", process.env.DISCORD_BOT_API_URL ?? "http://localhost:3001"),
+    discordBotSecret: getEnvOrRuntime("discordBotSecret", process.env.DISCORD_BOT_SECRET ?? "BareskrimBotSecret2026"),
+    tahapAkademikRoleId: getEnvOrRuntime("tahapAkademikRoleId", process.env.TAHAP_AKADEMIK_ROLE_ID ?? ""),
+    tahapInterviewRoleId: getEnvOrRuntime("tahapInterviewRoleId", process.env.TAHAP_INTERVIEW_ROLE_ID ?? ""),
+    // Discord REST API (langsung dari server, tanpa bot server)
+    discordBotToken: getEnvOrRuntime("discordBotToken", process.env.DISCORD_BOT_TOKEN ?? ""),
+    discordGuildId: getEnvOrRuntime("discordGuildId", process.env.DISCORD_GUILD_ID ?? ""),
+    discordChannelId: getEnvOrRuntime("discordChannelId", process.env.DISCORD_CHANNEL_ID ?? ""),
+    discordWebhookUrl: getEnvOrRuntime("discordWebhookUrl", process.env.DISCORD_WEBHOOK_URL ?? ""),
+  } as const;
+}
+
+export function getConfig() {
+  return buildConfig();
+}
+
+// Backward compatibility - CONFIG object (evaluated at import time, may be stale after settings update)
+export const CONFIG = buildConfig();
 
 export const REDIRECT_BLOCKED_MESSAGE =
   "Mohon maaf, Anda tidak dapat mengakses soal ujian rekrutmen Bareskrim Polri karena terdaftar sebagai anggota matra lain (AD/AL).";
@@ -59,4 +95,35 @@ export function getAdminKey(): string {
     throw new Error("ADMIN_KEY wajib diisi di environment production.");
   }
   return ADMIN_KEY_FALLBACK;
+}
+
+export function getSettings() {
+  const cfg = buildConfig();
+  return {
+    kkm: cfg.kkm,
+    examDurationMinutes: cfg.examDurationMinutes,
+    minPoliceRank: cfg.minPoliceRank,
+    requiredGroupId: cfg.requiredGroupId,
+    requiredGroupName: cfg.requiredGroupName,
+    policeGroupId: cfg.policeGroupId,
+    policeGroupName: cfg.policeGroupName,
+    bannedGroupIds: cfg.bannedGroupIds,
+    bannedGroupNames: cfg.bannedGroupNames,
+    tahapAkademikRoleId: cfg.tahapAkademikRoleId,
+    tahapInterviewRoleId: cfg.tahapInterviewRoleId,
+    discordBotToken: cfg.discordBotToken,
+    discordGuildId: cfg.discordGuildId,
+    discordChannelId: cfg.discordChannelId,
+    discordBotApiUrl: cfg.discordBotApiUrl,
+    discordBotSecret: cfg.discordBotSecret,
+    discordWebhookUrl: cfg.discordWebhookUrl,
+  };
+}
+
+export function updateSettings(updates: Record<string, unknown>) {
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === undefined) continue;
+    (runtimeSettings as Record<string, unknown>)[key] = value;
+  }
+  return getSettings();
 }

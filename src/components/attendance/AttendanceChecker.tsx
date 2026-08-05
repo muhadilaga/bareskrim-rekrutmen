@@ -16,6 +16,8 @@ export function AttendanceChecker() {
   const [attended, setAttended] = useState(false);
   const [warning, setWarning] = useState(false);
   const [noPeriod, setNoPeriod] = useState<boolean | null>(null);
+  const [fetchError, setFetchError] = useState(false);
+  const [attendanceOpen, setAttendanceOpen] = useState<boolean | null>(null);
   const [checkingAttendance, setCheckingAttendance] = useState(true);
   const [attendanceData, setAttendanceData] = useState<{
     status: string;
@@ -60,15 +62,18 @@ export function AttendanceChecker() {
     ])
       .then(([periodData, attendData]) => {
         setNoPeriod(!periodData.active);
+        setAttendanceOpen(periodData.period?.isAttendanceOpen ?? false);
         if (attendData.attended) {
-          // Sudah absen → redirect ke ujian
-          router.replace("/ujian");
+          // Sudah absen → tampilkan tombol mulai ujian
+          setAttended(true);
+          setAttendanceData(attendData.attendance);
+          setCheckingAttendance(false);
           return;
         }
         setCheckingAttendance(false);
       })
       .catch(() => {
-        setNoPeriod(true);
+        setFetchError(true);
         setCheckingAttendance(false);
       });
   }, [router]);
@@ -91,6 +96,10 @@ export function AttendanceChecker() {
       generateCaptcha();
       return;
     }
+    if (!/^[a-zA-Z0-9_]{2,32}$/.test(discordUsername.trim())) {
+      setError("Username Discord tidak valid. Hanya huruf, angka, dan underscore (max 32 karakter).");
+      return;
+    }
     setLoading(true);
     setError(null);
     setVerifyResult(null);
@@ -99,6 +108,7 @@ export function AttendanceChecker() {
       const res = await fetch("/api/attendance/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           robloxUsername: robloxUsername.trim(),
           discordUsername: discordUsername.trim(),
@@ -125,8 +135,32 @@ export function AttendanceChecker() {
     }
   }
 
-  // Tidak ada periode aktif
-  if (noPeriod) {
+   // Fetch error
+   if (fetchError) {
+     return (
+       <div className="bg-hero-radial flex min-h-[70vh] items-center justify-center px-4 py-16">
+         <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
+           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20">
+             <span className="text-3xl">⚠️</span>
+           </div>
+           <h1 className="font-display text-xl font-bold text-red-300">Gagal Memuat Data</h1>
+           <p className="mt-3 text-sm text-zinc-400">
+             Tidak dapat terhubung ke server. Periksa koneksi jaringan Anda dan coba lagi.
+           </p>
+           <Button
+             variant="ghost"
+             className="mt-6"
+             onClick={() => window.location.reload()}
+           >
+             Coba Lagi
+           </Button>
+         </Card>
+       </div>
+     );
+   }
+
+   // Tidak ada periode aktif
+   if (noPeriod) {
     return (
       <div className="bg-hero-radial flex min-h-[70vh] items-center justify-center px-4 py-16">
         <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
@@ -136,6 +170,26 @@ export function AttendanceChecker() {
           <h1 className="font-display text-xl font-bold text-zinc-100">Belum Ada Periode Aktif</h1>
           <p className="mt-3 text-sm text-zinc-400">
             Pendaftaran belum dibuka. Pantau server Discord untuk pengumuman periode rekrutmen.
+          </p>
+          <Link href="/" className="mt-6 inline-block">
+            <Button variant="ghost">Kembali ke Beranda</Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
+  // Periode aktif tapi absen belum dibuka
+  if (!attendanceOpen && !attended) {
+    return (
+      <div className="bg-hero-radial flex min-h-[70vh] items-center justify-center px-4 py-16">
+        <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
+            <span className="text-3xl">📋</span>
+          </div>
+          <h1 className="font-display text-xl font-bold text-zinc-100">Absen Belum Dibuka</h1>
+          <p className="mt-3 text-sm text-zinc-400">
+            Instruktur belum membuka sesi absen. Silakan tunggu pengumuman dari Discord.
           </p>
           <Link href="/" className="mt-6 inline-block">
             <Button variant="ghost">Kembali ke Beranda</Button>
@@ -169,24 +223,24 @@ export function AttendanceChecker() {
           </div>
           <h1 className="font-display text-xl font-bold text-emerald-400">Absensi Berhasil!</h1>
 
-          {verifyResult.user && (
-            <div className="mt-4 flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
-              <img
-                src={verifyResult.user.avatarUrl ?? "/shield.svg"}
-                alt={verifyResult.user.displayName}
-                width={48}
-                height={48}
-                className="h-12 w-12 rounded-full border border-gold/40 object-cover"
-              />
-              <div className="text-left">
-                <p className="font-semibold text-zinc-100">{verifyResult.user.displayName}</p>
-                <p className="text-xs text-zinc-400">@{verifyResult.user.username}</p>
-                {verifyResult.user.policeGroupRank && (
-                  <p className="text-xs text-gold">{verifyResult.user.policeGroupRank}</p>
-                )}
-              </div>
-            </div>
-          )}
+           {verifyResult.user && (
+             <div className="mt-4 flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-4">
+               <img
+                 src={verifyResult.user.avatarUrl ?? "/shield.svg"}
+                 alt={verifyResult.user.displayName}
+                 width={48}
+                 height={48}
+                 className="h-12 w-12 rounded-full border border-gold/40 object-cover"
+               />
+               <div className="text-left">
+                 <p className="font-semibold text-zinc-100">{verifyResult.user.displayName}</p>
+                 <p className="text-xs text-zinc-400">@{verifyResult.user.username}</p>
+                 {verifyResult.user.policeGroupRank && (
+                   <p className="text-xs text-gold">{verifyResult.user.policeGroupRank}</p>
+                 )}
+               </div>
+             </div>
+           )}
 
           <div className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4">
             <p className="text-sm text-emerald-300">
@@ -218,15 +272,49 @@ export function AttendanceChecker() {
             </p>
           </div>
 
-          <div className="mt-4 text-sm text-zinc-400">
-            Sekarang Anda bisa{" "}
-            <Link href="/login" className="font-bold text-gold hover:underline">
-              daftar ujian
-            </Link>
-            .
+          <Link href="/ujian" className="mt-6 inline-block w-full">
+            <Button variant="gold" className="w-full py-3 text-base">
+              Mulai Ujian
+            </Button>
+          </Link>
+
+          <Link href="/" className="mt-3 inline-block">
+            <Button variant="ghost">Kembali ke Beranda</Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
+  // Sudah absen (dari check, bukan dari verify baru)
+  if (attended && !verifyResult) {
+    return (
+      <div className="bg-hero-radial flex min-h-[70vh] items-center justify-center px-4 py-16">
+        <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20">
+            <span className="text-3xl">✓</span>
+          </div>
+          <h1 className="font-display text-xl font-bold text-emerald-400">Sudah Absen</h1>
+          <p className="mt-3 text-sm text-zinc-400">
+            Anda sudah melakukan absensi untuk periode ini.
+          </p>
+
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
+            <p className="text-xs text-zinc-500">Waktu Absen</p>
+            <p className="text-sm font-semibold text-zinc-200">
+              {attendanceData
+                ? new Date(attendanceData.createdAt).toLocaleString("id-ID")
+                : "-"}
+            </p>
           </div>
 
-          <Link href="/" className="mt-6 inline-block">
+          <Link href="/ujian" className="mt-6 inline-block w-full">
+            <Button variant="gold" className="w-full py-3 text-base">
+              Mulai Ujian
+            </Button>
+          </Link>
+
+          <Link href="/" className="mt-3 inline-block">
             <Button variant="ghost">Kembali ke Beranda</Button>
           </Link>
         </Card>
@@ -373,6 +461,15 @@ export function AttendanceChecker() {
         <Link href="/" className="mt-4 inline-block">
           <Button variant="ghost">Kembali</Button>
         </Link>
+
+        <div className="mt-4 border-t border-white/10 pt-4">
+          <p className="mb-2 text-xs text-zinc-500">Sudah absen?</p>
+          <Link href="/ujian" className="inline-block w-full">
+            <Button variant="gold" className="w-full">
+              Mulai Ujian
+            </Button>
+          </Link>
+        </div>
       </Card>
     </div>
   );

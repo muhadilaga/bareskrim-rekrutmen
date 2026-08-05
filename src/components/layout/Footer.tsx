@@ -77,7 +77,7 @@ export function Footer() {
         <div className="gold-line mt-8" />
         <div className="mt-6 flex flex-col items-center justify-between gap-2 text-xs text-zinc-600 sm:flex-row">
           <p>&copy; {new Date().getFullYear()} Bareskrim Polri RBX. All rights reserved.</p>
-          <p>Designed & Developed by <span className="font-semibold gold-text">KABAG KURIKULUM 4DIBERL4G4</span></p>
+          <p>Designed & Developed by <span className="font-semibold gold-text">4DIBERL4G4</span></p>
         </div>
       </div>
     </footer>

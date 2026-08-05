@@ -2,25 +2,29 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+  const checks = {
+    database: false,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    env: process.env.NODE_ENV,
+  };
+
   try {
-    // Cek database connection
     await prisma.$queryRaw`SELECT 1`;
-    return NextResponse.json({
-      ok: true,
-      status: "healthy",
-      timestamp: new Date().toISOString(),
-      database: "connected",
-    });
-  } catch (e) {
-    return NextResponse.json(
-      {
-        ok: false,
-        status: "unhealthy",
-        timestamp: new Date().toISOString(),
-        database: "disconnected",
-        error: e instanceof Error ? e.message : "Unknown error",
-      },
-      { status: 503 }
-    );
+    checks.database = true;
+  } catch {
+    checks.database = false;
   }
+
+  const healthy = checks.database;
+  const status = healthy ? 200 : 503;
+
+  return NextResponse.json(
+    {
+      status: healthy ? "healthy" : "unhealthy",
+      checks,
+    },
+    { status }
+  );
 }

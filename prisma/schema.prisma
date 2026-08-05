@@ -52,11 +52,13 @@ model User {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
 
   attempts   ExamAttempt[]
   attendances Attendance[]
 
   @@index([username])
+  @@index([deletedAt])
 }
 
 // ------------------------------------------------------------
@@ -67,7 +69,10 @@ model ExamPeriod {
   name        String
   description String?
   isActive    Boolean  @default(false)
+  isAttendanceOpen Boolean @default(false) // Admin kontrol kapan absen bisa dilakukan
   isExamOpen  Boolean  @default(false) // Admin kontrol kapan ujian bisa dikerjakan
+  examStartTime DateTime? // Waktu mulai ujian (jika null, ujian bisa dimulai kapan saja saat isExamOpen)
+  examEndTime   DateTime? // Waktu tutup ujian (jika null, tidak ada batas waktu selain durasi)
   seed        Int      @unique // seed acak -> menentukan subset & urutan soal periode ini
   // Konfigurasi periode (opsional; null = pakai nilai default di constants.ts)
   mcqCount     Int? // jumlah soal pilihan ganda yang keluar
@@ -75,11 +80,13 @@ model ExamPeriod {
   passThreshold Int  @default(70) // nilai minimum untuk LULUS (KKM)
   openedAt    DateTime @default(now())
   closedAt    DateTime?
+  deletedAt   DateTime?
 
   attempts   ExamAttempt[]
   attendances Attendance[]
 
   @@index([isActive])
+  @@index([deletedAt])
 }
 
 // ------------------------------------------------------------
@@ -100,10 +107,12 @@ model Question {
   keywords    Json?
   isActive    Boolean      @default(true)
   createdAt   DateTime     @default(now())
+  deletedAt   DateTime?
 
   answers ExamAnswer[]
 
   @@index([type, isActive])
+  @@index([deletedAt])
 }
 
 // ------------------------------------------------------------
@@ -116,9 +125,13 @@ model ExamAttempt {
   attemptKey  String   @unique // `${periodId}_${userId}` mencegah percobaan ganda
   // Snapshot soal yang benar-benar disajikan ke casis (sudah diacak).
   // Berisi correctKey/keywords utk grading SERVER-SIDE. TIDAK pernah dikirim ke client.
-  questionsJson Json
-  startedAt   DateTime @default(now())
-  submittedAt DateTime?
+  questionsJson  Json
+  savedAnswers   Json?   // jawaban sementara (auto-save sebelum submit)
+  flaggedQuestions Json?   // pertanyaan yang diflag oleh user
+  bookmarkedQuestions Json? // pertanyaan yang di-bookmark oleh user
+  startedAt      DateTime @default(now())
+  submittedAt    DateTime?
+  deletedAt      DateTime?
 
   period ExamPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
   user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -128,6 +141,9 @@ model ExamAttempt {
 
   @@unique([periodId, userId])
   @@index([userId])
+  @@index([periodId])
+  @@index([submittedAt])
+  @@index([deletedAt])
 }
 
 // ------------------------------------------------------------
@@ -145,6 +161,8 @@ model ExamAnswer {
   question Question   @relation(fields: [questionId], references: [id])
 
   @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
 }
 
 // ------------------------------------------------------------
@@ -162,10 +180,12 @@ model ExamResult {
   answersJson     Json // rekap detail jawaban + penilaian (untuk Discord & halaman hasil)
   discordMessageId String? // ID pesan Discord webhook, agar bisa dihapus bersama rekap
   submittedAt     DateTime      @default(now())
+  deletedAt       DateTime?
 
   attempt ExamAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@index([submittedAt])
+  @@index([deletedAt])
 }
 
 // ------------------------------------------------------------
@@ -181,6 +201,7 @@ model BlacklistEntry {
 
   @@index([category])
   @@index([username])
+  @@index([createdAt])
 }
 
 // ------------------------------------------------------------
@@ -192,8 +213,10 @@ model VerdictEntry {
   status    VerdictStatus
   note      String?
   createdAt DateTime      @default(now())
+  deletedAt DateTime?
 
   @@index([username])
+  @@index([deletedAt])
 }
 
 // ------------------------------------------------------------
@@ -207,6 +230,7 @@ model Attendance {
   status        String   @default("HADIR")
   discordUserId String?  // Username Discord untuk assign role & linking
   createdAt     DateTime @default(now())
+  deletedAt     DateTime?
 
   user   User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
   period ExamPeriod  @relation(fields: [periodId], references: [id], onDelete: Cascade)
@@ -214,6 +238,7 @@ model Attendance {
   @@unique([userId, periodId, tahap])
   @@index([periodId])
   @@index([discordUserId])
+  @@index([deletedAt])
 }
 
 // ------------------------------------------------------------
@@ -228,6 +253,25 @@ model AdminLog {
 
   @@index([createdAt])
   @@index([action])
+  @@index([target])
+}
+
+// Audit Log - jejak aksi siswa (absen, mulai ujian, submit)
+// ------------------------------------------------------------
+model StudentActionLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String // "ATTENDANCE", "EXAM_START", "EXAM_SUBMIT"
+  periodId  String?
+  attemptId String?
+  detail    Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([action])
+  @@index([periodId])
+  @@index([attemptId])
 }
 
 // ------------------------------------------------------------
@@ -241,6 +285,8 @@ model PendingDiscordReport {
   lastError String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@index([createdAt])
+  @@index([deletedAt])
 }

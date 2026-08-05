@@ -56,6 +56,7 @@ const statements: string[] = [
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "essayCount" INTEGER;`,
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "passThreshold" INTEGER NOT NULL DEFAULT 70;`,
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isExamOpen" BOOLEAN NOT NULL DEFAULT false;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isAttendanceOpen" BOOLEAN NOT NULL DEFAULT false;`,
 
   // ===== Periode Rekrutmen =====
   `CREATE TABLE IF NOT EXISTS "ExamPeriod" (
@@ -227,7 +228,7 @@ export async function schemaExists(): Promise<boolean> {
          AND
          (SELECT COUNT(*) FROM information_schema.columns
             WHERE table_schema = 'public'
-              AND table_name = 'ExamPeriod' AND column_name = 'isExamOpen') = 1
+              AND table_name = 'ExamPeriod' AND column_name IN ('isExamOpen', 'isAttendanceOpen')) = 2
        ) AS ok`
     );
     return (rows as Array<{ ok: boolean }>)[0]?.ok === true;

@@ -56,3 +56,29 @@ export async function clearAdminLogs(): Promise<{ count: number }> {
     return { count: 0 };
   }
 }
+
+// Audit Log Siswa - mencatat aksi siswa (absen, mulai ujian, submit)
+export interface StudentLogInput {
+  userId: string;
+  action: string;
+  periodId?: string | null;
+  attemptId?: string | null;
+  detail?: Record<string, unknown> | null;
+}
+
+export async function logStudentAction(input: StudentLogInput): Promise<void> {
+  try {
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "StudentActionLog" ("id", "userId", "action", "periodId", "attemptId", "detail", "createdAt")
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, CURRENT_TIMESTAMP)`,
+      `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      input.userId,
+      input.action,
+      input.periodId ?? null,
+      input.attemptId ?? null,
+      JSON.stringify(input.detail ?? {})
+    );
+  } catch (e) {
+    console.error("logStudentAction error (non-fatal):", e);
+  }
+}

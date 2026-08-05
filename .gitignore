@@ -36,3 +36,8 @@ prisma/*.db
 test-discord.*
 check*.cjs
 push*.cjs
+
+# test artifacts
+/coverage
+/playwright-report
+/test-results

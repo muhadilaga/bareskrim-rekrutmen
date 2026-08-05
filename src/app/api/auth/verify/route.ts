@@ -16,7 +16,12 @@ import { clientIp, verifyLimiter } from "@/lib/rate-limit";
 
 const VerifySchema = z.object({
   username: z.string().trim().min(2).max(40),
-  discordUsername: z.string().trim().min(2).max(40),
+  discordUsername: z
+    .string()
+    .trim()
+    .min(2)
+    .max(32)
+    .regex(/^[a-zA-Z0-9_]+$/, "Username Discord hanya boleh huruf, angka, dan underscore."),
 });
 
 function rankBlockedResponse(rankName: string | null) {
@@ -193,7 +198,6 @@ export async function POST(req: Request) {
     );
 
     // 8) Upsert user + simpan snapshot keanggotaan
-    await ensureSchema();
     const user = await prisma.user.upsert({
       where: { robloxId: BigInt(userInfo.id) },
       update: {

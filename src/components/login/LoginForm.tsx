@@ -26,12 +26,17 @@ export function LoginForm() {
 
   async function handleVerify() {
     if (!username.trim() || !discordUsername.trim()) return;
+    if (!/^[a-zA-Z0-9_]{2,32}$/.test(discordUsername.trim())) {
+      setError("Username Discord tidak valid. Hanya huruf, angka, dan underscore (max 32 karakter).");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           username: username.trim(),
           discordUsername: discordUsername.trim(),

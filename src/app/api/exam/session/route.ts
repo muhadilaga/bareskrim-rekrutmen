@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { startExamSession } from "@/lib/exam-service";
+import { logStudentAction } from "@/lib/audit";
 
-export async function GET() {
-  const user = await getSessionUser();
+export async function GET(req: Request) {
+  const user = await getSessionUser(req);
   if (!user) {
     return NextResponse.json(
       { ok: false, code: "UNAUTHORIZED", message: "Silakan login terlebih dahulu." },
@@ -37,11 +38,19 @@ export async function GET() {
     );
   }
 
-  return NextResponse.json({
-    ok: true,
-    attemptId: result.attemptId,
-    questions: result.questions,
-    remainingSeconds: result.remainingSeconds,
-    period: result.period,
-  });
-}
+   // Catat aksi siswa (best-effort)
+   void logStudentAction({
+     userId: user.id,
+     action: "EXAM_START",
+     attemptId: result.attemptId,
+     detail: { periodName: result.period.name },
+   });
+
+   return NextResponse.json({
+     ok: true,
+     attemptId: result.attemptId,
+     questions: result.questions,
+     remainingSeconds: result.remainingSeconds,
+     period: result.period,
+   });
+ }

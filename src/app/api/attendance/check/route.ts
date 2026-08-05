@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const user = await getSessionUser();
+    const user = await getSessionUser(req);
     if (!user) {
       return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
     }
@@ -16,6 +16,20 @@ export async function GET() {
 
     if (!activePeriod) {
       return NextResponse.json({ ok: false, message: "Tidak ada periode aktif" }, { status: 404 });
+    }
+
+    // Cek apakah absen sudah dibuka
+    if (!activePeriod.isAttendanceOpen) {
+      return NextResponse.json({
+        ok: true,
+        attended: false,
+        attendanceOpen: false,
+        attendance: null,
+        period: {
+          id: activePeriod.id,
+          name: activePeriod.name,
+        },
+      });
     }
 
     // Cek apakah sudah absen
@@ -32,6 +46,7 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       attended: !!attendance,
+      attendanceOpen: true,
       attendance: attendance
         ? {
             status: attendance.status,

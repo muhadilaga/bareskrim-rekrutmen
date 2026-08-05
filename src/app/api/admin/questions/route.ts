@@ -5,10 +5,13 @@ import { prisma } from "@/lib/prisma";
 import { getAdminKey } from "@/lib/constants";
 import { logAdminAction } from "@/lib/audit";
 import { ensureSchema } from "@/lib/init-schema";
+import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 
 function isAdmin(req: Request): boolean {
   return req.headers.get("x-admin-key") === getAdminKey();
 }
+
+const adminLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
 
 const CreateQuestionSchema = z.discriminatedUnion("type", [
   z.object({
@@ -50,6 +53,13 @@ function isTableMissing(e: unknown): boolean {
 export async function POST(req: Request) {
   if (!isAdmin(req)) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
+  }
+  const limited = adminLimiter.check(clientIp(req));
+  if (!limited.ok) {
+    return NextResponse.json(
+      { ok: false, message: "Terlalu banyak permintaan. Coba lagi nanti." },
+      { status: 429 }
+    );
   }
 
   const body = await req.json().catch(() => null);
@@ -105,6 +115,13 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   if (!isAdmin(req)) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
+  }
+  const limited = adminLimiter.check(clientIp(req));
+  if (!limited.ok) {
+    return NextResponse.json(
+      { ok: false, message: "Terlalu banyak permintaan. Coba lagi nanti." },
+      { status: 429 }
+    );
   }
 
   const body = await req.json().catch(() => null);

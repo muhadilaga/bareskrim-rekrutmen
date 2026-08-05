@@ -51,10 +51,28 @@ export async function destroySessionCookie(): Promise<void> {
   cookies().set(COOKIE_NAME, "", { httpOnly: true, path: "/", maxAge: 0 });
 }
 
-// Ambil user dari cookie (dipakai server component & route handler)
-export async function getSessionUser() {
-  const token = cookies().get(COOKIE_NAME)?.value;
-  if (!token) return null;
+// Parse token dari raw Cookie header (fallback untuk fetch yang tidak kirim cookie via cookies())
+function parseTokenFromHeader(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  const match = cookieHeader.split("; ").find((c) => c.startsWith(`${COOKIE_NAME}=`));
+  if (!match) return null;
+  return match.slice(COOKIE_NAME.length + 1);
+}
+
+// Ambil user dari cookie. Menerima optional raw Request untuk fallback.
+export async function getSessionUser(req?: Request) {
+  // 1) Coba via next/headers cookies() (server component / navigation)
+  let token: string | null = cookies().get(COOKIE_NAME)?.value ?? null;
+
+  // 2) Fallback: baca dari raw request header (client-side fetch)
+  if (!token && req) {
+    token = parseTokenFromHeader(req.headers.get("cookie"));
+  }
+
+  if (!token) {
+    console.log(`[Auth] No session token found. cookies()=${!!cookies().get(COOKIE_NAME)?.value}, hasReq=${!!req}, reqCookieHeader=${req?.headers.get("cookie")?.substring(0, 80) ?? "null"}`);
+    return null;
+  }
   const payload = await verifySessionToken(token);
   if (!payload) return null;
   return prisma.user.findUnique({ where: { id: payload.userId } });

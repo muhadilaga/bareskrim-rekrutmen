@@ -85,7 +85,7 @@ export function HasilChecker({ kkm: defaultKkm }: { kkm: number }) {
             Kembali ke Beranda
           </Link>
         </div>
-        <ResultCard result={result} kkm={result.kkm ?? defaultKkm} showAnswers={false} />
+        <ResultCard result={result} kkm={result.kkm ?? defaultKkm} showAnswers={false} resultId={result.id} />
       </div>
     );
   }

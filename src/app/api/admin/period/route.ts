@@ -5,10 +5,13 @@ import { prisma } from "@/lib/prisma";
 import { randomSeed } from "@/lib/utils";
 import { getAdminKey } from "@/lib/constants";
 import { logAdminAction } from "@/lib/audit";
+import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 
 function isAdmin(req: Request): boolean {
   return req.headers.get("x-admin-key") === getAdminKey();
 }
+
+const adminLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
 
 const OpenPeriodSchema = z.object({
   name: z.string().trim().min(3).max(120),
@@ -16,6 +19,8 @@ const OpenPeriodSchema = z.object({
   mcqCount: z.number().int().min(1).max(50).nullable().optional(),
   essayCount: z.number().int().min(1).max(50).nullable().optional(),
   passThreshold: z.number().int().min(1).max(1000).optional().default(70),
+  examStartTime: z.string().datetime().optional().nullable(),
+  examEndTime: z.string().datetime().optional().nullable(),
 });
 
 // Buka periode rekrutmen baru: periode lama ditutup otomatis,
@@ -23,6 +28,13 @@ const OpenPeriodSchema = z.object({
 export async function POST(req: Request) {
   if (!isAdmin(req)) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
+  }
+  const limited = adminLimiter.check(clientIp(req));
+  if (!limited.ok) {
+    return NextResponse.json(
+      { ok: false, message: "Terlalu banyak permintaan. Coba lagi nanti." },
+      { status: 429 }
+    );
   }
 
   const body = await req.json().catch(() => null);
@@ -34,17 +46,19 @@ export async function POST(req: Request) {
   try {
     await prisma.$transaction([
       prisma.examPeriod.updateMany({ where: { isActive: true }, data: { isActive: false, closedAt: new Date() } }),
-      prisma.examPeriod.create({
-        data: {
-          name: parsed.data.name,
-          description: parsed.data.description,
-          isActive: true,
-          seed: randomSeed(),
-          mcqCount: parsed.data.mcqCount ?? null,
-          essayCount: parsed.data.essayCount ?? null,
-          passThreshold: parsed.data.passThreshold ?? 70,
-        },
-      }),
+       prisma.examPeriod.create({
+         data: {
+           name: parsed.data.name,
+           description: parsed.data.description,
+           isActive: true,
+           seed: randomSeed(),
+           mcqCount: parsed.data.mcqCount ?? null,
+           essayCount: parsed.data.essayCount ?? null,
+           passThreshold: parsed.data.passThreshold ?? 70,
+           examStartTime: parsed.data.examStartTime ? new Date(parsed.data.examStartTime) : null,
+           examEndTime: parsed.data.examEndTime ? new Date(parsed.data.examEndTime) : null,
+         },
+       }),
     ]);
   } catch (e) {
     if (isTableMissing(e)) {
@@ -105,6 +119,13 @@ export async function PATCH(req: Request) {
   if (!isAdmin(req)) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
+  const limited = adminLimiter.check(clientIp(req));
+  if (!limited.ok) {
+    return NextResponse.json(
+      { ok: false, message: "Terlalu banyak permintaan. Coba lagi nanti." },
+      { status: 429 }
+    );
+  }
 
   const body = await req.json().catch(() => null);
   const { periodId, action } = body ?? {};
@@ -159,22 +180,35 @@ export async function PATCH(req: Request) {
       const status = isExamOpen ? "DIBUKA" : "DITUTUP";
       await logAdminAction({ action: `UJIAN_${status}`, target: period?.name ?? periodId });
       return NextResponse.json({ ok: true, message: `Akses ujian ${isExamOpen ? "dibuka" : "ditutup"}.` });
+    } else if (action === "toggleAttendanceOpen") {
+      const { isAttendanceOpen } = body ?? {};
+      await prisma.examPeriod.update({
+        where: { id: periodId },
+        data: { isAttendanceOpen: Boolean(isAttendanceOpen) },
+      });
+      const status = isAttendanceOpen ? "DIBUKA" : "DITUTUP";
+      await logAdminAction({ action: `ABSEN_${status}`, target: period?.name ?? periodId });
+      return NextResponse.json({ ok: true, message: `Akses absen ${isAttendanceOpen ? "dibuka" : "ditutup"}.` });
     } else if (action === "edit") {
       // Edit periode: tanggal (openedAt/closedAt) dan/atau konfigurasi
       // (mcqCount/essayCount/passThreshold). Semua opsional.
-      const { openedAt, closedAt, mcqCount, essayCount, passThreshold } = body ?? {};
+       const { openedAt, closedAt, mcqCount, essayCount, passThreshold, examStartTime, examEndTime } = body ?? {};
       const data: Record<string, unknown> = {};
 
-      if (openedAt !== undefined) {
-        const d = new Date(openedAt);
-        if (Number.isNaN(d.getTime())) {
-          return NextResponse.json(
-            { ok: false, message: "Format tanggal dibuka tidak valid." },
-            { status: 400 }
-          );
-        }
-        data.openedAt = d;
-      }
+       if (openedAt !== undefined) {
+         if (openedAt === null) {
+           data.openedAt = null;
+         } else {
+           const d = new Date(openedAt);
+           if (Number.isNaN(d.getTime())) {
+             return NextResponse.json(
+               { ok: false, message: "Format tanggal dibuka tidak valid." },
+               { status: 400 }
+             );
+           }
+           data.openedAt = d;
+         }
+       }
       if (closedAt !== undefined) {
         if (closedAt === null) {
           data.closedAt = null;
@@ -209,18 +243,46 @@ export async function PATCH(req: Request) {
         }
         data.essayCount = n;
       }
-      if (passThreshold !== undefined && passThreshold !== null) {
-        const n = Number(passThreshold);
-        if (!Number.isInteger(n) || n < 1 || n > 1000) {
-          return NextResponse.json(
-            { ok: false, message: "Nilai KKM tidak valid." },
-            { status: 400 }
-          );
-        }
-        data.passThreshold = n;
-      }
+       if (passThreshold !== undefined && passThreshold !== null) {
+         const n = Number(passThreshold);
+         if (!Number.isInteger(n) || n < 1 || n > 1000) {
+           return NextResponse.json(
+             { ok: false, message: "Nilai KKM tidak valid." },
+             { status: 400 }
+           );
+         }
+         data.passThreshold = n;
+       }
+       if (examStartTime !== undefined) {
+         if (examStartTime === null) {
+           data.examStartTime = null;
+         } else {
+           const d = new Date(examStartTime);
+           if (Number.isNaN(d.getTime())) {
+             return NextResponse.json(
+               { ok: false, message: "Format waktu mulai ujian tidak valid." },
+               { status: 400 }
+             );
+           }
+           data.examStartTime = d;
+         }
+       }
+       if (examEndTime !== undefined) {
+         if (examEndTime === null) {
+           data.examEndTime = null;
+         } else {
+           const d = new Date(examEndTime);
+           if (Number.isNaN(d.getTime())) {
+             return NextResponse.json(
+               { ok: false, message: "Format waktu tutup ujian tidak valid." },
+               { status: 400 }
+             );
+           }
+           data.examEndTime = d;
+         }
+       }
 
-      if (Object.keys(data).length === 0) {
+       if (Object.keys(data).length === 0) {
         return NextResponse.json(
           { ok: false, message: "Tidak ada perubahan yang dikirim." },
           { status: 400 }
@@ -231,18 +293,20 @@ export async function PATCH(req: Request) {
       await logAdminAction({
         action: "EDIT_PERIODE",
         target: period?.name ?? periodId,
-        detail: {
-          openedAt: openedAt ?? null,
-          closedAt: closedAt ?? null,
-          mcqCount: mcqCount ?? null,
-          essayCount: essayCount ?? null,
-          passThreshold: passThreshold ?? null,
-        },
+         detail: {
+           openedAt: openedAt ?? null,
+           closedAt: closedAt ?? null,
+           mcqCount: mcqCount ?? null,
+           essayCount: essayCount ?? null,
+           passThreshold: passThreshold ?? null,
+           examStartTime: examStartTime ?? null,
+           examEndTime: examEndTime ?? null,
+         },
       });
       return NextResponse.json({ ok: true, message: "Periode berhasil diperbarui." });
     } else {
       return NextResponse.json(
-        { ok: false, message: "Action harus 'close', 'reopen', 'reset', atau 'edit'." },
+        { ok: false, message: "Action harus 'close', 'reopen', 'reset', 'toggleAttendanceOpen', atau 'edit'." },
         { status: 400 }
       );
     }

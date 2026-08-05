@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 
@@ -33,15 +34,10 @@ function StarBackground() {
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
       <div className="absolute inset-0 bg-hero-radial" />
-      {/* Dark mode: overlay merah gelap | Light mode: overlay emas muda */}
       <div className="absolute inset-0 bg-crimson-950/75 dark:bg-crimson-950/75" />
       <div className="absolute inset-0 bg-gradient-to-br from-gold/5 via-transparent to-gold/10" />
-      
-      {/* Pola chequered merah emas halus */}
       <div className="absolute inset-0 chequered opacity-30" />
-      
-      {/* Grid pattern tipis merah emas */}
-      <div 
+      <div
         className="absolute inset-0 opacity-5"
         style={{
           backgroundImage: `
@@ -51,25 +47,21 @@ function StarBackground() {
           backgroundSize: '40px 40px'
         }}
       />
-      
-      {/* Bintang animasi - emas di dark, merah di light */}
       {[...Array(80)].map((_, i) => (
         <div
           key={"s-" + i}
           className="absolute rounded-full dark:bg-gold/30 bg-crimson-400/20"
           style={{
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 100}%`,
-            width: `${0.5 + Math.random() * 1.5}px`,
-            height: `${0.5 + Math.random() * 1.5}px`,
-            animation: `twinkle ${2 + Math.random() * 3}s infinite ease-in-out`,
-            animationDelay: `${-Math.random() * 5}s`,
-            opacity: 0.1 + Math.random() * 0.3,
+            top: `${(i * 7 + 3) % 100}%`,
+            left: `${(i * 13 + 7) % 100}%`,
+            width: `${0.5 + (i % 3) * 0.5}px`,
+            height: `${0.5 + (i % 3) * 0.5}px`,
+            animation: `twinkle ${2 + (i % 4)}s infinite ease-in-out`,
+            animationDelay: `${-(i % 5)}s`,
+            opacity: 0.1 + (i % 3) * 0.1,
           }}
         />
       ))}
-      
-      {/* Api emas di pojok kanan bawah */}
       <div className="absolute bottom-10 right-10 hidden sm:block">
         <div className="relative h-24 w-24">
           <div className="absolute inset-0 rounded-full bg-gold/20 blur-md filter animate-pulse" style={{ animationDuration: "3s" }} />
@@ -77,18 +69,51 @@ function StarBackground() {
           <div className="absolute inset-3 rounded-full bg-amber-300/20 blur-2xl filter animate-pulse" style={{ animationDuration: "5s" }} />
         </div>
       </div>
-      
-      {/* Api emas di pojok kiri atas */}
       <div className="absolute left-10 top-10 hidden sm:block">
         <div className="relative h-20 w-20">
           <div className="absolute inset-0 rounded-full bg-gold/15 blur-md filter animate-pulse" style={{ animationDuration: "4s" }} />
           <div className="absolute inset-1 rounded-full bg-gold/25 blur filter animate-bounce" style={{ animationDuration: "6s" }} />
         </div>
       </div>
-      
-      {/* Efek cahaya tembiralang (merah ke emas) */}
       <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-gradient-to-br from-crimson-800/20 via-gold/10 to-transparent blur-3xl filter animate-pulse" />
       <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-gradient-to-tl from-crimson-800/15 via-gold/8 to-transparent blur-3xl filter animate-pulse" style={{ animationDuration: "8s" }} />
+    </div>
+  );
+}
+
+function HomePageSkeleton() {
+  return (
+    <div className="relative mx-auto max-w-6xl px-4 pt-20">
+      <section className="relative overflow-hidden py-20 text-center md:py-28">
+        <div className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: "url('/logos/background.png')", backgroundPosition: "center 70%", backgroundSize: "cover", opacity: 0.3 }} />
+        <div className="absolute inset-0 bg-rose-50/30 dark:hidden" />
+        <div className="absolute inset-0 dark:bg-crimson-950/70" />
+        <div className="absolute inset-0 chequered opacity-20 dark:opacity-30" />
+        <div className="absolute left-0 top-1/2 h-2/3 w-40 -translate-y-1/2 rounded-full bg-gradient-to-r from-gold/8 via-gold/4 to-transparent blur-3xl" />
+        <div className="absolute right-0 top-1/2 h-2/3 w-40 -translate-y-1/2 rounded-full bg-gradient-to-l from-transparent via-gold/4 to-gold/8 blur-3xl" />
+        <StarBackground />
+        <div className="relative z-10 space-y-4">
+          <Skeleton className="mx-auto h-4 w-64 rounded" />
+          <Skeleton className="mx-auto h-12 w-96 rounded" />
+          <Skeleton className="mx-auto h-4 w-80 rounded" />
+          <div className="mt-10 flex justify-center gap-4">
+            <Skeleton className="h-12 w-48 rounded-lg" />
+            <Skeleton className="h-12 w-48 rounded-lg" />
+          </div>
+        </div>
+      </section>
+      <section className="pb-20">
+        <Skeleton className="mx-auto mb-8 h-8 w-48 rounded" />
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="p-6">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <Skeleton className="mt-3 h-5 w-32 rounded" />
+              <Skeleton className="mt-2 h-4 w-full rounded" />
+            </Card>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -99,7 +124,6 @@ export default async function HomePage() {
     .findFirst({ where: { isActive: true } })
     .catch(() => null);
 
-  // Cek apakah user punya attempt ujian yang belum submit
   let hasActiveAttempt = false;
   if (user && activePeriod) {
     const attempt = await prisma.examAttempt.findFirst({
@@ -117,6 +141,10 @@ export default async function HomePage() {
       orderBy: { closedAt: "desc" },
     })
     .catch(() => null);
+
+  if (!activePeriod && !closedRecently) {
+    return <HomePageSkeleton />;
+  }
 
   return (
     <div className="relative mx-auto max-w-6xl px-4 pt-20">

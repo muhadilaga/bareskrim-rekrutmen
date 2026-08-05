@@ -18,8 +18,8 @@ import { ensureSchema } from "@/lib/init-schema";
 import type { User } from "@prisma/client";
 
 export type ExamSessionResult =
-  | { ok: true; attemptId: string; questions: ClientQuestion[]; remainingSeconds: number; period: { name: string; description: string | null } }
-  | { ok: false; code: "NO_ACTIVE_PERIOD" | "ALREADY_SUBMITTED" | "RANK_BLOCKED" | "PERIOD_CLOSED" | "NO_ATTENDANCE" | "NO_ROLE" | "EXAM_NOT_OPEN"; message: string };
+  | { ok: true; attemptId: string; questions: ClientQuestion[]; remainingSeconds: number; period: { name: string; description: string | null; examStartTime: string | null; examEndTime: string | null }; savedAnswers: Record<string, string> | null; flaggedQuestions: string[]; bookmarkedQuestions: string[] }
+  | { ok: false; code: "NO_ACTIVE_PERIOD" | "ALREADY_SUBMITTED" | "RANK_BLOCKED" | "PERIOD_CLOSED" | "NO_ATTENDANCE" | "NO_ROLE" | "EXAM_NOT_OPEN" | "INSUFFICIENT_QUESTIONS"; message: string };
 
 // Cek apakah user sudah absen pada periode tertentu.
 // HANYA berdasarkan userId (identitas terverifikasi) — TIDAK berdasarkan
@@ -92,6 +92,24 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
     };
   }
 
+  // Cek apakah ujian sudah dimulai (jika examStartTime diatur)
+  if (period.examStartTime && new Date() < period.examStartTime) {
+    return {
+      ok: false,
+      code: "EXAM_NOT_OPEN",
+      message: `Ujian belum dimulai. Jadwal mulai: ${period.examStartTime.toLocaleString("id-ID")}.`,
+    };
+  }
+
+  // Cek apakah ujian sudah berakhir (jika examEndTime diatur)
+  if (period.examEndTime && new Date() > period.examEndTime) {
+    return {
+      ok: false,
+      code: "EXAM_NOT_OPEN",
+      message: "Sesi ujian sudah ditutup oleh instruktur. Tidak bisa mengakses soal lagi.",
+    };
+  }
+
   // Gerbang absensi: tanpa record absen, soal tidak bisa diakses
   // lewat halaman maupun API (session). Attendance yang belum ter-link
   // ke user (userId kosong) di-link otomatis di sini.
@@ -138,7 +156,15 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
       attemptId: existing.id,
       questions: sanitizeForClient(existing.questionsJson as unknown as SnapshotQuestion[]),
       remainingSeconds,
-      period: { name: period.name, description: period.description },
+      period: {
+        name: period.name,
+        description: period.description,
+        examStartTime: period.examStartTime?.toISOString() ?? null,
+        examEndTime: period.examEndTime?.toISOString() ?? null,
+      },
+      savedAnswers: (existing.savedAnswers as Record<string, string>) ?? null,
+      flaggedQuestions: (existing.flaggedQuestions as string[]) ?? [],
+      bookmarkedQuestions: (existing.bookmarkedQuestions as string[]) ?? [],
     };
   }
 
@@ -153,8 +179,8 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
   if (mcqs.length < mcqCount || essays.length < essayCount) {
     return {
       ok: false,
-      code: "NO_ACTIVE_PERIOD",
-      message: "Bank soal belum mencukupi untuk periode ini. Hubungi instruktur.",
+      code: "INSUFFICIENT_QUESTIONS",
+      message: "Bank soal belum mencukupi untuk konfigurasi periode ini. Hubungi instruktur.",
     };
   }
 
@@ -193,7 +219,15 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
     attemptId: attempt.id,
     questions: sanitizeForClient(snapshot),
     remainingSeconds: CONFIG.examDurationMinutes * 60,
-    period: { name: period.name, description: period.description },
+    period: {
+      name: period.name,
+      description: period.description,
+      examStartTime: period.examStartTime?.toISOString() ?? null,
+      examEndTime: period.examEndTime?.toISOString() ?? null,
+    },
+    savedAnswers: null,
+    flaggedQuestions: [],
+    bookmarkedQuestions: [],
   };
 }
 

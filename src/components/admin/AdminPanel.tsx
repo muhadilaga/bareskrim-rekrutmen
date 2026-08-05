@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -38,6 +38,7 @@ interface PeriodItem {
   name: string;
   description: string | null;
   isActive: boolean;
+  isAttendanceOpen: boolean;
   isExamOpen: boolean;
   seed: number;
   mcqCount: number | null;
@@ -45,6 +46,8 @@ interface PeriodItem {
   passThreshold: number;
   openedAt: string;
   closedAt: string | null;
+  examStartTime: string | null;
+  examEndTime: string | null;
   _count: { attempts: number; attendances: number };
   attempts: Array<{
     id: string;
@@ -80,10 +83,13 @@ export function AdminPanel() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [dbReady, setDbReady] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"periode" | "bank" | "rekap" | "casis" | "data" | "log" | "discord">("periode");
+  const [tab, setTab] = useState<"periode" | "bank" | "rekap" | "casis" | "data" | "log" | "discord" | "settings">("periode");
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<LogItem[]>([]);
-  const headers = { "Content-Type": "application/json", "x-admin-key": key };
+   const headers = useMemo(
+     () => ({ "Content-Type": "application/json", "x-admin-key": key }),
+     [key]
+   );
   const toast = useToastContext();
 
   // Download backup JSON
@@ -119,15 +125,17 @@ export function AdminPanel() {
   const [periodMcq, setPeriodMcq] = useState("");
   const [periodEssay, setPeriodEssay] = useState("");
   const [periodKkm, setPeriodKkm] = useState("");
-  // form edit periode (tanggal + konfigurasi)
-  const [editingDates, setEditingDates] = useState<{
-    id: string;
-    openedAt: string;
-    closedAt: string;
-    mcqCount: string;
-    essayCount: string;
-    passThreshold: string;
-  } | null>(null);
+   // form edit periode (tanggal + konfigurasi)
+   const [editingDates, setEditingDates] = useState<{
+     id: string;
+     openedAt: string;
+     closedAt: string;
+     mcqCount: string;
+     essayCount: string;
+     passThreshold: string;
+     examStartTime: string;
+     examEndTime: string;
+   } | null>(null);
   // form soal
   const [qType, setQType] = useState<"MCQ" | "ESSAY">("MCQ");
   const [qPrompt, setQPrompt] = useState("");
@@ -227,28 +235,33 @@ export function AdminPanel() {
     )}:${pad(dt.getMinutes())}`;
   }
 
-  async function savePeriodDates() {
-    if (!editingDates) return;
-    setBusy(true);
-    const body: Record<string, unknown> = { periodId: editingDates.id, action: "edit" };
-    if (editingDates.openedAt) body.openedAt = new Date(editingDates.openedAt).toISOString();
-    if (editingDates.closedAt) body.closedAt = new Date(editingDates.closedAt).toISOString();
-    else body.closedAt = null;
-    if (editingDates.mcqCount.trim()) body.mcqCount = Number(editingDates.mcqCount.trim());
-    if (editingDates.essayCount.trim()) body.essayCount = Number(editingDates.essayCount.trim());
-    if (editingDates.passThreshold.trim())
-      body.passThreshold = Number(editingDates.passThreshold.trim());
-    const res = await fetch("/api/admin/period", {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify(body),
-    });
-    const json = await res.json();
-    setMsg(json);
-    setEditingDates(null);
-    setBusy(false);
-    if (json.ok) await load();
-  }
+   async function savePeriodDates() {
+     if (!editingDates) return;
+     setBusy(true);
+     const body: Record<string, unknown> = { periodId: editingDates.id, action: "edit" };
+     if (editingDates.openedAt) body.openedAt = new Date(editingDates.openedAt).toISOString();
+     else body.openedAt = null;
+     if (editingDates.closedAt) body.closedAt = new Date(editingDates.closedAt).toISOString();
+     else body.closedAt = null;
+     if (editingDates.mcqCount.trim()) body.mcqCount = Number(editingDates.mcqCount.trim());
+     if (editingDates.essayCount.trim()) body.essayCount = Number(editingDates.essayCount.trim());
+     if (editingDates.passThreshold.trim())
+       body.passThreshold = Number(editingDates.passThreshold.trim());
+     if (editingDates.examStartTime) body.examStartTime = new Date(editingDates.examStartTime).toISOString();
+     else body.examStartTime = null;
+     if (editingDates.examEndTime) body.examEndTime = new Date(editingDates.examEndTime).toISOString();
+     else body.examEndTime = null;
+     const res = await fetch("/api/admin/period", {
+       method: "PATCH",
+       headers,
+       body: JSON.stringify(body),
+     });
+     const json = await res.json();
+     setMsg(json);
+     setEditingDates(null);
+     setBusy(false);
+     if (json.ok) await load();
+   }
 
   async function addQuestion() {
     if (!qPrompt.trim()) return;
@@ -415,8 +428,9 @@ export function AdminPanel() {
             ["rekap", "Rekap Nilai"],
             ["casis", "Kelola Casis"],
             ["data", "Putusan & Blacklist"],
-            ["discord", "Discord"],
-            ["log", "Audit Log"],
+["discord", "Discord"],
+              ["settings", "Pengaturan"],
+              ["log", "Audit Log"],
           ] as [typeof tab, string][]
         ).map(([t, label]) => (
           <button
@@ -519,6 +533,16 @@ export function AdminPanel() {
         </Card>
       )}
 
+      {tab === "settings" && (
+        <Card strong className="p-6">
+          <h2 className="font-display text-lg font-bold gold-text">⚙️ Pengaturan Sistem</h2>
+          <p className="mt-1 text-sm text-zinc-400">
+            Perubahan pada pengaturan di bawah ini akan mempengaruhi seluruh sistem. Beberapa pengaturan memerlukan restart server.
+          </p>
+          <SettingsForm headers={headers} />
+        </Card>
+      )}
+
       {tab === "periode" && (
         <>
       {/* Periode */}
@@ -610,10 +634,20 @@ export function AdminPanel() {
                     <p className="text-xs text-zinc-500">
                       Seed: {p.seed} · Dibuka: {new Date(p.openedAt).toLocaleString("id-ID")}
                     </p>
-                    <p className="text-xs text-zinc-500">
-                      Soal: {p.mcqCount ?? "15"} Pilihan Ganda · {p.essayCount ?? "5"} Essay · KKM: {p.passThreshold}
-                    </p>
-                    {p.closedAt && (
+                     <p className="text-xs text-zinc-500">
+                       Soal: {p.mcqCount ?? "15"} Pilihan Ganda · {p.essayCount ?? "5"} Essay · KKM: {p.passThreshold}
+                     </p>
+                     {p.examStartTime && (
+                       <p className="text-xs text-zinc-500">
+                         Mulai: {new Date(p.examStartTime).toLocaleString("id-ID")}
+                       </p>
+                     )}
+                     {p.examEndTime && (
+                       <p className="text-xs text-zinc-500">
+                         Tutup: {new Date(p.examEndTime).toLocaleString("id-ID")}
+                       </p>
+                     )}
+                     {p.closedAt && (
                       <p className="text-xs text-red-400">
                         Ditutup: {new Date(p.closedAt).toLocaleString("id-ID")}
                       </p>
@@ -628,21 +662,32 @@ export function AdminPanel() {
                         {p.isExamOpen ? "UJIAN BUKA" : "UJIAN TUTUP"}
                       </Badge>
                     )}
-                    <button
-                      onClick={() =>
-                        setEditingDates((cur) =>
-                          cur?.id === p.id
-                            ? null
-                            : {
-                                id: p.id,
-                                openedAt: toLocalInputValue(p.openedAt),
-                                closedAt: toLocalInputValue(p.closedAt),
-                                mcqCount: p.mcqCount != null ? String(p.mcqCount) : "",
-                                essayCount: p.essayCount != null ? String(p.essayCount) : "",
-                                passThreshold: String(p.passThreshold),
-                              }
-                        )
-                      }
+                    {p.isActive && (
+                      <Badge tone={p.isAttendanceOpen ? "green" : "neutral"}>
+                        {p.isAttendanceOpen ? "ABSEN BUKA" : "ABSEN TUTUP"}
+                      </Badge>
+                    )}
+                     <button
+                       onClick={() =>
+                         setEditingDates((cur) =>
+                           cur?.id === p.id
+                             ? null
+                             : {
+                                 id: p.id,
+                                 openedAt: toLocalInputValue(p.openedAt),
+                                 closedAt: toLocalInputValue(p.closedAt),
+                                 mcqCount: p.mcqCount != null ? String(p.mcqCount) : "",
+                                 essayCount: p.essayCount != null ? String(p.essayCount) : "",
+                                 passThreshold: String(p.passThreshold),
+                                 examStartTime: p.examStartTime
+                                   ? toLocalInputValue(p.examStartTime)
+                                   : "",
+                                 examEndTime: p.examEndTime
+                                   ? toLocalInputValue(p.examEndTime)
+                                   : "",
+                               }
+                         )
+                       }
                       className="rounded-md border border-gold/40 px-2.5 py-1 text-xs text-gold transition hover:bg-gold/10"
                     >
                       {editingDates?.id === p.id ? "Batal" : "Edit Periode"}
@@ -667,6 +712,28 @@ export function AdminPanel() {
                         }`}
                       >
                         {p.isExamOpen ? "Buka Ujian ✓" : "Buka Ujian"}
+                      </button>
+                    )}
+                    {p.isActive && (
+                      <button
+                        onClick={async () => {
+                          const newAttendanceOpen = !p.isAttendanceOpen;
+                          const res = await fetch("/api/admin/period", {
+                            method: "PATCH",
+                            headers,
+                            body: JSON.stringify({ periodId: p.id, action: "toggleAttendanceOpen", isAttendanceOpen: newAttendanceOpen }),
+                          });
+                          const json = await res.json();
+                          setMsg({ ok: json.ok, text: json.message });
+                          if (json.ok) await load();
+                        }}
+                        className={`rounded-md border px-2.5 py-1 text-xs transition ${
+                          p.isAttendanceOpen
+                            ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+                            : "border-white/20 text-zinc-400 hover:bg-white/10"
+                        }`}
+                      >
+                        {p.isAttendanceOpen ? "Buka Absen ✓" : "Buka Absen"}
                       </button>
                     )}
                     <button
@@ -720,36 +787,36 @@ export function AdminPanel() {
                 {editingDates?.id === p.id && (
                   <div className="mt-3 rounded-lg border border-gold/20 bg-gold/5 p-4">
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                          Tanggal Dibuka
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={editingDates.openedAt}
-                          onChange={(e) =>
-                            setEditingDates((cur) =>
-                              cur ? { ...cur, openedAt: e.target.value } : cur
-                            )
-                          }
-                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                          Tanggal Ditutup (kosongkan = tanpa tanggal tutup)
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={editingDates.closedAt}
-                          onChange={(e) =>
-                            setEditingDates((cur) =>
-                              cur ? { ...cur, closedAt: e.target.value } : cur
-                            )
-                          }
-                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                        />
-                      </div>
+                       <div>
+                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                           Tanggal Buka Absen
+                         </label>
+                         <input
+                           type="datetime-local"
+                           value={editingDates.openedAt}
+                           onChange={(e) =>
+                             setEditingDates((cur) =>
+                               cur ? { ...cur, openedAt: e.target.value } : cur
+                             )
+                           }
+                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                         />
+                       </div>
+                       <div>
+                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                           Tanggal Tutup Absen (kosongkan = tanpa tanggal tutup)
+                         </label>
+                         <input
+                           type="datetime-local"
+                           value={editingDates.closedAt}
+                           onChange={(e) =>
+                             setEditingDates((cur) =>
+                               cur ? { ...cur, closedAt: e.target.value } : cur
+                             )
+                           }
+                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                         />
+                       </div>
                       <div>
                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
               Jumlah Soal Pilihan Ganda (kosong = default 15)
@@ -815,12 +882,46 @@ export function AdminPanel() {
                                 : cur
                             )
                           }
-                          placeholder="70"
-                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
+                           placeholder="70"
+                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                         />
+                       </div>
+                       <div>
+                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                           Waktu Mulai Ujian (kosongkan = tidak diatur)
+                         </label>
+                         <input
+                           type="datetime-local"
+                           value={editingDates.examStartTime}
+                           onChange={(e) =>
+                             setEditingDates((cur) =>
+                               cur
+                                 ? { ...cur, examStartTime: e.target.value }
+                                 : cur
+                             )
+                           }
+                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                         />
+                       </div>
+                       <div>
+                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                           Waktu Tutup Ujian (kosongkan = tidak diatur)
+                         </label>
+                         <input
+                           type="datetime-local"
+                           value={editingDates.examEndTime}
+                           onChange={(e) =>
+                             setEditingDates((cur) =>
+                               cur
+                                 ? { ...cur, examEndTime: e.target.value }
+                                 : cur
+                             )
+                           }
+                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                         />
+                       </div>
+                     </div>
+                     <div className="mt-3 flex items-center gap-2">
                       <Button
                         variant="gold"
                         onClick={savePeriodDates}
@@ -1111,6 +1212,298 @@ export function AdminPanel() {
       {tab === "casis" && <CasisManagement headers={headers} onDeleted={() => load()} />}
       {tab === "data" && <BlacklistTab headers={headers} />}
       {tab === "discord" && <DiscordMessagesTab headers={headers} />}
+    </div>
+  );
+}
+
+// Settings Form Component
+function SettingsForm({ headers }: { headers: Record<string, string> }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [settings, setSettings] = useState<Record<string, unknown>>({});
+  const [loaded, setLoaded] = useState(false);
+  const toast = useToastContext();
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  async function fetchSettings() {
+    try {
+      const res = await fetch("/api/admin/settings", { headers });
+      const json = await res.json();
+      if (res.ok) {
+        setSettings(json.settings ?? {});
+        setLoaded(true);
+      }
+    } catch {}
+  }
+
+  function handleChange(key: string, value: string | number | string[]) {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function saveSettings() {
+    setBusy(true);
+    try {
+      // Buang nilai placeholder tersembunyi (mis. "••••••••") agar tidak
+      // ditimpa saat admin mengedit field lain. Nilai yang sudah diset
+      // dan tidak disentuh admin akan dikirim kosong -> server mengabaikan.
+      const payload = Object.fromEntries(
+        Object.entries(settings).filter(
+          ([key, value]) =>
+            !["discordBotToken", "discordBotSecret", "discordWebhookUrl"].includes(key) ||
+            (typeof value === "string" && value.length > 0 && value !== "••••••••")
+        )
+      );
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      setMsg(json);
+      if (json.ok) {
+        toast.success(json.message);
+      } else {
+        toast.error(json.message ?? "Gagal menyimpan.");
+      }
+    } catch {
+      setMsg({ ok: false, text: "Terjadi kesalahan jaringan." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!loaded) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="space-y-2">
+          <div className="h-6 w-48 bg-white/5 rounded animate-pulse" />
+          <div className="h-6 w-64 bg-white/5 rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 space-y-6">
+      {msg && (
+        <div
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            msg.ok
+              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+              : "border-red-500/40 bg-red-500/10 text-red-300"
+          }`}
+        >
+          {msg.text}
+        </div>
+      )}
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        {/* General Settings */}
+        <Card className="p-4">
+          <h3 className="font-semibold text-zinc-100 mb-4">Umum</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                KKM / Nilai Lulus (1-1000)
+              </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={1000}
+                  value={((settings.kkm as number) ?? 70)}
+                  onChange={(e) => handleChange("kkm", Number(e.target.value))}
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Durasi Ujian (menit, 5-300)
+              </label>
+                <input
+                  type="number"
+                  min={5}
+                  max={300}
+                  value={(settings.examDurationMinutes as number) ?? 45}
+                  onChange={(e) => handleChange("examDurationMinutes", Number(e.target.value))}
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Minimal Pangkat Polisi (rank number)
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={255}
+                value={(settings.minPoliceRank as number) ?? 225}
+                onChange={(e) => handleChange("minPoliceRank", Number(e.target.value))}
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* Group IDs */}
+        <Card className="p-4">
+          <h3 className="font-semibold text-zinc-100 mb-4">Grup & Role ID</h3>
+          <div className="space-y-4">
+            <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  Required Group ID ([RI] Republic Indonesia)
+                </label>
+                <input
+                  type="text"
+                  value={(settings.requiredGroupId as number) ?? 0}
+                  onChange={(e) => handleChange("requiredGroupId", e.target.value)}
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Police Group ID (Kepolisian)
+              </label>
+                <input
+                  type="text"
+                  value={(settings.policeGroupId as string) ?? ""}
+                  onChange={(e) => handleChange("policeGroupId", e.target.value)}
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Banned Group IDs (pisahkan koma)
+              </label>
+              <input
+                type="text"
+                value={Array.isArray(settings.bannedGroupIds) ? settings.bannedGroupIds.join(",") : settings.bannedGroupIds ?? ""}
+                onChange={(e) => handleChange("bannedGroupIds", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+              <p className="mt-1 text-[11px] text-zinc-500">Contoh: 367050757,34766643</p>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Role ID: Tahap Akademik
+              </label>
+              <input
+                type="text"
+                value={settings.tahapAkademikRoleId ?? ""}
+                onChange={(e) => handleChange("tahapAkademikRoleId", e.target.value)}
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Role ID: Tahap Interview
+              </label>
+              <input
+                type="text"
+                value={settings.tahapInterviewRoleId ?? ""}
+                onChange={(e) => handleChange("tahapInterviewRoleId", e.target.value)}
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* Discord Bot */}
+        <Card className="p-4 sm:col-span-2">
+          <h3 className="font-semibold text-zinc-100 mb-4">Discord Bot & Webhook</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Discord Bot Token
+              </label>
+              <input
+                type="password"
+                value={settings.discordBotToken === "••••••••" ? "" : settings.discordBotToken ?? ""}
+                onChange={(e) => handleChange("discordBotToken", e.target.value)}
+                placeholder="Biarkan kosong untuk tidak mengubah"
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+              <p className="mt-1 text-[11px] text-zinc-500">Bot token untuk REST API (assign role, DM).</p>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Discord Bot Secret
+              </label>
+              <input
+                type="password"
+                value={settings.discordBotSecret === "••••••••" ? "" : settings.discordBotSecret ?? ""}
+                onChange={(e) => handleChange("discordBotSecret", e.target.value)}
+                placeholder="Biarkan kosong untuk tidak mengubah"
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+              <p className="mt-1 text-[11px] text-zinc-500">Secret untuk verifikasi request dari web ke bot.</p>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Discord Guild ID
+              </label>
+              <input
+                type="text"
+                value={settings.discordGuildId ?? ""}
+                onChange={(e) => handleChange("discordGuildId", e.target.value)}
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Discord Channel ID (laporan ujian)
+              </label>
+              <input
+                type="text"
+                value={settings.discordChannelId ?? ""}
+                onChange={(e) => handleChange("discordChannelId", e.target.value)}
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Discord Bot API URL
+              </label>
+              <input
+                type="url"
+                value={settings.discordBotApiUrl ?? "http://localhost:3001"}
+                onChange={(e) => handleChange("discordBotApiUrl", e.target.value)}
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+              <p className="mt-1 text-[11px] text-zinc-500">URL server bot Discord (contoh: http://localhost:3001 atau URL production).</p>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Discord Webhook URL (laporan ujian)
+              </label>
+              <input
+                type="url"
+                value={settings.discordWebhookUrl === "••••••••" ? "" : settings.discordWebhookUrl ?? ""}
+                onChange={(e) => handleChange("discordWebhookUrl", e.target.value)}
+                placeholder="Biarkan kosong untuk tidak mengubah"
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+              <p className="mt-1 text-[11px] text-zinc-500">Webhook untuk kirim laporan ujian ke channel Discord.</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
+        <Button variant="gold" onClick={saveSettings} disabled={busy}>
+          {busy ? "Menyimpan..." : "Simpan Pengaturan"}
+        </Button>
+        <Button variant="ghost" onClick={fetchSettings} disabled={busy}>
+          Batal / Muat Ulang
+        </Button>
+      </div>
+
+      <div className="text-xs text-zinc-500">
+        <p>Catatan: Perubahan pada Discord Bot Token/Secret/Webhook dan Group ID memerlukan restart server agar berlaku penuh.</p>
+        <p>Nilai yang ditampilkan sebagai "••••••••" adalah nilai yang tersembunyi (sudah diset). Biarkan kosong jika tidak ingin mengubah.</p>
+      </div>
     </div>
   );
 }

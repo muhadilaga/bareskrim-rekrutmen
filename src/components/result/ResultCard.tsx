@@ -10,10 +10,12 @@ export function ResultCard({
   result,
   kkm,
   showAnswers = true,
+  resultId,
 }: {
   result: ResultPayload;
   kkm: number;
   showAnswers?: boolean;
+  resultId?: string;
 }) {
   const passed = result.passed;
   const details = result.answersJson;
@@ -159,6 +161,13 @@ export function ResultCard({
             Kembali ke Beranda
           </Button>
         </a>
+        {resultId && (
+          <a href={`/review/${resultId}`} className="flex-1">
+            <Button variant="gold" className="w-full">
+              Review Jawaban
+            </Button>
+          </a>
+        )}
         <a href="/hasil" className="flex-1">
           <Button variant="gold" className="w-full">
             Cek Hasil Lain

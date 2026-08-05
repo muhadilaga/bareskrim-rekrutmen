@@ -46,11 +46,15 @@ export function createRateLimiter(options: { windowMs: number; max: number }) {
 }
 
 export function clientIp(req: Request): string {
-  return (
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    req.headers.get("x-real-ip") ??
-    "unknown"
-  );
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    const ips = forwarded.split(",");
+    const clientIp = ips[ips.length - 1]?.trim();
+    if (clientIp && /^[\d.:a-fA-F]+$/.test(clientIp)) {
+      return clientIp;
+    }
+  }
+  return req.headers.get("x-real-ip")?.trim() ?? "unknown";
 }
 
 // 10 permintaan verifikasi per menit per IP
@@ -61,3 +65,15 @@ export const loginLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
 
 // 3 submit per menit per IP (batch jawaban besar, jarang)
 export const submitLimiter = createRateLimiter({ windowMs: 60_000, max: 3 });
+
+// 6 auto-save per menit per IP (throttle client 15s, tapi server batasi lebih ketat)
+export const saveLimiter = createRateLimiter({ windowMs: 60_000, max: 6 });
+
+// Rate limiter per-user (berdasarkan userId, bukan IP).
+// Berguna untuk endpoint yang sudah punya user terautentikasi.
+export function createUserRateLimiter(options: { windowMs: number; max: number }) {
+  return createRateLimiter(options);
+}
+
+// 5 submit per menit per user (berbeda dari IP-based submitLimiter)
+export const userSubmitLimiter = createUserRateLimiter({ windowMs: 60_000, max: 5 });

@@ -35,9 +35,10 @@ function buildRekapFields(details: GradedAnswerDetail[]) {
   details
     .filter((d) => d.type === "MCQ")
     .forEach((d, i) => {
+      const shortPrompt = d.prompt.length > 60 ? d.prompt.slice(0, 57) + "..." : d.prompt;
       mcqLines.push(
-        `**${i + 1}.** ${d.prompt}\n↳ Jawaban: \`${d.userAnswer || "-"}\` ${
-          d.isCorrect ? "✅" : `(Benar: ${d.correctKey}) ❌`
+        `**${i + 1}.** ${shortPrompt}\n↳ \`${d.userAnswer || "-"}\` ${
+          d.isCorrect ? "✅" : `(benar: ${d.correctKey}) ❌`
         }`
       );
     });
@@ -46,8 +47,10 @@ function buildRekapFields(details: GradedAnswerDetail[]) {
   details
     .filter((d) => d.type === "ESSAY")
     .forEach((d, i) => {
+      const shortPrompt = d.prompt.length > 60 ? d.prompt.slice(0, 57) + "..." : d.prompt;
+      const shortAnswer = (d.userAnswer || "").length > 40 ? d.userAnswer.slice(0, 37) + "..." : (d.userAnswer || "*(kosong)*");
       essayLines.push(
-        `**${i + 1}.** ${d.prompt}\n↳ ${d.userAnswer || "*(kosong)*"}`
+        `**${i + 1}.** ${shortPrompt}\n↳ ${shortAnswer}`
       );
     });
 
@@ -99,7 +102,7 @@ export async function sendDiscordExamReport(report: ExamReportInput): Promise<st
     { name: "📅 Periode", value: report.periodName, inline: true },
     { name: "📊 Skor Akhir", value: `${report.score}/${report.maxScore}`, inline: true },
     {
-      name: "✅ Status KKM (75)",
+      name: `✅ Status KKM (${CONFIG.kkm})`,
       value: passed
         ? "**LULUS KKM** 🟢"
         : "**TIDAK LULUS** 🔴",
@@ -125,11 +128,23 @@ export async function sendDiscordExamReport(report: ExamReportInput): Promise<st
   // Rekap jawaban dalam embed terpisah agar muat
   const rekapFields = buildRekapFields(report.details);
   if (rekapFields.length) {
-    embeds.push({
-      title: "📋 Rekap Jawaban (Cross-Check Instruktur)",
-      color,
-      fields: rekapFields,
-    });
+    // Discord limit: 6000 chars total untuk semua embeds. Sisakan 500 untuk main embed.
+    let totalSize = JSON.stringify(embeds).length;
+    const allowedRekap = 5500;
+    const keptFields: typeof rekapFields = [];
+    for (const f of rekapFields) {
+      const fieldSize = f.name.length + f.value.length;
+      if (totalSize + fieldSize > allowedRekap) break;
+      keptFields.push(f);
+      totalSize += fieldSize;
+    }
+    if (keptFields.length) {
+      embeds.push({
+        title: "📋 Rekap Jawaban (Cross-Check Instruktur)",
+        color,
+        fields: keptFields,
+      });
+    }
   }
 
   const payload: DiscordPayload = {
@@ -138,7 +153,7 @@ export async function sendDiscordExamReport(report: ExamReportInput): Promise<st
   };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5_000);
+  const timer = setTimeout(() => controller.abort(), 15_000);
   try {
     // ?wait=true WAJIB agar Discord mengembalikan objek pesan (berisi id-nya).
     // Tanpa ini Discord membalas 204 No Content (body kosong) sehingga id pesan
@@ -190,7 +205,7 @@ export async function sendAdminNotification(title: string, message: string): Pro
   };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5_000);
+  const timer = setTimeout(() => controller.abort(), 15_000);
   try {
     await fetch(webhookUrl, {
       method: "POST",
