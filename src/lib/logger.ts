@@ -1,6 +1,7 @@
 import pino from "pino";
 
 const isProduction = process.env.NODE_ENV === "production";
+const timers = new Map<string, number>();
 
 const logger = pino({
   level: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
@@ -46,8 +47,17 @@ export const log = {
   },
 
   // Performance timing
-  time: (label: string) => logger.time(label),
-  timeEnd: (label: string) => logger.timeEnd(label),
+  time: (label: string) => {
+    timers.set(label, Date.now());
+  },
+  timeEnd: (label: string) => {
+    const startedAt = timers.get(label);
+    if (startedAt == null) {
+      return;
+    }
+    timers.delete(label);
+    logger.info({ type: "timing", label, durationMs: Date.now() - startedAt }, `${label}: ${Date.now() - startedAt}ms`);
+  },
 
   // HTTP request logging
   http: (method: string, url: string, status: number, durationMs: number, userId?: string) =>

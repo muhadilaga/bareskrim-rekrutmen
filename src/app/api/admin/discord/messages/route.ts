@@ -5,6 +5,16 @@ import { CONFIG } from "@/lib/constants";
 const DISCORD_API = "https://discord.com/api/v10";
 
 function botHeaders() {
+  const token = CONFIG.discordBotToken;
+
+  if (!token) {
+    console.error("[DISCORD] ERROR: DISCORD_BOT_TOKEN is not configured!");
+  } else if (token.startsWith("••••")) {
+    console.error("[DISCORD] ERROR: Token appears to be a placeholder (••••••••)");
+  } else if (!token.startsWith("MT") && !token.startsWith("OT") && !token.startsWith("N")) {
+    console.warn("[DISCORD] WARNING: Token format may be invalid (doesn't start with MT/OT/N)");
+  }
+
   return {
     Authorization: `Bot ${CONFIG.discordBotToken}`,
     "Content-Type": "application/json",
@@ -31,6 +41,15 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
 
+  const token = CONFIG.discordBotToken;
+  if (!token || token.startsWith("••••") || token === "") {
+    return NextResponse.json({
+      ok: false,
+      message: "DISCORD_BOT_TOKEN tidak dikonfigurasi atau menggunakan placeholder",
+      detail: "Set DISCORD_BOT_TOKEN di environment variables"
+    }, { status: 500 });
+  }
+
   const channelId = CONFIG.discordChannelId;
   if (!channelId) {
     return NextResponse.json({ ok: false, message: "DISCORD_CHANNEL_ID belum dikonfigurasi." }, { status: 400 });
@@ -45,12 +64,19 @@ export async function GET(req: Request) {
       { headers: botHeaders(), signal: AbortSignal.timeout(10_000) }
     );
 
-   if (!res.ok) {
-     const err = await res.json().catch(() => ({}));
-     // Log more details for debugging
-     console.error(`[DISCORD_MSGS] Failed to fetch messages: ${res.status}`, err);
-     return NextResponse.json({ ok: false, message: `Discord API error: ${res.status}`, detail: err }, { status: 502 });
-   }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.error(`[DISCORD_MSGS] Failed to fetch messages: ${res.status}`, err);
+
+      return NextResponse.json({
+        ok: false,
+        message: `Discord API error: ${res.status}`,
+        detail: err,
+        hint: res.status === 401 ? "Token bot tidak valid/expired. Cek DISCORD_BOT_TOKEN di .env" :
+              res.status === 403 ? "Bot tidak punya izin Read Message History/View Channel" :
+              res.status === 404 ? "Channel ID salah atau bot tidak ada di server" : undefined
+      }, { status: 502 });
+    }
 
     const messages: DiscordMessage[] = await res.json();
 
@@ -72,6 +98,7 @@ export async function GET(req: Request) {
       total: botMessages.length,
     });
   } catch (e) {
+    console.error("[DISCORD_MSGS] Exception:", e);
     return NextResponse.json(
       { ok: false, message: `Gagal mengambil pesan: ${e instanceof Error ? e.message : String(e)}` },
       { status: 500 }
@@ -95,7 +122,6 @@ export async function DELETE(req: Request) {
 
   try {
     if (deleteAll) {
-      // Fetch all bot messages first, then bulk delete
       const res = await fetch(
         `${DISCORD_API}/channels/${channelId}/messages?limit=100`,
         { headers: botHeaders(), signal: AbortSignal.timeout(10_000) }
@@ -110,9 +136,6 @@ export async function DELETE(req: Request) {
         return NextResponse.json({ ok: true, message: "Tidak ada pesan bot untuk dihapus.", deleted: 0 });
       }
 
-      // Bulk delete (max 100, max age 14 days)
-      // Discord bulk delete gagal kalau ada pesan >14 hari atau <2 pesan.
-      // Fallback ke delete satu-satu bila bulk gagal.
       const bulkRes = await fetch(
         `${DISCORD_API}/channels/${channelId}/messages/bulk-delete`,
         {
@@ -127,7 +150,6 @@ export async function DELETE(req: Request) {
         return NextResponse.json({ ok: true, message: `${botIds.length} pesan bot berhasil dihapus.`, deleted: botIds.length });
       }
 
-      // Bulk gagal (biasanya pesan >14 hari) → fallback hapus satu-satu
       let deleted = 0;
       for (const id of botIds.slice(0, 100)) {
         const delRes = await fetch(
@@ -135,7 +157,6 @@ export async function DELETE(req: Request) {
           { method: "DELETE", headers: botHeaders(), signal: AbortSignal.timeout(5_000) }
         );
         if (delRes.ok || delRes.status === 204) deleted++;
-        // Delay antar hapus agar tidak kena rate limit
         await new Promise((r) => setTimeout(r, 500));
       }
 
@@ -146,7 +167,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ ok: false, message: "messageIds wajib berisi array ID pesan." }, { status: 400 });
     }
 
-    // Delete individually (Discord doesn't support bulk delete via webhook for >1 message easily)
     let deleted = 0;
     for (const id of messageIds.slice(0, 100)) {
       const res = await fetch(

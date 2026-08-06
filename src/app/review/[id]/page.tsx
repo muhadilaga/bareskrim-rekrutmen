@@ -6,7 +6,6 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useRouter } from "next/navigation";
 
 interface ReviewQuestion {
   questionId: string;
@@ -34,7 +33,6 @@ interface ReviewSummary {
 }
 
 export default function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
   const resolvedParams = params as unknown as { id: string };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

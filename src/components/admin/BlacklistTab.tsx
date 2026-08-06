@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { useToastContext } from "@/components/ui/Toast";
 
 interface BlacklistTabProps {

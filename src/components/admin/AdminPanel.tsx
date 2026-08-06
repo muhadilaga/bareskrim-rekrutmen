@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -10,7 +9,6 @@ import { BlacklistTab } from "@/components/admin/BlacklistTab";
 import { CasisManagement } from "@/components/admin/CasisManagement";
 import { DiscordMessagesTab } from "@/components/admin/DiscordMessagesTab";
 import { useToastContext } from "@/components/ui/Toast";
-import { getSettings } from "@/lib/constants";
 
 interface Stats {
   totalUsers: number;
@@ -623,6 +621,7 @@ export function AdminPanel() {
             const absenOnly = p.attendances.filter(
               (a) => !p.attempts.some((at) => at.user.id === a.user?.id)
             );
+            const countsLabel = `Mengerjakan ${mengerjakan.length} • Selesai ${selesai.length} • Absen saja ${absenOnly.length}`;
 
             return (
               <div
@@ -632,7 +631,8 @@ export function AdminPanel() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-zinc-100">{p.name}</p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-zinc-400">{countsLabel}</p>
+                    <p className="text-xs text-zinc-400">
                       Seed: {p.seed} · Dibuka: {new Date(p.openedAt).toLocaleString("id-ID")}
                     </p>
                      <p className="text-xs text-zinc-500">
@@ -1225,11 +1225,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
   const [loaded, setLoaded] = useState(false);
   const toast = useToastContext();
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  async function fetchSettings() {
+  const fetchSettings = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/settings", { headers });
       const json = await res.json();
@@ -1238,7 +1234,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
         setLoaded(true);
       }
     } catch {}
-  }
+  }, [headers]);
 
   function handleChange(key: string, value: string | number | string[]) {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -1358,7 +1354,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
                 </label>
                 <input
                   type="text"
-                  value={(settings.requiredGroupId as number) ?? 0}
+                  value={String(settings.requiredGroupId ?? 0)}
                   onChange={(e) => handleChange("requiredGroupId", e.target.value)}
                   className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
                 />
@@ -1369,7 +1365,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               </label>
                 <input
                   type="text"
-                  value={(settings.policeGroupId as string) ?? ""}
+                  value={String(settings.policeGroupId ?? "")}
                   onChange={(e) => handleChange("policeGroupId", e.target.value)}
                   className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
                 />
@@ -1392,7 +1388,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               </label>
                  <input
                    type="text"
-                   value={(settings.tahapAkademikRoleId as string) ?? ""}
+                   value={String(settings.tahapAkademikRoleId ?? "")}
                    onChange={(e) => handleChange("tahapAkademikRoleId", e.target.value)}
                    className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
                  />
@@ -1403,7 +1399,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               </label>
                  <input
                    type="text"
-                   value={(settings.tahapInterviewRoleId as string) ?? ""}
+                   value={String(settings.tahapInterviewRoleId ?? "")}
                    onChange={(e) => handleChange("tahapInterviewRoleId", e.target.value)}
                    className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
                  />
@@ -1419,13 +1415,13 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 Discord Bot Token
               </label>
-              <input
-                type="password"
-                value={settings.discordBotToken === "••••••••" ? "" : settings.discordBotToken ?? ""}
-                onChange={(e) => handleChange("discordBotToken", e.target.value)}
-                placeholder="Biarkan kosong untuk tidak mengubah"
-                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-              />
+                <input
+                  type="text"
+                  value={String(settings.discordBotToken === "••••••••" ? "" : settings.discordBotToken ?? "")}
+                  onChange={(e) => handleChange("discordBotToken", e.target.value)}
+                  placeholder="Biarkan kosong untuk tidak mengubah"
+                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                />
               <p className="mt-1 text-[11px] text-zinc-500">Bot token untuk REST API (assign role, DM).</p>
             </div>
             <div>
@@ -1434,7 +1430,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               </label>
               <input
                 type="password"
-                value={settings.discordBotSecret === "••••••••" ? "" : settings.discordBotSecret ?? ""}
+                value={String(settings.discordBotSecret === "••••••••" ? "" : settings.discordBotSecret ?? "")}
                 onChange={(e) => handleChange("discordBotSecret", e.target.value)}
                 placeholder="Biarkan kosong untuk tidak mengubah"
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
@@ -1447,7 +1443,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               </label>
               <input
                 type="text"
-                value={settings.discordGuildId ?? ""}
+                value={String(settings.discordGuildId ?? "")}
                 onChange={(e) => handleChange("discordGuildId", e.target.value)}
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
               />
@@ -1458,7 +1454,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               </label>
               <input
                 type="text"
-                value={settings.discordChannelId ?? ""}
+                value={String(settings.discordChannelId ?? "")}
                 onChange={(e) => handleChange("discordChannelId", e.target.value)}
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
               />
@@ -1469,7 +1465,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               </label>
               <input
                 type="url"
-                value={settings.discordBotApiUrl ?? "http://localhost:3001"}
+                value={String(settings.discordBotApiUrl ?? "http://localhost:3001")}
                 onChange={(e) => handleChange("discordBotApiUrl", e.target.value)}
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
               />
@@ -1481,7 +1477,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               </label>
               <input
                 type="url"
-                value={settings.discordWebhookUrl === "••••••••" ? "" : settings.discordWebhookUrl ?? ""}
+                value={String(settings.discordWebhookUrl === "••••••••" ? "" : settings.discordWebhookUrl ?? "")}
                 onChange={(e) => handleChange("discordWebhookUrl", e.target.value)}
                 placeholder="Biarkan kosong untuk tidak mengubah"
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
@@ -1503,7 +1499,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
 
       <div className="text-xs text-zinc-500">
         <p>Catatan: Perubahan pada Discord Bot Token/Secret/Webhook dan Group ID memerlukan restart server agar berlaku penuh.</p>
-        <p>Nilai yang ditampilkan sebagai "••••••••" adalah nilai yang tersembunyi (sudah diset). Biarkan kosong jika tidak ingin mengubah.</p>
+        <p>Nilai yang ditampilkan sebagai &quot;••••••••&quot; adalah nilai yang tersembunyi (sudah diset). Biarkan kosong jika tidak ingin mengubah.</p>
       </div>
     </div>
   );
