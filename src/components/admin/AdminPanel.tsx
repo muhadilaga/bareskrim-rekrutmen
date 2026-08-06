@@ -1221,7 +1221,22 @@ export function AdminPanel() {
 function SettingsForm({ headers }: { headers: Record<string, string> }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [settings, setSettings] = useState<Record<string, unknown>>({});
+  const [settings, setSettings] = useState<Record<string, unknown>>({
+    kkm: 70,
+    examDurationMinutes: 45,
+    minPoliceRank: 225,
+    requiredGroupId: "",
+    policeGroupId: "",
+    bannedGroupIds: [],
+    tahapAkademikRoleId: "",
+    tahapInterviewRoleId: "",
+    discordBotToken: "",
+    discordBotSecret: "",
+    discordGuildId: "",
+    discordChannelId: "",
+    discordBotApiUrl: "http://localhost:3001",
+    discordWebhookUrl: "",
+  });
   const [loaded, setLoaded] = useState(false);
   const toast = useToastContext();
 
@@ -1230,11 +1245,20 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
       const res = await fetch("/api/admin/settings", { headers });
       const json = await res.json();
       if (res.ok) {
-        setSettings(json.settings ?? {});
-        setLoaded(true);
+        setSettings((prev) => ({ ...prev, ...(json.settings ?? {}) }));
+      } else {
+        toast.error(json.message ?? "Gagal memuat pengaturan.");
       }
-    } catch {}
-  }, [headers]);
+    } catch {
+      toast.error("Gagal memuat pengaturan.");
+    } finally {
+      setLoaded(true);
+    }
+  }, [headers, toast]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   function handleChange(key: string, value: string | number | string[]) {
     setSettings((prev) => ({ ...prev, [key]: value }));
