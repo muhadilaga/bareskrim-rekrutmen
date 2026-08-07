@@ -69,6 +69,7 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           userId: discord,
           roleName: "Tahap Akademik",
+          roleId: CONFIG.tahapAkademikRoleId,
         }),
       });
 

@@ -78,7 +78,7 @@ export function DiscordMessagesTab({ headers }: Props) {
         toast.success(data.message);
         await fetchMessages();
       } else {
-        toast.error(data.message ?? "Gagal menghapus pesan.");
+        toast.error([data.message, data.hint].filter(Boolean).join(" — ") || "Gagal menghapus pesan.");
       }
     } catch {
       toast.error("Gagal menghapus pesan.");
@@ -102,7 +102,7 @@ export function DiscordMessagesTab({ headers }: Props) {
         toast.success(data.message);
         await fetchMessages();
       } else {
-        toast.error(data.message ?? "Gagal menghapus pesan.");
+        toast.error([data.message, data.hint].filter(Boolean).join(" — ") || "Gagal menghapus pesan.");
       }
     } catch {
       toast.error("Gagal menghapus pesan.");

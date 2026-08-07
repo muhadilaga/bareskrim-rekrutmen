@@ -40,6 +40,27 @@ async function resolveDiscordUser(
   }
 }
 
+function roleIdFromConfig(roleName: string): string | null {
+  if (roleName === "Tahap Akademik" && CONFIG.tahapAkademikRoleId) return CONFIG.tahapAkademikRoleId;
+  if (roleName === "Tahap Interview" && CONFIG.tahapInterviewRoleId) return CONFIG.tahapInterviewRoleId;
+  return null;
+}
+
+async function resolveRoleId(guildId: string, roleName: string): Promise<string | null> {
+  const configured = roleIdFromConfig(roleName);
+  if (configured) return configured;
+
+  const res = await fetch(`${DISCORD_API}/guilds/${guildId}/roles`, {
+    headers: botHeaders(),
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) return null;
+
+  const roles: Array<{ id: string; name: string }> = await res.json();
+  const found = roles.find((r) => r.name.toLowerCase() === roleName.toLowerCase());
+  return found?.id ?? null;
+}
+
 // Assign role ke user Discord
 export async function assignDiscordRole(
   username: string,
@@ -47,12 +68,19 @@ export async function assignDiscordRole(
 ): Promise<{ ok: boolean; message: string }> {
   const token = CONFIG.discordBotToken;
   const guildId = CONFIG.discordGuildId;
-  const roleId = CONFIG.tahapAkademikRoleId;
 
-  if (!token || !guildId || !roleId) {
+  if (!token || !guildId) {
     return {
       ok: false,
-      message: "Discord bot belum dikonfigurasi (DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, TAHAP_AKADEMIK_ROLE_ID).",
+      message: "Discord bot belum dikonfigurasi (DISCORD_BOT_TOKEN, DISCORD_GUILD_ID).",
+    };
+  }
+
+  const roleId = await resolveRoleId(guildId, roleName);
+  if (!roleId) {
+    return {
+      ok: false,
+      message: `Role "${roleName}" tidak ditemukan. Isi TAHAP_AKADEMIK_ROLE_ID/TAHAP_INTERVIEW_ROLE_ID atau pastikan nama role di Discord sama persis.`,
     };
   }
 

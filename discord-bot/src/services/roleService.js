@@ -5,9 +5,25 @@ const { GuildMember } = require("discord.js");
  */
 async function findRole(guild, roleName) {
   const roles = await guild.roles.fetch();
-  return roles.find(
+
+  if (/^\d+$/.test(String(roleName).trim())) {
+    const byId = roles.get(String(roleName).trim());
+    if (byId) return byId;
+  }
+
+  const exact = roles.find(
     (role) => role.name.toLowerCase() === roleName.toLowerCase()
   );
+  if (exact) return exact;
+
+  const aliases = new Map([
+    ["Tahap Akademik", process.env.TAHAP_AKADEMIK_ROLE_ID],
+    ["Tahap Interview", process.env.TAHAP_INTERVIEW_ROLE_ID],
+  ]);
+  const aliasId = aliases.get(roleName)?.trim();
+  if (aliasId && roles.get(aliasId)) return roles.get(aliasId);
+
+  return null;
 }
 
 /**
@@ -62,7 +78,7 @@ async function findMember(guild, identifier) {
  */
 async function assignRole(client, userId, roleName) {
   try {
-    const guildId = process.env.GUILD_ID;
+    const guildId = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID;
     if (!guildId) {
       return { ok: false, message: "GUILD_ID not configured" };
     }
@@ -105,7 +121,7 @@ async function assignRole(client, userId, roleName) {
  */
 async function removeRole(client, userId, roleName) {
   try {
-    const guildId = process.env.GUILD_ID;
+    const guildId = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID;
     if (!guildId) {
       return { ok: false, message: "GUILD_ID not configured" };
     }
@@ -148,7 +164,7 @@ async function removeRole(client, userId, roleName) {
  */
 async function checkRole(client, userId, roleName) {
   try {
-    const guildId = process.env.GUILD_ID;
+    const guildId = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID;
     if (!guildId) {
       return { ok: false, message: "GUILD_ID not configured" };
     }

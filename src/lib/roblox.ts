@@ -110,29 +110,30 @@ export async function getAvatarHeadshot(userId: number): Promise<string | null> 
 }
 
 async function doGetAvatarHeadshot(userId: number): Promise<string | null> {
-    // Try multiple endpoints/sizes for robustness
-    const endpoints = [
-      `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=48x48&format=Png&isCircular=false`,
-      `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=720x720&format=Png&isCircular=false`,
-      `https://avatar.roblox.com/v1/users/${userId}/avatar-headshot?size=48&format=Png&isCircular=false`,
-    ];
-    for (const url of endpoints) {
-      try {
-        const json = await robloxFetch<{
-          data: Array<{ targetId: number; state: string; imageUrl: string }>;
-        }>(url);
-        const item = json.data?.[0];
-        if (item && item.state === "Completed" && item.imageUrl) {
-          return item.imageUrl;
-        }
-      } catch (err) {
-        // continue to next endpoint
-        continue;
+  const endpoints = [
+    `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png&isCircular=false`,
+    `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`,
+    `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=720x720&format=Png&isCircular=false`,
+    `https://avatar.roblox.com/v1/users/${userId}/avatar-headshot?size=48&format=Png&isCircular=false`,
+  ];
+
+  for (const url of endpoints) {
+    try {
+      const json = await robloxFetch<any>(url);
+      const item = Array.isArray(json?.data) ? json.data[0] : json;
+      const imageUrl = item?.imageUrl || item?.imageURL || item?.url || item?.thumbnailUrl;
+      const state = item?.state || item?.status;
+      if (imageUrl && (!state || String(state).toLowerCase() === "completed" || String(state).toLowerCase() === "done")) {
+        return imageUrl;
       }
+    } catch {
+      continue;
     }
-    console.warn(`[ROBLOX_AVATAR] Failed to get avatar for userId ${userId} after trying all endpoints`);
-    return null;
   }
+
+  console.warn(`[ROBLOX_AVATAR] Failed to get avatar for userId ${userId} after trying all endpoints`);
+  return null;
+}
 
 const HEADSHOT_CACHE_TTL_MS = 30 * 60_000;
 const headshotCache = new Map<number, { at: number; value: string | null }>();

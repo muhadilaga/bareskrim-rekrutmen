@@ -197,7 +197,7 @@ export async function POST(req: Request) {
     let roleError: string | null = null;
 
     try {
-      if (CONFIG.discordBotToken && CONFIG.discordGuildId && CONFIG.tahapAkademikRoleId) {
+      if (CONFIG.discordBotToken && CONFIG.discordGuildId) {
         const result = await assignDiscordRole(discordUsername.trim(), "Tahap Akademik");
         roleAssigned = result.ok;
         roleError = result.ok ? null : result.message;

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CONFIG } from "@/lib/constants";
-import { clientIp, createRateLimiter, userSubmitLimiter } from "@/lib/rate-limit";
 import { logStudentAction } from "@/lib/audit";
+import { clientIp, createRateLimiter, userSubmitLimiter } from "@/lib/rate-limit";
+import { getSessionUser } from "@/lib/auth";
+import { assignDiscordRole } from "@/lib/discord-api";
 
 const ipLimiter = createRateLimiter({ windowMs: 60_000, max: 3 });
 
@@ -16,22 +17,21 @@ export async function POST(req: Request) {
     );
   }
 
-   try {
-     const user = await getSessionUser(req);
-     if (!user) {
-       return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
-     }
+  try {
+    const user = await getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    }
 
-     // Rate limit per-user
-     const userLimited = userSubmitLimiter.check(user.id);
-     if (!userLimited.ok) {
-       return NextResponse.json(
-         { ok: false, message: `Terlalu banyak percobaan. Coba lagi dalam ${userLimited.retryAfterSeconds} detik.` },
-         { status: 429 }
-       );
-     }
+    const userLimited = userSubmitLimiter.check(user.id);
+    if (!userLimited.ok) {
+      return NextResponse.json(
+        { ok: false, message: `Terlalu banyak percobaan. Coba lagi dalam ${userLimited.retryAfterSeconds} detik.` },
+        { status: 429 }
+      );
+    }
 
-     const body = await req.json();
+    const body = await req.json();
     const { discordUserId } = body;
 
     if (!discordUserId || typeof discordUserId !== "string") {
@@ -41,7 +41,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Cari periode aktif
     const activePeriod = await prisma.examPeriod.findFirst({
       where: { isActive: true },
     });
@@ -53,7 +52,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Cek apakah absen sudah dibuka
     if (!activePeriod.isAttendanceOpen) {
       return NextResponse.json(
         { ok: false, message: "Absen belum dibuka" },
@@ -61,7 +59,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Cek apakah sudah absen
     const existing = await prisma.attendance.findUnique({
       where: {
         userId_periodId_tahap: {
@@ -79,7 +76,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Simpan absensi
     const attendance = await prisma.attendance.create({
       data: {
         userId: user.id,
@@ -90,37 +86,35 @@ export async function POST(req: Request) {
       },
     });
 
-    // Kirim request ke Discord Bot untuk assign role
-     try {
-       const botResponse = await fetch(`${CONFIG.discordBotApiUrl}/api/assign-role`, {
-         method: "POST",
-         headers: {
-           "Content-Type": "application/json",
-           "x-bot-secret": CONFIG.discordBotSecret,
-         },
-         body: JSON.stringify({
-           userId: discordUserId.trim(),
-           roleName: "Tahap Akademik",
-         }),
-       });
+    let roleAssigned = false;
+    let roleError: string | null = null;
 
-       const botResult = await botResponse.json();
-       console.log("Bot role assignment result:", botResult);
-     } catch (botError) {
-       console.error("Failed to assign role via bot:", botError);
-       // Tidak gagalkan absensi jika bot error, admin bisa assign manual
-     }
+    if (CONFIG.discordBotToken && CONFIG.discordGuildId) {
+      const result = await assignDiscordRole(discordUserId.trim(), "Tahap Akademik");
+      roleAssigned = result.ok;
+      roleError = result.ok ? null : result.message;
+    } else {
+      roleError = "DISCORD_BOT_TOKEN / DISCORD_GUILD_ID belum dikonfigurasi.";
+    }
 
-     await logStudentAction({
-       userId: user.id,
-       action: "ATTENDANCE",
-       periodId: activePeriod.id,
-       detail: { discordUserId: discordUserId.trim() },
-     });
+    await logStudentAction({
+      userId: user.id,
+      action: "ATTENDANCE",
+      periodId: activePeriod.id,
+      detail: { discordUserId: discordUserId.trim() },
+    });
 
-     return NextResponse.json({
+    const successMessage = roleAssigned
+      ? "Absensi berhasil! Role Tahap Akademik sudah diberikan."
+      : roleError
+        ? `Absensi berhasil, tapi role gagal diberikan: ${roleError}. Hubungi admin untuk assign manual.`
+        : "Absensi berhasil! Role Tahap Akademik akan diberikan oleh admin.";
+
+    return NextResponse.json({
       ok: true,
-      message: "Absensi berhasil! Role Tahap Akademik akan diberikan.",
+      message: successMessage,
+      roleAssigned,
+      roleError,
       attendance: {
         id: attendance.id,
         status: attendance.status,

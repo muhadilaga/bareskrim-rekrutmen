@@ -10,20 +10,42 @@ function isAdmin(req: Request): boolean {
 
 const adminLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
 
+const emptyToUndefined = z.preprocess((v) => {
+  if (typeof v === "string" && v.trim() === "") return undefined;
+  return v;
+}, z.string().url().optional());
+
+const anyToString = z.preprocess((v) => {
+  if (v === null || v === undefined) return undefined;
+  return String(v);
+}, z.string().optional());
+
+const anyToNumber = z.preprocess((v) => {
+  if (v === null || v === undefined || v === "") return undefined;
+  const n = Number(v);
+  return Number.isNaN(n) ? v : n;
+}, z.number().int().optional());
+
+const anyToStringArray = z.preprocess((v) => {
+  if (Array.isArray(v)) return v.map((x) => String(x));
+  if (typeof v === "string") return v.split(",").map((s) => s.trim()).filter(Boolean);
+  return v;
+}, z.array(z.string()).optional());
+
 const SettingsSchema = z.object({
-  kkm: z.number().int().min(1).max(1000).optional(),
-  examDurationMinutes: z.number().int().min(5).max(300).optional(),
-  minPoliceRank: z.number().int().min(1).max(255).optional(),
-  requiredGroupId: z.string().optional(),
-  policeGroupId: z.string().optional(),
-  bannedGroupIds: z.array(z.string()).optional(),
-  tahapAkademikRoleId: z.string().optional(),
-  tahapInterviewRoleId: z.string().optional(),
-  discordBotToken: z.string().optional(),
-  discordBotSecret: z.string().optional(),
-  discordGuildId: z.string().optional(),
-  discordWebhookUrl: z.string().url().optional().nullable(),
-  discordBotApiUrl: z.string().url().optional(),
+  kkm: anyToNumber,
+  examDurationMinutes: anyToNumber,
+  minPoliceRank: anyToNumber,
+  requiredGroupId: anyToString,
+  policeGroupId: anyToString,
+  bannedGroupIds: anyToStringArray,
+  tahapAkademikRoleId: anyToString,
+  tahapInterviewRoleId: anyToString,
+  discordBotToken: anyToString,
+  discordBotSecret: anyToString,
+  discordGuildId: anyToString,
+  discordWebhookUrl: emptyToUndefined,
+  discordBotApiUrl: emptyToUndefined,
 });
 
 export async function GET(req: Request) {
@@ -32,7 +54,6 @@ export async function GET(req: Request) {
   }
 
   const settings = getSettings();
-  // Mask sensitive values
   const masked = {
     ...settings,
     discordBotToken: settings.discordBotToken ? "••••••••" : "",
@@ -47,6 +68,7 @@ export async function PATCH(req: Request) {
   if (!isAdmin(req)) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
+
   const limited = adminLimiter.check(clientIp(req));
   if (!limited.ok) {
     return NextResponse.json(
@@ -61,9 +83,8 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ ok: false, message: "Data pengaturan tidak valid." }, { status: 400 });
   }
 
-  // Bangun objek update secara eksplisit (hindari null pada field string)
-  const updates: Record<string, unknown> = {};
   const d = parsed.data;
+  const updates: Record<string, unknown> = {};
   if (d.kkm !== undefined) updates.kkm = d.kkm;
   if (d.examDurationMinutes !== undefined) updates.examDurationMinutes = d.examDurationMinutes;
   if (d.minPoliceRank !== undefined) updates.minPoliceRank = d.minPoliceRank;
@@ -75,13 +96,13 @@ export async function PATCH(req: Request) {
   if (d.discordBotToken !== undefined && d.discordBotToken.length > 0) updates.discordBotToken = d.discordBotToken;
   if (d.discordBotSecret !== undefined && d.discordBotSecret.length > 0) updates.discordBotSecret = d.discordBotSecret;
   if (d.discordGuildId !== undefined) updates.discordGuildId = d.discordGuildId;
-  if (d.discordWebhookUrl) updates.discordWebhookUrl = d.discordWebhookUrl;
+  if (d.discordWebhookUrl !== undefined) updates.discordWebhookUrl = d.discordWebhookUrl;
   if (d.discordBotApiUrl !== undefined) updates.discordBotApiUrl = d.discordBotApiUrl;
 
   try {
     const oldSettings = getSettings();
     const updated = updateSettings(updates);
-    
+
     await logAdminAction({
       action: "UPDATE_SETTINGS",
       target: "system",
@@ -112,16 +133,13 @@ export async function PATCH(req: Request) {
       },
     });
 
-    return NextResponse.json({ 
-      ok: true, 
+    return NextResponse.json({
+      ok: true,
       message: "Pengaturan berhasil diperbarui. Beberapa perubahan memerlukan restart server.",
-      settings: updated 
+      settings: updated,
     });
   } catch (e) {
     console.error("Settings update error:", e);
-    return NextResponse.json(
-      { ok: false, message: "Gagal memperbarui pengaturan." },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false, message: "Gagal memperbarui pengaturan." }, { status: 500 });
   }
 }

@@ -17,9 +17,18 @@ const app = express();
 app.use(express.json());
 
 // Middleware: Verify API secret
+function botToken() {
+  return process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN || "";
+}
+function guildId() {
+  return process.env.GUILD_ID || process.env.DISCORD_GUILD_ID || "";
+}
+function apiSecret() {
+  return process.env.WEB_API_SECRET || process.env.DISCORD_BOT_SECRET || "";
+}
 function verifySecret(req, res, next) {
   const secret = req.headers["x-bot-secret"];
-  if (!secret || secret !== process.env.WEB_API_SECRET) {
+  if (!secret || secret !== apiSecret()) {
     return res.status(401).json({ ok: false, message: "Unauthorized" });
   }
   next();
@@ -41,16 +50,17 @@ app.get("/api/health", (req, res) => {
 // Assign role to user
 app.post("/api/assign-role", verifySecret, async (req, res) => {
   try {
-    const { userId, roleName } = req.body;
+    const { userId, roleName, roleId } = req.body;
 
-    if (!userId || !roleName) {
+    if (!userId || (!roleName && !roleId)) {
       return res.status(400).json({
         ok: false,
-        message: "userId and roleName are required",
+        message: "userId and roleName/roleId are required",
       });
     }
 
-    const result = await assignRole(client, userId, roleName);
+    const targetRole = roleId || roleName;
+    const result = await assignRole(client, userId, targetRole);
 
     if (result.ok) {
       res.json({ ok: true, message: `Role "${roleName}" assigned to ${userId}` });
@@ -147,7 +157,7 @@ const PORT = process.env.PORT || 3001;
 async function start() {
   try {
     // Login to Discord
-    await client.login(process.env.DISCORD_TOKEN);
+    await client.login(botToken());
     console.log("🔐 Discord bot logged in");
 
     // Start Express server
