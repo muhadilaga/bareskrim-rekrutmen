@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   } catch (e) {
     console.error("init schema error", e);
     return NextResponse.json(
-      { ok: false, message: e instanceof Error ? e.message : "Gagal inisialisasi database. Periksa log." },
+      { ok: false, message: "Gagal inisialisasi database. Periksa log." },
       { status: 500 }
     );
   }
