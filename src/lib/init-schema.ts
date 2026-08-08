@@ -238,8 +238,14 @@ export async function schemaExists(): Promise<boolean> {
 }
 
 export async function initSchema(): Promise<void> {
-  for (const stmt of statements) {
-    await prisma.$executeRawUnsafe(stmt);
+  for (let i = 0; i < statements.length; i++) {
+    const stmt = statements[i]!;
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+    } catch (e) {
+      const err = e instanceof Error ? e.message : String(e);
+      throw new Error(`INIT_SCHEMA_FAIL index=${i + 1} head=${stmt.split("\n")[0]} error=${err}`);
+    }
   }
 }
 
