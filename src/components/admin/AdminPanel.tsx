@@ -158,7 +158,7 @@ export function AdminPanel() {
     const [p, q, d] = await Promise.all([
       fetch("/api/admin/period", { headers }),
       fetch("/api/admin/questions", { headers }),
-      fetch("/api/admin/init", { headers }),
+      fetch("/api/admin/init", { headers }).catch(() => null),
     ]);
     // Hanya batalkan authed bila kunci ditolak server (401/403).
     // Kegagalan lain (network, 5xx) TIDAK membuat user keluar.
@@ -173,10 +173,10 @@ export function AdminPanel() {
     }
     const pj = await p.json();
     const qj = await q.json();
-    const dj = d.ok ? await d.json() : null;
+    const dj = d && d.ok ? await d.json() : null;
     setPeriods(pj.periods);
     setQuestions(qj.questions);
-    setDbReady(dj?.initialized ?? true);
+    setDbReady(typeof dj?.initialized === "boolean" ? dj.initialized : true);
     setAuthed(true);
     // Simpan kunci agar tidak perlu memasukkan ulang saat pindah panel/refresh.
     if (key) sessionStorage.setItem("admin_key", key);
