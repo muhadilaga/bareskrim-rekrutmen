@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAdminKey, getSettings } from "@/lib/constants";
+import { getAdminKey } from "@/lib/constants";
+import { getEffectiveSettings } from "@/lib/runtime-settings";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
 
-  const settings = getSettings();
+  const settings = await getEffectiveSettings();
   const warnings: string[] = [];
   const checks: Record<string, { ok: boolean; detail: string }> = {};
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getAdminKey, getSettings, updateSettings } from "@/lib/constants";
+import { getAdminKey } from "@/lib/constants";
+import { getEffectiveSettings, saveSettings } from "@/lib/runtime-settings";
 import { logAdminAction } from "@/lib/audit";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 
@@ -10,10 +11,12 @@ function isAdmin(req: Request): boolean {
 
 const adminLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
 
-const emptyToUndefined = z.preprocess((v) => {
-  if (typeof v === "string" && v.trim() === "") return undefined;
-  return v;
-}, z.string().url().optional());
+const optionalUrlOrEmpty = z.preprocess((v) => {
+  if (v === null || v === undefined) return undefined;
+  if (typeof v !== "string") return v;
+  const trimmed = v.trim();
+  return trimmed === "" ? "" : trimmed;
+}, z.union([z.literal(""), z.string().url()]).optional());
 
 const anyToString = z.preprocess((v) => {
   if (v === null || v === undefined) return undefined;
@@ -44,24 +47,27 @@ const SettingsSchema = z.object({
   discordBotToken: anyToString,
   discordBotSecret: anyToString,
   discordGuildId: anyToString,
-  discordWebhookUrl: emptyToUndefined,
-  discordBotApiUrl: emptyToUndefined,
+  discordChannelId: anyToString,
+  discordWebhookUrl: optionalUrlOrEmpty,
+  discordBotApiUrl: optionalUrlOrEmpty,
 });
+
+function maskSettings(settings: Awaited<ReturnType<typeof getEffectiveSettings>>) {
+  return {
+    ...settings,
+    discordBotToken: settings.discordBotToken ? "••••••••" : "",
+    discordBotSecret: settings.discordBotSecret ? "••••••••" : "",
+    discordWebhookUrl: settings.discordWebhookUrl ? "••••••••" : "",
+  };
+}
 
 export async function GET(req: Request) {
   if (!isAdmin(req)) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
 
-  const settings = getSettings();
-  const masked = {
-    ...settings,
-    discordBotToken: settings.discordBotToken ? "••••••••" : "",
-    discordBotSecret: settings.discordBotSecret ? "••••••••" : "",
-    discordWebhookUrl: settings.discordWebhookUrl ? "••••••••" : "",
-  };
-
-  return NextResponse.json({ ok: true, settings: masked });
+  const settings = await getEffectiveSettings();
+  return NextResponse.json({ ok: true, settings: maskSettings(settings) });
 }
 
 export async function PATCH(req: Request) {
@@ -96,18 +102,19 @@ export async function PATCH(req: Request) {
   if (d.discordBotToken !== undefined && d.discordBotToken.length > 0) updates.discordBotToken = d.discordBotToken;
   if (d.discordBotSecret !== undefined && d.discordBotSecret.length > 0) updates.discordBotSecret = d.discordBotSecret;
   if (d.discordGuildId !== undefined) updates.discordGuildId = d.discordGuildId;
+  if (d.discordChannelId !== undefined) updates.discordChannelId = d.discordChannelId;
   if (d.discordWebhookUrl !== undefined) updates.discordWebhookUrl = d.discordWebhookUrl;
   if (d.discordBotApiUrl !== undefined) updates.discordBotApiUrl = d.discordBotApiUrl;
 
   try {
-    const oldSettings = getSettings();
-    const updated = updateSettings(updates);
+    const oldSettings = await getEffectiveSettings();
+    const updated = await saveSettings(updates);
 
     await logAdminAction({
       action: "UPDATE_SETTINGS",
       target: "system",
       detail: {
-        changed: Object.keys(parsed.data),
+        changed: Object.keys(updates),
         old: {
           kkm: oldSettings.kkm,
           examDurationMinutes: oldSettings.examDurationMinutes,
@@ -118,6 +125,7 @@ export async function PATCH(req: Request) {
           tahapAkademikRoleId: oldSettings.tahapAkademikRoleId,
           tahapInterviewRoleId: oldSettings.tahapInterviewRoleId,
           discordBotApiUrl: oldSettings.discordBotApiUrl,
+          discordChannelId: oldSettings.discordChannelId,
         },
         new: {
           kkm: updated.kkm,
@@ -129,14 +137,15 @@ export async function PATCH(req: Request) {
           tahapAkademikRoleId: updated.tahapAkademikRoleId,
           tahapInterviewRoleId: updated.tahapInterviewRoleId,
           discordBotApiUrl: updated.discordBotApiUrl,
+          discordChannelId: updated.discordChannelId,
         },
       },
     });
 
     return NextResponse.json({
       ok: true,
-      message: "Pengaturan berhasil diperbarui. Beberapa perubahan memerlukan restart server.",
-      settings: updated,
+      message: "Pengaturan berhasil diperbarui.",
+      settings: maskSettings(updated),
     });
   } catch (e) {
     console.error("Settings update error:", e);
