@@ -47,16 +47,6 @@ const statements: string[] = [
      CONSTRAINT "User_pkey" PRIMARY KEY ("id")
    );`,
 
-  // Kolom tambahan (idempoten untuk DB yang sudah ada)
-  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "discordUsername" TEXT;`,
-  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "policeGroupRankNumber" INTEGER;`,
-  `ALTER TABLE "ExamResult" ADD COLUMN IF NOT EXISTS "discordMessageId" TEXT;`,
-  // Kolom konfigurasi periode (jumlah soal + KKM)
-  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "mcqCount" INTEGER;`,
-  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "essayCount" INTEGER;`,
-  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "passThreshold" INTEGER NOT NULL DEFAULT 70;`,
-  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isExamOpen" BOOLEAN NOT NULL DEFAULT false;`,
-  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isAttendanceOpen" BOOLEAN NOT NULL DEFAULT false;`,
 
   // ===== Periode Rekrutmen =====
   `CREATE TABLE IF NOT EXISTS "ExamPeriod" (
@@ -182,6 +172,16 @@ const statements: string[] = [
      CONSTRAINT "Attendance_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
      CONSTRAINT "Attendance_periodId_fkey" FOREIGN KEY ("periodId") REFERENCES "ExamPeriod"("id") ON DELETE CASCADE ON UPDATE CASCADE
    );`,
+
+  // Kolom tambahan untuk DB lama
+  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "discordUsername" TEXT;`,
+  `ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "policeGroupRankNumber" INTEGER;`,
+  `ALTER TABLE "ExamResult" ADD COLUMN IF NOT EXISTS "discordMessageId" TEXT;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "mcqCount" INTEGER;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "essayCount" INTEGER;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "passThreshold" INTEGER NOT NULL DEFAULT 70;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isExamOpen" BOOLEAN NOT NULL DEFAULT false;`,
+  `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isAttendanceOpen" BOOLEAN NOT NULL DEFAULT false;`,
 
   // ===== Index Unik =====
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_robloxId_key" ON "User"("robloxId");`,
