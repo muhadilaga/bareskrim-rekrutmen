@@ -32,6 +32,12 @@ interface LogItem {
   createdAt: string;
 }
 
+interface DiagnosticsData {
+  healthy: boolean;
+  warnings: string[];
+  checks: Record<string, { ok: boolean; detail: string }>;
+}
+
 interface PeriodItem {
   id: string;
   name: string;
@@ -85,6 +91,7 @@ export function AdminPanel() {
   const [tab, setTab] = useState<"periode" | "bank" | "rekap" | "casis" | "data" | "log" | "discord" | "settings">("periode");
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<LogItem[]>([]);
+  const [diagnostics, setDiagnostics] = useState<DiagnosticsData | null>(null);
    const headers = useMemo(
      () => ({ "Content-Type": "application/json", "x-admin-key": key }),
      [key]
@@ -188,6 +195,10 @@ export function AdminPanel() {
     fetch("/api/admin/logs?limit=30", { headers })
       .then((r) => (r.ok ? r.json() : null))
       .then((lj) => setLogs(lj?.logs ?? []))
+      .catch(() => {});
+    fetch("/api/admin/diagnostics", { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((dj) => setDiagnostics(dj ? { healthy: !!dj.healthy, warnings: dj.warnings ?? [], checks: dj.checks ?? {} } : null))
       .catch(() => {});
   }, [headers, key]);
 
@@ -538,6 +549,55 @@ export function AdminPanel() {
           <p className="mt-1 text-sm text-zinc-400">
             Perubahan pada pengaturan di bawah ini akan mempengaruhi seluruh sistem. Beberapa pengaturan memerlukan restart server.
           </p>
+
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-display text-base font-bold text-zinc-100">Diagnostic Panel</h3>
+                <p className="text-xs text-zinc-400">Cek cepat health sistem, Discord, dan konfigurasi production.</p>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={() =>
+                  fetch("/api/admin/diagnostics", { headers })
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((dj) => setDiagnostics(dj ? { healthy: !!dj.healthy, warnings: dj.warnings ?? [], checks: dj.checks ?? {} } : null))
+                    .catch(() => setMsg({ ok: false, text: "Gagal memuat diagnostics." }))
+                }
+              >
+                Refresh Diagnostics
+              </Button>
+            </div>
+
+            {diagnostics ? (
+              <div className="space-y-3">
+                <div className={`rounded-lg border px-3 py-2 text-sm ${diagnostics.healthy ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-200"}`}>
+                  {diagnostics.healthy ? "Semua check utama sehat." : "Ada check yang perlu perhatian sebelum deploy berikutnya."}
+                </div>
+                {diagnostics.warnings.length > 0 && (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                    {diagnostics.warnings.map((warning) => (
+                      <div key={warning}>- {warning}</div>
+                    ))}
+                  </div>
+                )}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {Object.entries(diagnostics.checks).map(([name, check]) => (
+                    <div key={name} className={`rounded-lg border px-3 py-3 ${check.ok ? "border-emerald-500/25 bg-emerald-500/5" : "border-red-500/25 bg-red-500/5"}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-zinc-100">{name}</span>
+                        <Badge tone={check.ok ? "green" : "red"}>{check.ok ? "OK" : "WARN"}</Badge>
+                      </div>
+                      <p className="mt-1 text-xs text-zinc-400">{check.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-500">Diagnostics belum dimuat.</p>
+            )}
+          </div>
+
           <SettingsForm headers={headers} />
         </Card>
       )}

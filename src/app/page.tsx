@@ -84,6 +84,9 @@ function StarBackground() {
 function HomePageSkeleton() {
   return (
     <div className="relative mx-auto max-w-6xl px-4 pt-20">
+      <div className="mb-6 rounded-lg border border-gold/20 bg-gold/5 px-4 py-3 text-center text-sm text-zinc-500 dark:text-zinc-300">
+        Memuat periode aktif dan status rekrutmen...
+      </div>
       <section className="relative overflow-hidden py-20 text-center md:py-28">
         <div className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: "url('/logos/background.png')", backgroundPosition: "center 70%", backgroundSize: "cover", opacity: 0.3 }} />
         <div className="absolute inset-0 bg-rose-50/30 dark:hidden" />
@@ -143,7 +146,33 @@ export default async function HomePage() {
     .catch(() => null);
 
   if (!activePeriod && !closedRecently) {
-    return <HomePageSkeleton />;
+    return (
+      <div className="relative mx-auto max-w-6xl px-4 pt-20">
+        <section className="relative overflow-hidden py-20 text-center md:py-28">
+          <StarBackground />
+          <div className="relative z-10">
+            <div className="mx-auto mb-6 flex items-center justify-center gap-3">
+              <Badge tone="gold">Status Sistem Rekrutmen</Badge>
+            </div>
+            <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold leading-tight text-zinc-900 dark:text-zinc-100 md:text-6xl">
+              <span className="dark:gold-shine gold-shine-light">BARESKRIM POLRIRBX</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-xl text-base text-zinc-600 dark:text-zinc-300 md:text-lg">
+              Sistem aktif, tetapi belum ada periode rekrutmen yang dibuka saat ini.
+            </p>
+          </div>
+        </section>
+        <section className="pb-20">
+          <Card className="mx-auto max-w-3xl p-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-3xl">📭</div>
+            <h2 className="font-display text-2xl font-bold text-zinc-700 dark:text-zinc-100">Belum Ada Periode Aktif</h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+              Pantau pengumuman Discord pusdik untuk jadwal periode berikutnya. Saat periode dibuka, tombol absen dan ujian akan muncul otomatis di halaman ini.
+            </p>
+          </Card>
+        </section>
+      </div>
+    );
   }
 
   return (
@@ -203,8 +232,11 @@ export default async function HomePage() {
         
         <StarBackground />
         <div className="relative z-10">
-          <div className="mx-auto mb-6 flex items-center justify-center gap-3 animate-fade-in">
+          <div className="mx-auto mb-4 flex flex-wrap items-center justify-center gap-3 animate-fade-in">
             <Badge tone="gold">Sistem Rekrutmen Resmi Badan Reserse Kriminal</Badge>
+            <Badge tone={activePeriod ? "green" : "neutral"}>{activePeriod ? "Periode Aktif" : "Belum Ada Periode"}</Badge>
+            {activePeriod && <Badge tone={activePeriod.isAttendanceOpen ? "green" : "neutral"}>{activePeriod.isAttendanceOpen ? "Absen Buka" : "Absen Tutup"}</Badge>}
+            {activePeriod && <Badge tone={activePeriod.isExamOpen ? "green" : "neutral"}>{activePeriod.isExamOpen ? "Ujian Buka" : "Ujian Tutup"}</Badge>}
           </div>
           <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold leading-tight text-zinc-900 dark:text-zinc-100 md:text-6xl animate-slide-up">
             <span className="dark:gold-shine gold-shine-light drop-shadow-[0_0_25px_rgba(212,175,55,0.4)]">
