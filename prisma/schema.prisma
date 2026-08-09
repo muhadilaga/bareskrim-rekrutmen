@@ -79,7 +79,7 @@ model ExamPeriod {
   mcqCount     Int? // jumlah soal pilihan ganda yang keluar
   essayCount   Int? // jumlah soal essay yang keluar
   passThreshold Int  @default(70) // nilai minimum untuk LULUS (KKM)
-  openedAt    DateTime @default(now())
+  openedAt    DateTime? @default(now())
   closedAt    DateTime?
   deletedAt   DateTime?
 

@@ -196,7 +196,7 @@ export async function PATCH(req: Request) {
       const data: Record<string, unknown> = {};
 
        if (openedAt !== undefined) {
-         if (openedAt === null) {
+         if (openedAt === null || openedAt === "") {
            data.openedAt = null;
          } else {
            const d = new Date(openedAt);

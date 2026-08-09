@@ -149,6 +149,33 @@ export async function POST(req: Request) {
       }
     }
 
+    // 3b) Cek putusan sidang: TIDAK_LULUS memblokir akses ujian.
+    try {
+      const verdict = await prisma.verdictEntry.findFirst({
+        where: {
+          username: { equals: userInfo.name, mode: "insensitive" },
+          status: "TIDAK_LULUS",
+          deletedAt: null,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      if (verdict) {
+        return NextResponse.json(
+          {
+            success: false,
+            code: "VERDICT_BLOCKED",
+            message:
+              "Akses ditolak: nama Anda tercatat pada putusan sidang dengan status TIDAK LULUS. Hubungi instruktur untuk keterangan lebih lanjut.",
+          },
+          { status: 403 }
+        );
+      }
+    } catch (e) {
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021")) {
+        throw e;
+      }
+    }
+
     // 4) Ambil keanggotaan grup + avatar
     const [groups, avatarUrl] = await Promise.all([
       getUserGroups(userInfo.id),

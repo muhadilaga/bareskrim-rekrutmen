@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { CONFIG } from "@/lib/constants";
-import { Prisma } from "@prisma/client";
+import { BlacklistCategory, Prisma, VerdictStatus } from "@prisma/client";
 import { checkDiscordRole } from "@/lib/discord-api";
 import {
   buildQuestionSet,
@@ -35,6 +35,49 @@ export async function hasAttendance(userId: string, periodId: string) {
   });
 }
 
+
+async function isBlockedByAdminLists(username: string): Promise<{ blocked: boolean; message?: string }> {
+  try {
+    const [blacklist, verdict] = await Promise.all([
+      prisma.blacklistEntry.findFirst({
+        where: {
+          category: { in: [BlacklistCategory.POLRI, BlacklistCategory.PENDIDIKAN] },
+          username: { equals: username, mode: "insensitive" },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.verdictEntry.findFirst({
+        where: {
+          username: { equals: username, mode: "insensitive" },
+          status: VerdictStatus.TIDAK_LULUS,
+          deletedAt: null,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    if (blacklist) {
+      const label = blacklist.category === "PENDIDIKAN" ? "blacklist pendidikan" : "blacklist Polri";
+      return {
+        blocked: true,
+        message: `Akses ditolak: nama Anda terdaftar dalam ${label} dan tidak dapat mengikuti ujian.`,
+      };
+    }
+    if (verdict) {
+      return {
+        blocked: true,
+        message: "Akses ditolak: putusan sidang Anda berstatus TIDAK LULUS.",
+      };
+    }
+    return { blocked: false };
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
+      return { blocked: false };
+    }
+    throw e;
+  }
+}
+
 // Cek role "Tahap Akademik" di Discord.
 // Prioritas: Discord REST API langsung → bot server → skip (lolos)
 async function checkAcademicRole(discordUsername: string): Promise<{ ok: boolean; hasRole: boolean }> {
@@ -58,6 +101,16 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
       ok: false,
       code: "RANK_BLOCKED",
       message: `Akses ditolak: pangkat Anda di grup "${CONFIG.policeGroupName}" masih di bawah persyaratan minimal (${CONFIG.minPoliceRankName}). Silakan ajukan kenaikan pangkat terlebih dahulu.`,
+    };
+  }
+
+
+  const adminListBlock = await isBlockedByAdminLists(user.username);
+  if (adminListBlock.blocked) {
+    return {
+      ok: false,
+      code: "RANK_BLOCKED",
+      message: adminListBlock.message ?? "Akses ditolak oleh admin.",
     };
   }
 

@@ -55,7 +55,7 @@ const statements: string[] = [
      "description" TEXT,
      "isActive" BOOLEAN NOT NULL DEFAULT false,
      "seed" INTEGER NOT NULL,
-     "openedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+     "openedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
      "closedAt" TIMESTAMP(3),
      CONSTRAINT "ExamPeriod_pkey" PRIMARY KEY ("id")
    );`,
@@ -182,6 +182,7 @@ const statements: string[] = [
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "passThreshold" INTEGER NOT NULL DEFAULT 70;`,
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isExamOpen" BOOLEAN NOT NULL DEFAULT false;`,
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isAttendanceOpen" BOOLEAN NOT NULL DEFAULT false;`,
+  `ALTER TABLE "ExamPeriod" ALTER COLUMN "openedAt" DROP NOT NULL;`,
 
   // ===== Index Unik =====
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_robloxId_key" ON "User"("robloxId");`,

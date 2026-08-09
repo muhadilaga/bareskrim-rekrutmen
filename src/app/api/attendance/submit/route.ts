@@ -59,6 +59,37 @@ export async function POST(req: Request) {
       );
     }
 
+    const [blacklist, verdict] = await Promise.all([
+      prisma.blacklistEntry.findFirst({
+        where: {
+          username: { equals: user.username, mode: "insensitive" },
+          category: { in: ["POLRI", "PENDIDIKAN"] },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.verdictEntry.findFirst({
+        where: {
+          username: { equals: user.username, mode: "insensitive" },
+          status: "TIDAK_LULUS",
+          deletedAt: null,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+    if (blacklist) {
+      const label = blacklist.category === "PENDIDIKAN" ? "blacklist pendidikan" : "blacklist Polri";
+      return NextResponse.json(
+        { ok: false, message: `Akses ditolak: nama Anda terdaftar dalam ${label}.` },
+        { status: 403 }
+      );
+    }
+    if (verdict) {
+      return NextResponse.json(
+        { ok: false, message: "Akses ditolak: putusan sidang Anda berstatus TIDAK LULUS." },
+        { status: 403 }
+      );
+    }
+
     const existing = await prisma.attendance.findUnique({
       where: {
         userId_periodId_tahap: {

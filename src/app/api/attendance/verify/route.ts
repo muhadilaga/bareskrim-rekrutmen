@@ -87,10 +87,36 @@ export async function POST(req: Request) {
         },
       });
       if (blacklisted) {
+        const label = blacklisted.category === "PENDIDIKAN" ? "blacklist pendidikan" : "blacklist Polri";
         return NextResponse.json(
           {
             ok: false,
-            message: "Akses ditolak: nama Anda terdaftar dalam daftar hitam (blacklist).",
+            message: `Akses ditolak: nama Anda terdaftar dalam ${label}.`,
+          },
+          { status: 403 }
+        );
+      }
+    } catch (e) {
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021")) {
+        throw e;
+      }
+    }
+
+    // 2b) Cek putusan sidang: TIDAK_LULUS memblokir absensi.
+    try {
+      const verdict = await prisma.verdictEntry.findFirst({
+        where: {
+          username: { equals: userInfo.name, mode: "insensitive" },
+          status: "TIDAK_LULUS",
+          deletedAt: null,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      if (verdict) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message: "Akses ditolak: nama Anda tercatat pada putusan sidang dengan status TIDAK LULUS.",
           },
           { status: 403 }
         );

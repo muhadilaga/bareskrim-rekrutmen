@@ -693,7 +693,10 @@ export function AdminPanel() {
                     <p className="text-sm font-semibold text-zinc-100">{p.name}</p>
                     <p className="text-xs text-zinc-400">{countsLabel}</p>
                     <p className="text-xs text-zinc-400">
-                      Seed: {p.seed} · Dibuka: {new Date(p.openedAt).toLocaleString("id-ID")}
+                      Seed: {p.seed} · Dibuka: {p.openedAt ? new Date(p.openedAt).toLocaleString("id-ID") : "belum diatur"}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      Absen buka: {p.openedAt ? new Date(p.openedAt).toLocaleString("id-ID") : "belum diatur"}
                     </p>
                      <p className="text-xs text-zinc-500">
                        Soal: {p.mcqCount ?? "15"} Pilihan Ganda · {p.essayCount ?? "5"} Essay · KKM: {p.passThreshold}
@@ -708,10 +711,12 @@ export function AdminPanel() {
                          Tutup: {new Date(p.examEndTime).toLocaleString("id-ID")}
                        </p>
                      )}
-                     {p.closedAt && (
+                     {p.closedAt ? (
                       <p className="text-xs text-red-400">
-                        Ditutup: {new Date(p.closedAt).toLocaleString("id-ID")}
+                        Absen tutup: {new Date(p.closedAt).toLocaleString("id-ID")}
                       </p>
+                    ) : (
+                      <p className="text-xs text-zinc-500">Absen tutup: belum diatur</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
