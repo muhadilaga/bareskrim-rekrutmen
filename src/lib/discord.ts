@@ -93,6 +93,7 @@ export interface ExamReportInput {
 export async function sendDiscordExamReport(report: ExamReportInput): Promise<string | null> {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) return null;
+  const targetWebhookUrl = webhookUrl;
 
   const passed = report.status === "LULUS";
   const color = passed ? 0xd4af37 : 0x7b1113;
@@ -152,24 +153,44 @@ export async function sendDiscordExamReport(report: ExamReportInput): Promise<st
     embeds,
   };
 
+  async function postPayload(body: DiscordPayload, signal: AbortSignal) {
+    const targetUrl = targetWebhookUrl.includes("?")
+      ? `${targetWebhookUrl}&wait=true`
+      : `${targetWebhookUrl}?wait=true`;
+    return fetch(targetUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    });
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15_000);
   try {
     // ?wait=true WAJIB agar Discord mengembalikan objek pesan (berisi id-nya).
     // Tanpa ini Discord membalas 204 No Content (body kosong) sehingga id pesan
     // tidak bisa disimpan dan laporan tidak bisa dihapus nantinya.
-    const targetUrl = webhookUrl.includes("?")
-      ? `${webhookUrl}&wait=true`
-      : `${webhookUrl}?wait=true`;
-    const res = await fetch(targetUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
+    let res = await postPayload(payload, controller.signal);
     if (!res.ok) {
-      console.error("Discord webhook error", res.status, await res.text());
-      return null;
+      const errText = await res.text();
+      console.error("Discord webhook error", res.status, errText);
+
+      // Fallback aman: jika embed rekap detail ditolak Discord (terlalu besar / invalid),
+      // kirim ulang hanya embed utama agar laporan inti tetap masuk channel.
+      if (embeds.length > 1 && res.status === 400) {
+        const fallbackPayload: DiscordPayload = {
+          username: payload.username,
+          embeds: [embeds[0]!],
+        };
+        res = await postPayload(fallbackPayload, controller.signal);
+        if (!res.ok) {
+          console.error("Discord webhook fallback error", res.status, await res.text());
+          return null;
+        }
+      } else {
+        return null;
+      }
     }
     const text = await res.text();
     const data = text ? (JSON.parse(text) as { id?: string }) : null;
