@@ -13,12 +13,30 @@ export async function GET(req: Request) {
 
   try {
     await ensureSchema();
-    const pending = await prisma.pendingDiscordReport.findMany({
-      where: { attempts: { lt: 3 } },
-      orderBy: { createdAt: "asc" },
-      take: 50,
+    const [pending, exhaustedCount, totalCount] = await Promise.all([
+      prisma.pendingDiscordReport.findMany({
+        where: { attempts: { lt: 3 } },
+        orderBy: [{ attempts: "desc" }, { createdAt: "asc" }],
+        take: 20,
+      }),
+      prisma.pendingDiscordReport.count({ where: { attempts: { gte: 3 } } }),
+      prisma.pendingDiscordReport.count(),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      pending: pending.length,
+      total: totalCount,
+      exhausted: exhaustedCount,
+      items: pending.map((item) => ({
+        id: item.id,
+        resultId: item.resultId,
+        attempts: item.attempts,
+        lastError: item.lastError,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      })),
     });
-    return NextResponse.json({ ok: true, pending: pending.length, items: pending });
   } catch (e) {
     return NextResponse.json(
       { ok: false, message: e instanceof Error ? e.message : "Gagal memuat antrean." },
@@ -72,7 +90,6 @@ export async function POST(req: Request) {
       const messageId = await sendDiscordExamReport(report);
 
       if (messageId) {
-        // Berhasil - update examResult + hapus dari queue
         await prisma.examResult.update({
           where: { id: item.resultId },
           data: { discordMessageId: messageId },
@@ -80,7 +97,6 @@ export async function POST(req: Request) {
         await prisma.pendingDiscordReport.delete({ where: { id: item.id } });
         sent++;
       } else {
-        // Gagal - increment attempts
         await prisma.pendingDiscordReport.update({
           where: { id: item.id },
           data: {

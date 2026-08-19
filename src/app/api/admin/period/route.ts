@@ -178,7 +178,11 @@ export async function PATCH(req: Request) {
         data: { isExamOpen: Boolean(isExamOpen) },
       });
       const status = isExamOpen ? "DIBUKA" : "DITUTUP";
-      await logAdminAction({ action: `UJIAN_${status}`, target: period?.name ?? periodId });
+      await logAdminAction({
+        action: `UJIAN_${status}`,
+        target: period?.name ?? periodId,
+        detail: { isExamOpen: Boolean(isExamOpen) },
+      });
       return NextResponse.json({ ok: true, message: `Akses ujian ${isExamOpen ? "dibuka" : "ditutup"}.` });
     } else if (action === "toggleAttendanceOpen") {
       const { isAttendanceOpen } = body ?? {};
@@ -187,7 +191,11 @@ export async function PATCH(req: Request) {
         data: { isAttendanceOpen: Boolean(isAttendanceOpen) },
       });
       const status = isAttendanceOpen ? "DIBUKA" : "DITUTUP";
-      await logAdminAction({ action: `ABSEN_${status}`, target: period?.name ?? periodId });
+      await logAdminAction({
+        action: `ABSEN_${status}`,
+        target: period?.name ?? periodId,
+        detail: { isAttendanceOpen: Boolean(isAttendanceOpen) },
+      });
       return NextResponse.json({ ok: true, message: `Akses absen ${isAttendanceOpen ? "dibuka" : "ditutup"}.` });
     } else if (action === "edit") {
       // Edit periode: tanggal (openedAt/closedAt) dan/atau konfigurasi

@@ -230,6 +230,11 @@ model Attendance {
   tahap         String   @default("AKADEMIK") // AKADEMIK = ujian+interview+fisik
   status        String   @default("HADIR")
   discordUserId String?  // Username Discord untuk assign role & linking
+  motivation    String?
+  motivationStatus String? // APPROVED | REVIEW | REJECTED
+  motivationReason String?
+  motivationAttemptCount Int @default(1)
+  roleEligible  Boolean  @default(false)
   createdAt     DateTime @default(now())
   deletedAt     DateTime?
 

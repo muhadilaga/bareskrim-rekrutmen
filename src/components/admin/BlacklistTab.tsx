@@ -245,6 +245,8 @@ export function BlacklistTab({ headers }: BlacklistTabProps) {
             entries={pendidikan}
             busy={busy}
             label="Blacklist Pendidikan"
+            headers={headers}
+            enablePusdikLookup
             onAdd={addBlacklist("PENDIDIKAN")}
             onBulk={bulkBlacklist("PENDIDIKAN")}
             onDelete={deleteBlacklist}
@@ -259,6 +261,8 @@ function BlacklistSection({
   entries,
   busy,
   label,
+  headers,
+  enablePusdikLookup = false,
   onAdd,
   onBulk,
   onDelete,
@@ -266,6 +270,8 @@ function BlacklistSection({
   entries: BlacklistEntryItem[];
   busy: boolean;
   label: string;
+  headers?: Record<string, string>;
+  enablePusdikLookup?: boolean;
   onAdd: (username: string, reason: string) => Promise<void>;
   onBulk: (text: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -281,6 +287,7 @@ function BlacklistSection({
 
   return (
     <div className="space-y-4">
+      {enablePusdikLookup && headers && <PusdikBlacklistLookup headers={headers} busy={busy} />}
       <div className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
         <p className="text-sm font-semibold text-zinc-200">Tambah entri {label}</p>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -342,7 +349,7 @@ function BlacklistSection({
         />
         <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
           {filtered.length === 0 ? (
-            <p className="py-4 text-center text-sm text-zinc-500">Tidak ada entri.</p>
+            <p className="py-4 text-center text-sm text-zinc-500">Tidak ada entri. Tambah manual, import banyak username, atau pakai lookup Discord untuk cross-check nama yang dicurigai.</p>
           ) : (
             filtered.map((e) => (
               <div
@@ -366,6 +373,98 @@ function BlacklistSection({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+
+function PusdikBlacklistLookup({
+  headers,
+  busy,
+}: {
+  headers: Record<string, string>;
+  busy: boolean;
+}) {
+  const toast = useToastContext();
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<null | {
+    found: boolean;
+    message: string;
+    entry?: {
+      username: string;
+      reason: string | null;
+      duration: string | null;
+      rawSnippet: string | null;
+      sourceUrl: string | null;
+      postedAt: string | null;
+    };
+  }>(null);
+
+  async function lookup() {
+    if (!username.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/blacklist/pusdik-search", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ username: username.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setResult(null);
+        toast.error(json.message ?? "Gagal cek blacklist pusdik.");
+        return;
+      }
+      setResult(json);
+      if (json.found) toast.success("Nama ditemukan di blacklist pendidikan.");
+      else toast.success(json.message ?? "nama bebas dari blacklist");
+    } catch {
+      setResult(null);
+      toast.error("Gagal cek blacklist pusdik.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-3 rounded-xl border border-gold/30 bg-black/20 p-4">
+      <p className="text-sm font-semibold text-zinc-200">Integrasi Channel Blacklist Pusdik</p>
+      <p className="text-xs text-zinc-500">Cari nama langsung di channel Discord blacklist pendidikan. Jika parsing alasan/durasi tidak lengkap, sistem tetap menampilkan cuplikan pesan sumber.</p>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Username Roblox"
+          className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+        />
+        <Button variant="gold" onClick={lookup} disabled={busy || loading || !username.trim()}>
+          {loading ? "Mencari..." : "Cari di Channel Blacklist Pusdik"}
+        </Button>
+      </div>
+
+      {result && (
+        <div className={`rounded-lg border px-4 py-3 text-sm ${result.found ? "border-red-500/30 bg-red-500/10 text-zinc-100" : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"}`}>
+          <p className="font-semibold">{result.message}</p>
+          {result.found && result.entry && (
+            <div className="mt-3 space-y-2 text-xs text-zinc-300">
+              <p><span className="font-semibold text-zinc-100">Nama:</span> {result.entry.username}</p>
+              <p><span className="font-semibold text-zinc-100">Alasan:</span> {result.entry.reason ?? "Tidak terbaca dari pesan"}</p>
+              <p><span className="font-semibold text-zinc-100">Durasi:</span> {result.entry.duration ?? "Tidak terbaca dari pesan"}</p>
+              <p><span className="font-semibold text-zinc-100">Waktu posting:</span> {result.entry.postedAt ? fmtDate(result.entry.postedAt) : "-"}</p>
+              {result.entry.rawSnippet && (
+                <div>
+                  <p className="font-semibold text-zinc-100">Cuplikan pesan sumber:</p>
+                  <p className="mt-1 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-zinc-300">{result.entry.rawSnippet}</p>
+                </div>
+              )}
+              {result.entry.sourceUrl && (
+                <a href={result.entry.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex text-gold hover:underline">Buka pesan sumber</a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -464,7 +563,7 @@ function VerdictSection({
         />
         <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
           {filtered.length === 0 ? (
-            <p className="py-4 text-center text-sm text-zinc-500">Tidak ada putusan.</p>
+            <p className="py-4 text-center text-sm text-zinc-500">Tidak ada putusan. Tambah putusan sidang manual atau import daftar username yang sudah diputus.</p>
           ) : (
             filtered.map((e) => (
               <div

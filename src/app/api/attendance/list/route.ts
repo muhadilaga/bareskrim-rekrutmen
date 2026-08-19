@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminKey } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { ensureSchema } from "@/lib/init-schema";
 
 export async function GET(req: Request) {
   try {
@@ -8,6 +9,8 @@ export async function GET(req: Request) {
     if (!adminKey || adminKey !== getAdminKey()) {
       return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
     }
+
+    await ensureSchema();
 
     const { searchParams } = new URL(req.url);
     const periodId = searchParams.get("periodId");
@@ -65,6 +68,11 @@ export async function GET(req: Request) {
         tahap: a.tahap,
         status: a.status,
         discordUserId: a.discordUserId,
+        motivation: (a as any).motivation ?? null,
+        motivationStatus: (a as any).motivationStatus ?? null,
+        motivationReason: (a as any).motivationReason ?? null,
+        motivationAttemptCount: (a as any).motivationAttemptCount ?? 1,
+        roleEligible: (a as any).roleEligible ?? false,
         linked: a.userId !== null,
         createdAt: a.createdAt.toISOString(),
       })),

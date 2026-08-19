@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { ensureSchema } from "@/lib/init-schema";
 import { CONFIG } from "@/lib/constants";
 import { verifyLimiter, clientIp } from "@/lib/rate-limit";
-import { assignDiscordRole } from "@/lib/discord-api";
+import { assignDiscordRoleAndNickname } from "@/lib/discord-api";
+import { evaluateMotivation } from "@/lib/motivation-evaluator";
 import {
   resolveUserByUsername,
   getUserGroups,
@@ -16,6 +17,7 @@ import {
 const VerifySchema = z.object({
   robloxUsername: z.string().trim().min(2).max(40),
   discordUsername: z.string().trim().min(2).max(40),
+  motivation: z.string().trim().min(8).max(500),
 });
 
 export async function POST(req: Request) {
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { robloxUsername, discordUsername } = parsed.data;
+    const { robloxUsername, discordUsername, motivation } = parsed.data;
 
     // Cari periode aktif
     const activePeriod = await prisma.examPeriod.findFirst({
@@ -53,18 +55,27 @@ export async function POST(req: Request) {
       );
     }
 
-    // Cek apakah sudah absen
-    const existing = await prisma.attendance.findFirst({
-      where: {
-        periodId: activePeriod.id,
-        tahap: "AKADEMIK",
-        discordUserId: discordUsername.trim(),
-      },
-    });
+    // Cek apakah sudah absen. Jika motivasi sebelumnya gagal/review, izinkan apply ulang maksimal 2x.
+    const existingRows = await prisma.$queryRaw<Array<{
+      id: string;
+      "roleEligible": boolean | null;
+      "motivationAttemptCount": number | null;
+    }>>(Prisma.sql`
+      SELECT "id", "roleEligible", COALESCE("motivationAttemptCount", 1) AS "motivationAttemptCount"
+      FROM "Attendance"
+      WHERE "periodId" = ${activePeriod.id}
+        AND "tahap" = 'AKADEMIK'
+        AND "discordUserId" = ${discordUsername.trim()}
+      ORDER BY "createdAt" DESC
+      LIMIT 1
+    `);
+    const existing = existingRows[0] ?? null;
 
-    if (existing) {
+    const canRetryMotivation = !!existing && !existing.roleEligible && (existing.motivationAttemptCount ?? 1) < 2;
+
+    if (existing && !canRetryMotivation) {
       return NextResponse.json(
-        { ok: false, message: "Anda sudah melakukan absensi untuk periode ini." },
+        { ok: false, message: existing.roleEligible ? "Anda sudah melakukan absensi untuk periode ini." : "Kesempatan perbaikan alasan/motivasi sudah habis (maksimal 2x)." },
         { status: 409 }
       );
     }
@@ -208,34 +219,68 @@ export async function POST(req: Request) {
     });
 
     // Simpan absensi
-    const attendance = await prisma.attendance.create({
-      data: {
-        userId: user.id,
-        periodId: activePeriod.id,
-        tahap: "AKADEMIK",
-        status: "HADIR",
-        discordUserId: discordUsername.trim(),
-      },
-    });
+    const motivationResult = evaluateMotivation(motivation);
 
-    // Assign role via Discord (langsung REST API atau bot server)
+    const attendance = existing && canRetryMotivation
+      ? await prisma.attendance.update({
+          where: { id: existing.id },
+          data: {
+            userId: user.id,
+            status: "HADIR",
+            discordUserId: discordUsername.trim(),
+          },
+        })
+      : await prisma.attendance.create({
+          data: {
+            userId: user.id,
+            periodId: activePeriod.id,
+            tahap: "AKADEMIK",
+            status: "HADIR",
+            discordUserId: discordUsername.trim(),
+          },
+        });
+
+    await prisma.$executeRaw(Prisma.sql`
+      UPDATE "Attendance"
+      SET
+        "motivation" = ${motivation.trim()},
+        "motivationStatus" = ${motivationResult.status},
+        "motivationReason" = ${motivationResult.reason},
+        "motivationAttemptCount" = ${canRetryMotivation ? (existing?.motivationAttemptCount ?? 1) + 1 : 1},
+        "roleEligible" = ${motivationResult.eligible}
+      WHERE "id" = ${attendance.id}
+    `);
+
+    // Assign role via Discord hanya bila motivasi lolos.
     let roleAssigned = false;
     let roleError: string | null = null;
 
     try {
-      if (CONFIG.discordBotToken && CONFIG.discordGuildId) {
-        const result = await assignDiscordRole(discordUsername.trim(), "Tahap Akademik");
+      if (!motivationResult.eligible) {
+        roleError = motivationResult.reason;
+      } else if (CONFIG.discordBotToken && CONFIG.discordGuildId) {
+        const result = await assignDiscordRoleAndNickname(
+          discordUsername.trim(),
+          "Tahap Akademik",
+          `[CASIS] ${userInfo.name}`
+        );
         roleAssigned = result.ok;
-        roleError = result.ok ? null : result.message;
+        roleError = result.ok
+          ? result.nicknameOk
+            ? null
+            : `Role berhasil, tapi nickname gagal diubah: ${result.nicknameMessage}`
+          : result.message;
       }
     } catch (e) {
       console.error("Failed to assign role:", e);
     }
 
     const successMessage = roleAssigned
-      ? "Absensi berhasil! Role Tahap Akademik sudah diberikan. Silakan tunggu jadwal ujian dari instruktur."
+      ? roleError
+        ? `Absensi berhasil! Role Tahap Akademik sudah diberikan, tetapi nickname Discord belum berubah otomatis: ${roleError}`
+        : "Absensi berhasil! Role Tahap Akademik sudah diberikan dan nickname Discord sudah diperbarui. Silakan tunggu jadwal ujian dari instruktur."
       : roleError
-        ? `Absensi berhasil, tapi role gagal diberikan: ${roleError}. Hubungi admin untuk assign manual.`
+        ? `Absensi berhasil, tapi role belum diberikan: ${roleError}. Hubungi admin bila ingin peninjauan manual.`
         : "Absensi berhasil! Silakan tunggu jadwal ujian dari instruktur.";
 
     return NextResponse.json({
@@ -243,6 +288,10 @@ export async function POST(req: Request) {
       message: successMessage,
       roleAssigned,
       roleError,
+      motivationStatus: motivationResult.status,
+      motivationReason: motivationResult.reason,
+      motivationAttemptCount: canRetryMotivation ? (existing?.motivationAttemptCount ?? 1) + 1 : 1,
+      retried: canRetryMotivation,
       user: {
         username: user.username,
         displayName: user.displayName,

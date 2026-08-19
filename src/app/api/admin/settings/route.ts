@@ -48,6 +48,7 @@ const SettingsSchema = z.object({
   discordBotSecret: anyToString,
   discordGuildId: anyToString,
   discordChannelId: anyToString,
+  discordBlacklistPendidikanChannelId: anyToString,
   discordWebhookUrl: optionalUrlOrEmpty,
   discordBotApiUrl: optionalUrlOrEmpty,
 });
@@ -103,6 +104,7 @@ export async function PATCH(req: Request) {
   if (d.discordBotSecret !== undefined && d.discordBotSecret.length > 0) updates.discordBotSecret = d.discordBotSecret;
   if (d.discordGuildId !== undefined) updates.discordGuildId = d.discordGuildId;
   if (d.discordChannelId !== undefined) updates.discordChannelId = d.discordChannelId;
+  if (d.discordBlacklistPendidikanChannelId !== undefined) updates.discordBlacklistPendidikanChannelId = d.discordBlacklistPendidikanChannelId;
   if (d.discordWebhookUrl !== undefined) updates.discordWebhookUrl = d.discordWebhookUrl;
   if (d.discordBotApiUrl !== undefined) updates.discordBotApiUrl = d.discordBotApiUrl;
 
@@ -126,6 +128,7 @@ export async function PATCH(req: Request) {
           tahapInterviewRoleId: oldSettings.tahapInterviewRoleId,
           discordBotApiUrl: oldSettings.discordBotApiUrl,
           discordChannelId: oldSettings.discordChannelId,
+          discordBlacklistPendidikanChannelId: oldSettings.discordBlacklistPendidikanChannelId,
         },
         new: {
           kkm: updated.kkm,
@@ -138,6 +141,7 @@ export async function PATCH(req: Request) {
           tahapInterviewRoleId: updated.tahapInterviewRoleId,
           discordBotApiUrl: updated.discordBotApiUrl,
           discordChannelId: updated.discordChannelId,
+          discordBlacklistPendidikanChannelId: updated.discordBlacklistPendidikanChannelId,
         },
       },
     });

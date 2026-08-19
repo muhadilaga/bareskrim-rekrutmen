@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAdminKey } from "@/lib/constants";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction } from "@/lib/audit";
+import { ensureSchema } from "@/lib/init-schema";
 
 // GET: List semua casis + status absensi + status ujian
 export async function GET(req: Request) {
@@ -10,6 +12,8 @@ export async function GET(req: Request) {
     if (!adminKey || adminKey !== getAdminKey()) {
       return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
     }
+
+    await ensureSchema();
 
     const { searchParams } = new URL(req.url);
     const periodId = searchParams.get("periodId");
@@ -36,10 +40,32 @@ export async function GET(req: Request) {
         },
       },
       orderBy: { createdAt: "desc" },
-    });
+    } as any);
 
-    const result = users.map((u) => {
+    const attendanceIds = (users as any[])
+      .map((u) => u.attendances?.[0]?.id)
+      .filter(Boolean);
+    const attendanceExtraRows = attendanceIds.length
+      ? await prisma.$queryRaw<Array<{
+          id: string;
+          motivation: string | null;
+          motivationStatus: string | null;
+          motivationReason: string | null;
+          motivationAttemptCount: number | null;
+          roleEligible: boolean | null;
+        }>>(Prisma.sql`
+          SELECT "id", "motivation", "motivationStatus", "motivationReason",
+                 COALESCE("motivationAttemptCount", 1) AS "motivationAttemptCount",
+                 COALESCE("roleEligible", false) AS "roleEligible"
+          FROM "Attendance"
+          WHERE "id" IN (${Prisma.join(attendanceIds)})
+        `)
+      : [];
+    const attendanceExtras = new Map(attendanceExtraRows.map((row) => [row.id, row]));
+
+    const result = (users as any[]).map((u) => {
       const attendance = u.attendances[0] ?? null;
+      const attendanceExtra = attendance ? (attendanceExtras.get(attendance.id) as any) : null;
       const attempt = u.attempts[0] ?? null;
 
       let status: string;
@@ -62,7 +88,7 @@ export async function GET(req: Request) {
         discordUsername: u.discordUsername,
         policeGroupRank: u.policeGroupRank,
         attendance: attendance
-          ? { id: attendance.id, discordUserId: attendance.discordUserId, createdAt: attendance.createdAt.toISOString() }
+          ? { id: attendance.id, discordUserId: attendance.discordUserId, createdAt: attendance.createdAt.toISOString(), motivation: attendanceExtra?.motivation ?? null, motivationStatus: attendanceExtra?.motivationStatus ?? null, motivationReason: attendanceExtra?.motivationReason ?? null, motivationAttemptCount: attendanceExtra?.motivationAttemptCount ?? 1, roleEligible: attendanceExtra?.roleEligible ?? false }
           : null,
         attempt: attempt
           ? { id: attempt.id, startedAt: attempt.startedAt.toISOString(), submittedAt: attempt.submittedAt?.toISOString() ?? null }

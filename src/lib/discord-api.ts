@@ -61,6 +61,94 @@ async function resolveRoleId(guildId: string, roleName: string): Promise<string 
   return found?.id ?? null;
 }
 
+async function assignRoleToResolvedUser(
+  guildId: string,
+  userId: string,
+  roleId: string
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const res = await fetch(`${DISCORD_API}/guilds/${guildId}/members/${userId}/roles/${roleId}`, {
+      method: "PUT",
+      headers: botHeaders(),
+      signal: AbortSignal.timeout(20_000),
+    });
+
+    if (res.ok || res.status === 204) {
+      return { ok: true, message: "Role berhasil diberikan." };
+    }
+
+    const body = await res.json().catch(() => ({}));
+    return { ok: false, message: `Gagal assign role: ${res.status} ${JSON.stringify(body)}` };
+  } catch (e) {
+    console.error("assignRoleToResolvedUser error:", e);
+    return { ok: false, message: `Error assign role: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+async function updateNicknameByUserId(
+  guildId: string,
+  userId: string,
+  nickname: string
+): Promise<{ ok: boolean; message: string }> {
+  const safeNickname = nickname.trim().slice(0, 32);
+  if (!safeNickname) {
+    return { ok: false, message: "Nickname kosong." };
+  }
+
+  try {
+    const res = await fetch(`${DISCORD_API}/guilds/${guildId}/members/${userId}`, {
+      method: "PATCH",
+      headers: botHeaders(),
+      body: JSON.stringify({ nick: safeNickname }),
+      signal: AbortSignal.timeout(20_000),
+    });
+
+    if (res.ok || res.status === 204) {
+      return { ok: true, message: "Nickname berhasil diubah." };
+    }
+
+    const body = await res.json().catch(() => ({}));
+    return { ok: false, message: `Gagal ubah nickname: ${res.status} ${JSON.stringify(body)}` };
+  } catch (e) {
+    console.error("updateNicknameByUserId error:", e);
+    return { ok: false, message: `Error ubah nickname: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+export async function assignDiscordRoleAndNickname(
+  username: string,
+  roleName: string,
+  nickname: string
+): Promise<{ ok: boolean; message: string; nicknameOk: boolean; nicknameMessage?: string }> {
+  const token = CONFIG.discordBotToken;
+  const guildId = CONFIG.discordGuildId;
+
+  if (!token || !guildId) {
+    return { ok: false, message: "Discord bot belum dikonfigurasi (DISCORD_BOT_TOKEN, DISCORD_GUILD_ID).", nicknameOk: false };
+  }
+
+  const roleId = await resolveRoleId(guildId, roleName);
+  if (!roleId) {
+    return { ok: false, message: `Role "${roleName}" tidak ditemukan. Isi TAHAP_AKADEMIK_ROLE_ID/TAHAP_INTERVIEW_ROLE_ID atau pastikan nama role di Discord sama persis.`, nicknameOk: false };
+  }
+
+  const user = await resolveDiscordUser(username);
+  if (!user) {
+    return { ok: false, message: "User Discord tidak ditemukan.", nicknameOk: false };
+  }
+
+  const roleResult = await assignRoleToResolvedUser(guildId, user.id, roleId);
+  if (!roleResult.ok) return { ok: false, message: roleResult.message, nicknameOk: false };
+
+  const nickResult = await updateNicknameByUserId(guildId, user.id, nickname);
+  return {
+    ok: true,
+    message: roleResult.message,
+    nicknameOk: nickResult.ok,
+    nicknameMessage: nickResult.ok ? undefined : nickResult.message,
+  };
+}
+
 // Assign role ke user Discord
 export async function assignDiscordRole(
   username: string,
@@ -89,32 +177,7 @@ export async function assignDiscordRole(
     return { ok: false, message: "User Discord tidak ditemukan." };
   }
 
-  try {
-    const res = await fetch(
-      `${DISCORD_API}/guilds/${guildId}/members/${user.id}/roles/${roleId}`,
-      {
-        method: "PUT",
-        headers: botHeaders(),
-        signal: AbortSignal.timeout(20_000),
-      }
-    );
-
-    if (res.ok || res.status === 204) {
-      return { ok: true, message: "Role berhasil diberikan." };
-    }
-
-    const body = await res.json().catch(() => ({}));
-    return {
-      ok: false,
-      message: `Gagal assign role: ${res.status} ${JSON.stringify(body)}`,
-    };
-  } catch (e) {
-    console.error("assignDiscordRole error:", e);
-    return {
-      ok: false,
-      message: `Error assign role: ${e instanceof Error ? e.message : String(e)}`,
-    };
-  }
+  return assignRoleToResolvedUser(guildId, user.id, roleId);
 }
 
 // Assign role ke user Discord (by role ID)
@@ -197,6 +260,25 @@ export async function checkDiscordRole(
     console.error("checkDiscordRole error:", e);
     return { ok: false, hasRole: false };
   }
+}
+
+export async function updateDiscordNickname(
+  username: string,
+  nickname: string
+): Promise<{ ok: boolean; message: string }> {
+  const token = CONFIG.discordBotToken;
+  const guildId = CONFIG.discordGuildId;
+
+  if (!token || !guildId) {
+    return { ok: false, message: "Discord bot belum dikonfigurasi." };
+  }
+
+  const user = await resolveDiscordUser(username);
+  if (!user) {
+    return { ok: false, message: "User Discord tidak ditemukan." };
+  }
+
+  return updateNicknameByUserId(guildId, user.id, nickname);
 }
 
 // Hapus role dari user Discord (by role ID)
@@ -304,6 +386,64 @@ export async function sendDiscordDM(
     return {
       ok: false,
       message: `Error kirim DM: ${e instanceof Error ? e.message : String(e)}`,
+    };
+  }
+}
+
+export interface DiscordChannelMessage {
+  id: string;
+  content?: string;
+  timestamp?: string;
+  embeds?: Array<{
+    title?: string;
+    description?: string;
+    fields?: Array<{ name?: string; value?: string }>;
+  }>;
+  message_snapshots?: Array<{
+    message?: {
+      content?: string;
+      embeds?: Array<{
+        title?: string;
+        description?: string;
+        fields?: Array<{ name?: string; value?: string }>;
+      }>;
+    };
+  }>;
+}
+
+export async function fetchDiscordChannelMessages(
+  channelId: string,
+  limit = 50
+): Promise<{ ok: boolean; messages: DiscordChannelMessage[]; message?: string }> {
+  const token = CONFIG.discordBotToken;
+  if (!token || !channelId) {
+    return { ok: false, messages: [], message: "Discord bot token atau channel ID kosong." };
+  }
+
+  try {
+    const res = await fetch(
+      `${DISCORD_API}/channels/${channelId}/messages?limit=${Math.max(1, Math.min(limit, 100))}`,
+      { headers: botHeaders(), signal: AbortSignal.timeout(20_000) }
+    );
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      const hint = res.status === 403
+        ? " Bot kemungkinan belum punya izin Read Message History / View Channel pada channel ini."
+        : "";
+      return {
+        ok: false,
+        messages: [],
+        message: `Gagal membaca pesan channel Discord: ${res.status}${body ? ` ${body.slice(0, 200)}` : ""}.${hint}`,
+      };
+    }
+    const messages = (await res.json()) as DiscordChannelMessage[];
+    return { ok: true, messages };
+  } catch (e) {
+    console.error("fetchDiscordChannelMessages error:", e);
+    return {
+      ok: false,
+      messages: [],
+      message: `Error membaca pesan channel Discord: ${e instanceof Error ? e.message : String(e)}`,
     };
   }
 }

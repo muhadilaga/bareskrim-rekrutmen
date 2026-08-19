@@ -38,6 +38,33 @@ interface DiagnosticsData {
   checks: Record<string, { ok: boolean; detail: string }>;
 }
 
+interface DiscordRetryQueueData {
+  pending: number;
+  total: number;
+  exhausted: number;
+  items: Array<{
+    id: string;
+    resultId: string;
+    attempts: number;
+    lastError: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+}
+
+interface VerifiedAdmin {
+  discordUserId: string;
+  discordUsername: string;
+  staffRoleId?: string;
+}
+
+function formatDiagnosticName(name: string): string {
+  return name
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .replace(/\w/g, (char) => char.toUpperCase());
+}
+
 interface PeriodItem {
   id: string;
   name: string;
@@ -82,6 +109,12 @@ export function AdminPanel() {
     () => (typeof window !== "undefined" ? (sessionStorage.getItem("admin_key") ?? "") : "")
   );
   const [showKey, setShowKey] = useState(false);
+  const [staffDiscordUsername, setStaffDiscordUsername] = useState(
+    () => (typeof window !== "undefined" ? (sessionStorage.getItem("admin_staff_discord_username") ?? "") : "")
+  );
+  const [verifiedAdmin, setVerifiedAdmin] = useState<VerifiedAdmin | null>(null);
+  const [authStep, setAuthStep] = useState<"key" | "staff">("key");
+  const [authBusy, setAuthBusy] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [periods, setPeriods] = useState<PeriodItem[]>([]);
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
@@ -92,6 +125,7 @@ export function AdminPanel() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [diagnostics, setDiagnostics] = useState<DiagnosticsData | null>(null);
+  const [retryQueue, setRetryQueue] = useState<DiscordRetryQueueData | null>(null);
    const headers = useMemo(
      () => ({ "Content-Type": "application/json", "x-admin-key": key }),
      [key]
@@ -126,11 +160,39 @@ export function AdminPanel() {
     }
   }, [headers]);
 
+  const downloadCsvExport = useCallback(
+    async (kind: "attendance" | "results" | "blacklist" | "verdicts") => {
+      setBusy(true);
+      try {
+        const res = await fetch(`/api/admin/export/${kind}`, { headers });
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          setMsg(json);
+          return;
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `bareskrim-${kind}-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        setMsg({ ok: true, text: `Export CSV ${kind} berhasil diunduh!` });
+      } catch {
+        setMsg({ ok: false, text: `Gagal mengunduh export CSV ${kind}.` });
+      } finally {
+        setBusy(false);
+      }
+    },
+    [headers]
+  );
+
   // form periode
   const [periodName, setPeriodName] = useState("");
   const [periodMcq, setPeriodMcq] = useState("");
   const [periodEssay, setPeriodEssay] = useState("");
-  const [periodKkm, setPeriodKkm] = useState("");
    // form edit periode (tanggal + konfigurasi)
    const [editingDates, setEditingDates] = useState<{
      id: string;
@@ -138,7 +200,6 @@ export function AdminPanel() {
      closedAt: string;
      mcqCount: string;
      essayCount: string;
-     passThreshold: string;
      examStartTime: string;
      examEndTime: string;
    } | null>(null);
@@ -155,10 +216,76 @@ export function AdminPanel() {
   useEffect(() => {
     if (initialCheckRef.current) return;
     initialCheckRef.current = true;
-    if (sessionStorage.getItem("admin_key")) {
-      load();
-    }
+    const savedKey = sessionStorage.getItem("admin_key");
+    if (!savedKey) return;
+    fetch("/api/admin/auth/session", {
+      headers: { "Content-Type": "application/json", "x-admin-key": savedKey },
+      credentials: "include",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((sj) => {
+        if (sj?.verified) {
+          setVerifiedAdmin(sj.verifiedAdmin ?? null);
+          setAuthStep("staff");
+          load();
+        } else {
+          setAuthStep("staff");
+        }
+      })
+      .catch(() => setAuthStep("key"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const verifyStaff = useCallback(async () => {
+    if (!key.trim()) {
+      setMsg({ ok: false, text: "Kunci admin wajib diisi." });
+      setAuthStep("key");
+      return;
+    }
+    if (!staffDiscordUsername.trim()) {
+      setMsg({ ok: false, text: "Username Discord staff pusdik wajib diisi." });
+      setAuthStep("staff");
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      const res = await fetch("/api/admin/auth/verify-staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ adminKey: key.trim(), discordUsername: staffDiscordUsername.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setAuthed(false);
+        setVerifiedAdmin(null);
+        setMsg({ ok: false, text: json.message ?? "Verifikasi admin gagal." });
+        setAuthStep(json.message === "Kunci admin salah." ? "key" : "staff");
+        return;
+      }
+      setVerifiedAdmin(json.verifiedAdmin ?? null);
+      sessionStorage.setItem("admin_key", key.trim());
+      sessionStorage.setItem("admin_staff_discord_username", staffDiscordUsername.trim());
+      setAuthStep("staff");
+      setMsg({ ok: true, text: `Admin terverifikasi sebagai ${json.verifiedAdmin?.discordUsername ?? staffDiscordUsername.trim()}.` });
+      await load();
+    } catch {
+      setMsg({ ok: false, text: "Gagal memverifikasi staff pusdik." });
+    } finally {
+      setAuthBusy(false);
+    }
+  }, [key, staffDiscordUsername]);
+
+  const logoutAdmin = useCallback(async () => {
+    await fetch("/api/admin/auth/session", { method: "DELETE", credentials: "include" }).catch(() => null);
+    sessionStorage.removeItem("admin_key");
+    sessionStorage.removeItem("admin_staff_discord_username");
+    setKey("");
+    setStaffDiscordUsername("");
+    setVerifiedAdmin(null);
+    setAuthed(false);
+    setAuthStep("key");
+    setMsg({ ok: true, text: "Sesi admin ditutup." });
   }, []);
 
   const load = useCallback(async () => {
@@ -171,7 +298,7 @@ export function AdminPanel() {
     // Kegagalan lain (network, 5xx) TIDAK membuat user keluar.
     if (p.status === 401 || p.status === 403 || q.status === 401 || q.status === 403) {
       setAuthed(false);
-      setMsg({ ok: false, text: "Kunci admin salah." });
+      setMsg({ ok: false, text: "Admin belum lolos verifikasi dua tahap atau sesi sudah habis." });
       return;
     }
     if (!p.ok || !q.ok) {
@@ -200,6 +327,10 @@ export function AdminPanel() {
       .then((r) => (r.ok ? r.json() : null))
       .then((dj) => setDiagnostics(dj ? { healthy: !!dj.healthy, warnings: dj.warnings ?? [], checks: dj.checks ?? {} } : null))
       .catch(() => {});
+    fetch("/api/admin/discord-retry", { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((rq) => setRetryQueue(rq ? { pending: rq.pending ?? 0, total: rq.total ?? 0, exhausted: rq.exhausted ?? 0, items: rq.items ?? [] } : null))
+      .catch(() => {});
   }, [headers, key]);
 
   async function initDb() {
@@ -218,7 +349,6 @@ export function AdminPanel() {
     const body: Record<string, unknown> = { name: periodName.trim() };
     if (periodMcq.trim()) body.mcqCount = Number(periodMcq.trim());
     if (periodEssay.trim()) body.essayCount = Number(periodEssay.trim());
-    if (periodKkm.trim()) body.passThreshold = Number(periodKkm.trim());
     const res = await fetch("/api/admin/period", {
       method: "POST",
       headers,
@@ -229,7 +359,6 @@ export function AdminPanel() {
     setPeriodName("");
     setPeriodMcq("");
     setPeriodEssay("");
-    setPeriodKkm("");
     setBusy(false);
     if (json.ok) await load();
   }
@@ -255,8 +384,6 @@ export function AdminPanel() {
      else body.closedAt = null;
      if (editingDates.mcqCount.trim()) body.mcqCount = Number(editingDates.mcqCount.trim());
      if (editingDates.essayCount.trim()) body.essayCount = Number(editingDates.essayCount.trim());
-     if (editingDates.passThreshold.trim())
-       body.passThreshold = Number(editingDates.passThreshold.trim());
      if (editingDates.examStartTime) body.examStartTime = new Date(editingDates.examStartTime).toISOString();
      else body.examStartTime = null;
      if (editingDates.examEndTime) body.examEndTime = new Date(editingDates.examEndTime).toISOString();
@@ -308,60 +435,53 @@ export function AdminPanel() {
       <Card strong className="mx-auto w-full max-w-md p-8 animate-scale-in">
         <h2 className="font-display text-lg font-bold gold-text">Masuk Admin</h2>
         <div className="gold-line my-3" />
-        <div className="relative">
-          <input
-            type={showKey ? "text" : "password"}
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && load()}
-            className="w-full rounded-lg border border-white/15 bg-white/5 py-2.5 pl-4 pr-11 text-sm text-zinc-100 outline-none focus:border-gold/60"
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey((v) => !v)}
-            aria-label={showKey ? "Sembunyikan kunci" : "Tampilkan kunci"}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-zinc-400 transition hover:text-zinc-200"
-          >
-            {showKey ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Tahap 1 · Admin Key</label>
+            <div className="relative">
+              <input
+                type={showKey ? "text" : "password"}
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (authStep === "key" ? setAuthStep("staff") : verifyStaff())}
+                className="w-full rounded-lg border border-white/15 bg-white/5 py-2.5 pl-4 pr-11 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey((v) => !v)}
+                aria-label={showKey ? "Sembunyikan kunci" : "Tampilkan kunci"}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-zinc-400 transition hover:text-zinc-200"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
-                />
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            )}
-          </button>
+                {showKey ? "🙈" : "👁️"}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAuthStep("staff")}
+              disabled={!key.trim()}
+              className="mt-2 text-xs text-gold/80 underline-offset-2 hover:text-gold hover:underline disabled:opacity-40"
+            >
+              Lanjut ke verifikasi staff
+            </button>
+          </div>
+
+          {authStep === "staff" && (
+            <div className="rounded-lg border border-gold/20 bg-gold/5 p-4">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-300">Tahap 2 · Username Discord Staff Pusdik</label>
+              <input
+                type="text"
+                value={staffDiscordUsername}
+                onChange={(e) => setStaffDiscordUsername(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && verifyStaff()}
+                placeholder="contoh: xed1853"
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+              <p className="mt-2 text-xs text-zinc-500">Harus username Discord yang benar-benar memegang role Personel Staff Pusdik.</p>
+            </div>
+          )}
         </div>
-        <Button variant="gold" className="mt-4 w-full" onClick={load}>
-          Masuk
+        <Button variant="gold" className="mt-4 w-full" onClick={authStep === "key" ? (() => setAuthStep("staff")) : verifyStaff} disabled={authBusy}>
+          {authBusy ? "Memverifikasi..." : authStep === "key" ? "Lanjut" : "Verifikasi Admin"}
         </Button>
         {msg && (
           <p className={`mt-3 text-sm ${msg.ok ? "text-emerald-400" : "text-red-400"}`}>{msg.text}</p>
@@ -381,6 +501,22 @@ export function AdminPanel() {
           }`}
         >
           {msg.text}
+        </div>
+      )}
+
+      {verifiedAdmin && (
+        <div className="flex flex-col gap-3 rounded-lg border border-gold/20 bg-gold/5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-semibold text-gold">Admin terverifikasi dua tahap</p>
+            <p className="text-zinc-400">Discord: {verifiedAdmin.discordUsername} · Role: 1471794305499664426</p>
+          </div>
+          <button
+            type="button"
+            onClick={logoutAdmin}
+            className="text-left text-xs text-red-300 underline-offset-2 hover:text-red-200 hover:underline"
+          >
+            Keluar admin
+          </button>
         </div>
       )}
 
@@ -417,7 +553,7 @@ export function AdminPanel() {
             { label: "Soal Essay", value: stats.essayCount, icon: "✍️" },
           ].map((s) => (
             <Card key={s.label} strong className="p-4">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-2xl">{s.icon}</span>
                 <div className="min-w-0">
                   <p className="truncate text-xs text-zinc-400">{s.label}</p>
@@ -430,7 +566,8 @@ export function AdminPanel() {
       )}
 
       {/* Navigasi tab */}
-      <div className="flex overflow-hidden rounded-lg border border-white/15">
+      <div className="-mx-1 overflow-x-auto pb-1">
+        <div className="flex min-w-max rounded-lg border border-white/15 bg-white/5">
         {(
           [
             ["periode", "Periode"],
@@ -446,23 +583,24 @@ export function AdminPanel() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 px-3 py-2.5 text-sm font-semibold transition ${
+            className={`shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-semibold transition sm:min-w-[120px] ${
               tab === t ? "bg-crimson-800 text-gold" : "bg-white/5 text-zinc-400 hover:text-zinc-200"
             }`}
           >
             {label}
           </button>
         ))}
+        </div>
       </div>
 
       {tab === "log" && (
-        <Card strong className="p-6">
-          <div className="flex items-center justify-between">
+        <Card strong className="p-4 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-display text-lg font-bold gold-text">📋 Audit Log</h2>
             <div className="flex items-center gap-3">
               <button
                 onClick={async () => {
-                  if (!confirm("Retry semua laporan Discord yang gagal? Maksimal 3x per laporan."))
+                  if (!confirm("Retry semua laporan Discord yang gagal?\n\nSistem akan mencoba ulang maksimal 3x per laporan yang masih pending."))
                     return;
                   setBusy(true);
                   const res = await fetch("/api/cron/discord-retry", { method: "GET", headers });
@@ -494,7 +632,7 @@ export function AdminPanel() {
               </button>
               <button
                 onClick={async () => {
-                  if (!confirm("Hapus seluruh log audit? Tindakan ini tidak dapat dibatalkan."))
+                  if (!confirm("Hapus seluruh log audit?\n\nSemua jejak aktivitas admin akan hilang dari panel ini. Tindakan ini tidak dapat dibatalkan."))
                     return;
                   setBusy(true);
                   const res = await fetch("/api/admin/logs", { method: "DELETE", headers });
@@ -516,8 +654,66 @@ export function AdminPanel() {
             </div>
           </div>
           <div className="gold-line my-3" />
+          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-display text-base font-bold text-zinc-100">Retry Queue Discord</h3>
+                <p className="text-xs text-zinc-400">Pantau antrean laporan Discord yang belum berhasil terkirim.</p>
+              </div>
+              <button
+                onClick={() =>
+                  fetch("/api/admin/discord-retry", { headers })
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((rq) => setRetryQueue(rq ? { pending: rq.pending ?? 0, total: rq.total ?? 0, exhausted: rq.exhausted ?? 0, items: rq.items ?? [] } : null))
+                    .catch(() => setMsg({ ok: false, text: "Gagal memuat retry queue Discord." }))
+                }
+                className="text-xs text-gold/80 underline-offset-2 hover:text-gold hover:underline"
+              >
+                Muat ulang queue
+              </button>
+            </div>
+
+            {retryQueue ? (
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-wider text-zinc-500">Pending Aktif</p>
+                    <p className="mt-2 text-xl font-bold text-zinc-100">{retryQueue.pending}</p>
+                  </div>
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-wider text-amber-200/80">Mentok 3x</p>
+                    <p className="mt-2 text-xl font-bold text-amber-200">{retryQueue.exhausted}</p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-wider text-zinc-500">Total Queue</p>
+                    <p className="mt-2 text-xl font-bold text-zinc-100">{retryQueue.total}</p>
+                  </div>
+                </div>
+
+                {retryQueue.items.length === 0 ? (
+                  <p className="text-sm text-zinc-500">Tidak ada retry queue aktif. Kalau laporan gagal lagi, entri akan muncul di sini beserta percobaan terakhirnya.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {retryQueue.items.slice(0, 5).map((item) => (
+                      <div key={item.id} className="rounded-lg border border-white/10 bg-black/20 px-3 py-3 text-xs">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-zinc-100">{item.resultId}</span>
+                          <Badge tone={item.attempts >= 2 ? "gold" : "neutral"}>attempt {item.attempts}</Badge>
+                          <span className="text-zinc-500">{new Date(item.updatedAt).toLocaleString("id-ID")}</span>
+                        </div>
+                        {item.lastError && <p className="mt-1 text-zinc-400">Error terakhir: {item.lastError}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-500">Retry queue belum dimuat.</p>
+            )}
+          </div>
+
           {logs.length === 0 ? (
-            <p className="text-sm text-zinc-500">Belum ada aktivitas admin tercatat.</p>
+            <p className="text-sm text-zinc-500">Belum ada aktivitas admin tercatat. Coba lakukan export, ubah pengaturan, atau lookup blacklist agar jejak audit mulai terisi.</p>
           ) : (
             <div className="space-y-2">
               {logs.map((log) => (
@@ -544,14 +740,14 @@ export function AdminPanel() {
       )}
 
       {tab === "settings" && (
-        <Card strong className="p-6">
+        <Card strong className="p-4 sm:p-6">
           <h2 className="font-display text-lg font-bold gold-text">⚙️ Pengaturan Sistem</h2>
           <p className="mt-1 text-sm text-zinc-400">
             Perubahan pada pengaturan di bawah ini akan mempengaruhi seluruh sistem. Beberapa pengaturan memerlukan restart server.
           </p>
 
-          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-3 sm:p-4">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="font-display text-base font-bold text-zinc-100">Diagnostic Panel</h3>
                 <p className="text-xs text-zinc-400">Cek cepat health sistem, Discord, dan konfigurasi production.</p>
@@ -574,6 +770,24 @@ export function AdminPanel() {
                 <div className={`rounded-lg border px-3 py-2 text-sm ${diagnostics.healthy ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-200"}`}>
                   {diagnostics.healthy ? "Semua check utama sehat." : "Ada check yang perlu perhatian sebelum deploy berikutnya."}
                 </div>
+                <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-wider text-zinc-500">Total Check</p>
+                    <p className="mt-2 text-xl font-bold text-zinc-100">{Object.keys(diagnostics.checks).length}</p>
+                  </div>
+                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-wider text-emerald-300/80">Check Sehat</p>
+                    <p className="mt-2 text-xl font-bold text-emerald-300">{Object.values(diagnostics.checks).filter((check) => check.ok).length}</p>
+                  </div>
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-wider text-amber-200/80">Perlu Perhatian</p>
+                    <p className="mt-2 text-xl font-bold text-amber-200">{Object.values(diagnostics.checks).filter((check) => !check.ok).length}</p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-wider text-zinc-500">Warning</p>
+                    <p className="mt-2 text-xl font-bold text-zinc-100">{diagnostics.warnings.length}</p>
+                  </div>
+                </div>
                 {diagnostics.warnings.length > 0 && (
                   <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
                     {diagnostics.warnings.map((warning) => (
@@ -581,20 +795,20 @@ export function AdminPanel() {
                     ))}
                   </div>
                 )}
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 xl:grid-cols-2">
                   {Object.entries(diagnostics.checks).map(([name, check]) => (
                     <div key={name} className={`rounded-lg border px-3 py-3 ${check.ok ? "border-emerald-500/25 bg-emerald-500/5" : "border-red-500/25 bg-red-500/5"}`}>
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-zinc-100">{name}</span>
+                        <span className="text-sm font-semibold text-zinc-100">{formatDiagnosticName(name)}</span>
                         <Badge tone={check.ok ? "green" : "red"}>{check.ok ? "OK" : "WARN"}</Badge>
                       </div>
-                      <p className="mt-1 text-xs text-zinc-400">{check.detail}</p>
+                      <p className="mt-1 text-xs leading-5 text-zinc-400">{check.detail}</p>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-zinc-500">Diagnostics belum dimuat.</p>
+              <p className="text-sm text-zinc-500">Diagnostics belum dimuat. Tekan "Refresh Diagnostics" untuk cek database, Discord, role, channel, dan webhook saat ini.</p>
             )}
           </div>
 
@@ -605,15 +819,24 @@ export function AdminPanel() {
       {tab === "periode" && (
         <>
       {/* Periode */}
-      <Card strong className="p-6">
+      <Card strong className="p-4 sm:p-6">
         <h2 className="font-display text-lg font-bold gold-text">🕐 Kelola Periode Rekrutmen</h2>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <Button variant="ghost" onClick={downloadBackup} disabled={busy} className="shrink-0">
-            {busy ? "Membuat backup..." : "Unduh Backup JSON"}
-          </Button>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button variant="ghost" onClick={downloadBackup} disabled={busy} className="shrink-0">
+              {busy ? "Memproses..." : "Unduh Backup JSON"}
+            </Button>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+            <Button variant="ghost" onClick={() => downloadCsvExport("attendance")} disabled={busy}>Export Attendance CSV</Button>
+            <Button variant="ghost" onClick={() => downloadCsvExport("results")} disabled={busy}>Export Hasil CSV</Button>
+            <Button variant="ghost" onClick={() => downloadCsvExport("blacklist")} disabled={busy}>Export Blacklist CSV</Button>
+            <Button variant="ghost" onClick={() => downloadCsvExport("verdicts")} disabled={busy}>Export Putusan CSV</Button>
+          </div>
         </div>
         <div className="mt-1 text-xs text-zinc-500">
           <p>Membuka periode baru otomatis menutup periode lama dan mengacak ulang bank soal dengan seed baru.</p>
+          <p className="mt-1">Export CSV dibuat untuk operasional admin harian: attendance, hasil, blacklist, dan putusan.</p>
         </div>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <input
@@ -658,20 +881,6 @@ export function AdminPanel() {
               className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              KKM / Nilai Lulus (kosong = default 70)
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={1000}
-              value={periodKkm}
-              onChange={(e) => setPeriodKkm(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
-              placeholder="75"
-              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-            />
-          </div>
         </div>
 
         <div className="mt-5 space-y-3">
@@ -699,7 +908,7 @@ export function AdminPanel() {
                       Absen buka: {p.openedAt ? new Date(p.openedAt).toLocaleString("id-ID") : "belum diatur"}
                     </p>
                      <p className="text-xs text-zinc-500">
-                       Soal: {p.mcqCount ?? "15"} Pilihan Ganda · {p.essayCount ?? "5"} Essay · KKM: {p.passThreshold}
+                       Soal: {p.mcqCount ?? "15"} Pilihan Ganda · {p.essayCount ?? "5"} Essay
                      </p>
                      {p.examStartTime && (
                        <p className="text-xs text-zinc-500">
@@ -719,7 +928,7 @@ export function AdminPanel() {
                       <p className="text-xs text-zinc-500">Absen tutup: belum diatur</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge tone={p.isActive ? "green" : "neutral"}>
                       {p.isActive ? "AKTIF" : "DITUTUP"}
                     </Badge>
@@ -744,7 +953,6 @@ export function AdminPanel() {
                                  closedAt: toLocalInputValue(p.closedAt),
                                  mcqCount: p.mcqCount != null ? String(p.mcqCount) : "",
                                  essayCount: p.essayCount != null ? String(p.essayCount) : "",
-                                 passThreshold: String(p.passThreshold),
                                  examStartTime: p.examStartTime
                                    ? toLocalInputValue(p.examStartTime)
                                    : "",
@@ -754,7 +962,7 @@ export function AdminPanel() {
                                }
                          )
                        }
-                      className="rounded-md border border-gold/40 px-2.5 py-1 text-xs text-gold transition hover:bg-gold/10"
+                      className="rounded-md border border-gold/40 px-3 py-2 text-xs text-gold transition hover:bg-gold/10"
                     >
                       {editingDates?.id === p.id ? "Batal" : "Edit Periode"}
                     </button>
@@ -771,7 +979,7 @@ export function AdminPanel() {
                           setMsg({ ok: json.ok, text: json.message });
                           if (json.ok) await load();
                         }}
-                        className={`rounded-md border px-2.5 py-1 text-xs transition ${
+                        className={`rounded-md border px-3 py-2 text-xs transition ${
                           p.isExamOpen
                             ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
                             : "border-white/20 text-zinc-400 hover:bg-white/10"
@@ -793,7 +1001,7 @@ export function AdminPanel() {
                           setMsg({ ok: json.ok, text: json.message });
                           if (json.ok) await load();
                         }}
-                        className={`rounded-md border px-2.5 py-1 text-xs transition ${
+                        className={`rounded-md border px-3 py-2 text-xs transition ${
                           p.isAttendanceOpen
                             ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
                             : "border-white/20 text-zinc-400 hover:bg-white/10"
@@ -804,7 +1012,7 @@ export function AdminPanel() {
                     )}
                     <button
                       onClick={async () => {
-                        if (!window.confirm(p.isActive ? "Tutup periode ini?" : "Buka kembali periode ini?"))
+                        if (!window.confirm(p.isActive ? "Tutup periode ini?\n\nAbsensi dan ujian pada periode ini akan berhenti sampai Anda buka lagi." : "Buka kembali periode ini?\n\nPeriode akan aktif lagi dan bisa dipakai untuk operasional lanjutan."))
                           return;
                         const action = p.isActive ? "close" : "reopen";
                         const res = await fetch("/api/admin/period", {
@@ -816,7 +1024,7 @@ export function AdminPanel() {
                         setMsg({ ok: json.ok, text: json.message });
                         if (json.ok) await load();
                       }}
-                      className={`rounded-md border px-2.5 py-1 text-xs transition ${
+                      className={`rounded-md border px-3 py-2 text-xs transition ${
                         p.isActive
                           ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
                           : "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
@@ -826,7 +1034,7 @@ export function AdminPanel() {
                     </button>
                     <button
                       onClick={async () => {
-                        if (!confirm("Reset ujian periode ini? Semua attempt dan hasil akan dihapus, tetapi attendance tetap. Casfis bisa mengikuti ujian lagi."))
+                        if (!confirm("Reset ujian periode ini?\n\nSemua sesi ujian dan hasil pada periode ini akan dihapus. Data absensi tetap ada, dan casis bisa mengerjakan ulang."))
                           return;
                         const res = await fetch("/api/admin/period", {
                           method: "PATCH",
@@ -842,7 +1050,7 @@ export function AdminPanel() {
                           toast.error(json.message ?? "Gagal mereset.");
                         }
                       }}
-                      className="rounded-md border border-orange-500/40 px-2.5 py-1 text-xs text-orange-400 transition hover:bg-orange-500/10"
+                      className="rounded-md border border-orange-500/40 px-3 py-2 text-xs text-orange-400 transition hover:bg-orange-500/10"
                     >
                       Reset Ujian
                     </button>
@@ -929,29 +1137,6 @@ export function AdminPanel() {
                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
                         />
                       </div>
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                          KKM / Nilai Lulus
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={1000}
-                          value={editingDates.passThreshold}
-                          onChange={(e) =>
-                            setEditingDates((cur) =>
-                              cur
-                                ? {
-                                    ...cur,
-                                    passThreshold: e.target.value.replace(/[^0-9]/g, "").slice(0, 4),
-                                  }
-                                : cur
-                            )
-                          }
-                           placeholder="70"
-                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                         />
-                       </div>
                        <div>
                          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
                            Waktu Mulai Ujian (kosongkan = tidak diatur)
@@ -1048,7 +1233,7 @@ export function AdminPanel() {
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 const name = a.user?.displayName ?? a.discordUserId ?? "?";
-                                if (!window.confirm(`Hapus absensi & ujian "${name}" dari periode ini?`))
+                                if (!window.confirm(`Hapus absensi & ujian "${name}" dari periode ini?\n\nAbsensi, sesi ujian, dan hasil terkait periode ini akan dihapus.`))
                                   return;
                                 const res = await fetch(`/api/admin/attendance?id=${encodeURIComponent(a.id)}`, {
                                   method: "DELETE",
@@ -1090,7 +1275,7 @@ export function AdminPanel() {
                             <button
                               onClick={async (e) => {
                                 e.stopPropagation();
-                                if (!window.confirm(`Hapus ujian "${at.user.displayName}" dari periode ini?`))
+                                if (!window.confirm(`Hapus ujian "${at.user.displayName}" dari periode ini?\n\nCasis akan bisa mengikuti ujian lagi pada periode ini.`))
                                   return;
                                 const res = await fetch(`/api/admin/users?userId=${encodeURIComponent(at.user.id)}&periodId=${encodeURIComponent(p.id)}`, {
                                   method: "DELETE",
@@ -1208,7 +1393,7 @@ export function AdminPanel() {
               <div className="flex gap-2">
                 <button
                   onClick={async () => {
-                    if (!confirm(`Hapus semua soal ${qType === "MCQ" ? "Pilihan Ganda" : "Essay"}?`)) return;
+                    if (!confirm(`Hapus semua soal ${qType === "MCQ" ? "Pilihan Ganda" : "Essay"}?\n\nSemua soal pada kategori ini akan hilang permanen.`)) return;
                     setBusy(true);
                     await fetch("/api/admin/questions", {
                       method: "DELETE",
@@ -1224,7 +1409,7 @@ export function AdminPanel() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!confirm("Hapus SEMUA soal (PG + Essay)?")) return;
+                    if (!confirm("Hapus SEMUA soal (PG + Essay)?\n\nBank soal akan kosong total sampai Anda menambahkannya lagi.")) return;
                     setBusy(true);
                     await fetch("/api/admin/questions", {
                       method: "DELETE",
@@ -1251,7 +1436,7 @@ export function AdminPanel() {
                   </Badge>
                   <button
                     onClick={async () => {
-                      if (!confirm("Hapus soal ini?")) return;
+                      if (!confirm("Hapus soal ini?\n\nSoal yang dihapus tidak bisa dipulihkan dari panel ini.")) return;
                       setBusy(true);
                       await fetch("/api/admin/questions", {
                         method: "DELETE",
@@ -1299,6 +1484,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
     discordBotSecret: "",
     discordGuildId: "",
     discordChannelId: "",
+    discordBlacklistPendidikanChannelId: "",
     discordBotApiUrl: "http://localhost:3001",
     discordWebhookUrl: "",
   });
@@ -1391,19 +1577,6 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
         <Card className="p-4">
           <h3 className="font-semibold text-zinc-100 mb-4">Umum</h3>
           <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                KKM / Nilai Lulus (1-1000)
-              </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={1000}
-                  value={((settings.kkm as number) ?? 70)}
-                  onChange={(e) => handleChange("kkm", Number(e.target.value))}
-                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                />
-            </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 Durasi Ujian (menit, 5-300)
@@ -1547,6 +1720,18 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
                 onChange={(e) => handleChange("discordChannelId", e.target.value)}
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
               />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Discord Channel ID (blacklist pendidikan)
+              </label>
+              <input
+                type="text"
+                value={String(settings.discordBlacklistPendidikanChannelId ?? "")}
+                onChange={(e) => handleChange("discordBlacklistPendidikanChannelId", e.target.value)}
+                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+              />
+              <p className="mt-1 text-[11px] text-zinc-500">Channel Discord blacklist pusdik yang dibaca fitur pencarian admin.</p>
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">

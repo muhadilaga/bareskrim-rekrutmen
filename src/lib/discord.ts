@@ -95,18 +95,16 @@ export async function sendDiscordExamReport(report: ExamReportInput): Promise<st
   if (!webhookUrl) return null;
   const targetWebhookUrl = webhookUrl;
 
-  const passed = report.status === "LULUS";
-  const color = passed ? 0xd4af37 : 0x7b1113;
+  const passed = true;
+  const color = 0xd4af37;
 
   const fields: Array<{ name: string; value: string; inline?: boolean }> = [
     { name: "🎖️ Pangkat Grup Kepolisian", value: report.policeRank ?? "Tidak terdeteksi", inline: true },
     { name: "📅 Periode", value: report.periodName, inline: true },
     { name: "📊 Skor Akhir", value: `${report.score}/${report.maxScore}`, inline: true },
     {
-      name: `✅ Status KKM (${CONFIG.kkm})`,
-      value: passed
-        ? "**LULUS KKM** 🟢"
-        : "**TIDAK LULUS** 🔴",
+      name: "✅ Tahap Selanjutnya",
+      value: "**TAHAP INTERVIEW** 🟢",
       inline: true,
     },
     { name: "🅰️ Nilai MCQ", value: `${report.mcqScore} poin`, inline: true },

@@ -7,28 +7,48 @@ import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const features = [
+const recruitmentSteps = [
   {
-    icon: "🛡️",
-    title: "Verifikasi Roblox Otomatis",
-    desc: "Foto avatar, keanggotaan grup wajib [RI], dan pangkat grup Kepolisian diambil langsung dari Roblox API.",
+    step: "1",
+    title: "Daftar & Login",
+    desc: "Masuk dengan akun Roblox dan Discord. Sistem akan memverifikasi data utama secara otomatis.",
   },
   {
-    icon: "⛔",
-    title: "Anti Matra Lain",
-    desc: "Peserta yang terdaftar di grup matra lain (TNI AD/AL) otomatis ditolak mengakses soal ujian.",
+    step: "2",
+    title: "Absensi",
+    desc: "Lakukan absensi untuk mengonfirmasi kehadiran. Role Tahap Akademik dan nickname Discord akan diperbarui otomatis.",
   },
   {
-    icon: "📣",
-    title: "Laporan Discord Real-Time",
-    desc: "Begitu submit, laporan lengkap + rekap jawaban dikirim otomatis ke channel pusdik instruktur.",
+    step: "3",
+    title: "Tunggu Jadwal Ujian",
+    desc: "Instruktur akan mengumumkan jadwal sesi ujian melalui Discord pusdik. Pantau pengumuman agar tidak tertinggal.",
   },
   {
-    icon: "🔒",
-    title: "1x Percobaan",
-    desc: "Setiap casis hanya dapat mengisi 1x per periode. Percobaan ganda akan menampilkan hasil lama.",
+    step: "4",
+    title: "Kerjakan Ujian",
+    desc: "Kerjakan soal sesuai jadwal. Hasil dan laporan akhir akan diproses otomatis oleh sistem.",
   },
 ];
+
+const galleryImages = [
+  "/galeri-bareskrim/PROPAGANDA_RESMOB.png",
+  "/galeri-bareskrim/PROPAGANDA_JATANRAS.png",
+  "/galeri-bareskrim/1.png",
+  "/galeri-bareskrim/2.png",
+  "/galeri-bareskrim/3.png",
+  "/galeri-bareskrim/4.png",
+  "/galeri-bareskrim/5.png",
+  "/galeri-bareskrim/6.png",
+  "/galeri-bareskrim/7.png",
+  "/galeri-bareskrim/8.png",
+  "/galeri-bareskrim/9.png",
+  "/galeri-bareskrim/10.png",
+  "/galeri-bareskrim/11.png",
+  "/galeri-bareskrim/12.jpg",
+];
+
+const historyCaption = `Sejarah Singkat Pendirian Bareskrim Polri Roblox
+Bareskrim Polri Roblox [RI] secara resmi didirikan pada tanggal 23 November 2023. Pendirian Bareskrim merupakan respon terhadap meningkatnya kompleksitas dan intensitas kejahatan di Republik Indonesia Roblox, terutama kejahatan-kejahatan yang bersifat terorganisir, tradisional, dan berat. Munculnya berbagai tantangan keamanan memerlukan lembaga khusus yang dapat fokus pada penanganan kasus-kasus kriminal berat seperti kejahatan dan kekerasan, korupsi, pembunuhan, dan lainnya.`;
 
 function StarBackground() {
   return (
@@ -231,46 +251,44 @@ export default async function HomePage() {
       ))}
         
         <StarBackground />
-        <div className="relative z-10">
-          <div className="mx-auto mb-4 flex flex-wrap items-center justify-center gap-3 animate-fade-in">
-            <Badge tone="gold">Sistem Rekrutmen Resmi Badan Reserse Kriminal</Badge>
-            <Badge tone={activePeriod ? "green" : "neutral"}>{activePeriod ? "Periode Aktif" : "Belum Ada Periode"}</Badge>
-            {activePeriod && <Badge tone={activePeriod.isAttendanceOpen ? "green" : "neutral"}>{activePeriod.isAttendanceOpen ? "Absen Buka" : "Absen Tutup"}</Badge>}
-            {activePeriod && <Badge tone={activePeriod.isExamOpen ? "green" : "neutral"}>{activePeriod.isExamOpen ? "Ujian Buka" : "Ujian Tutup"}</Badge>}
-          </div>
-          <h1 className="mx-auto max-w-3xl font-display text-4xl font-bold leading-tight text-zinc-900 dark:text-zinc-100 md:text-6xl animate-slide-up">
+        <div className="relative z-10 mx-auto max-w-4xl px-1">
+          <h1 className="mx-auto max-w-3xl font-display text-3xl font-bold leading-tight text-zinc-900 dark:text-zinc-100 sm:text-4xl md:text-6xl animate-slide-up">
             <span className="dark:gold-shine gold-shine-light drop-shadow-[0_0_25px_rgba(212,175,55,0.4)]">
               BARESKRIM POLRIRBX
             </span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-base text-zinc-600 dark:text-zinc-300 md:text-lg animate-slide-up delay-100">
-            Selamat Datang di WEB REKRUTMEN Para Calon Reserse Muda, Tunjukan bahwa kamu calon anggota
-            Bareskrim Polri yang Profesional, Tangguh, dan Berintegritas!
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-zinc-600 dark:text-zinc-300 sm:text-base md:text-lg animate-slide-up delay-100">
+            Selamat datang di web rekrutmen calon Reserse Muda. Tunjukkan bahwa kamu siap menjadi anggota
+            Bareskrim Polri yang profesional, tangguh, dan berintegritas.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row animate-slide-up delay-200">
-            {activePeriod ? (
-              hasActiveAttempt ? (
-                <Link
-                  href="/ujian"
-                  className="w-full rounded-lg border border-emerald-500/40 bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 px-8 py-3.5 text-center font-semibold text-white shadow-lg transition hover:brightness-110 sm:w-auto"
-                >
-                  Lanjutkan Ujian
-                </Link>
-              ) : (
-                <Link
-                  href="/absen"
-                  className="w-full rounded-lg border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-8 py-3.5 text-center font-semibold text-crimson-950 shadow-glow transition hover:brightness-110 sm:w-auto"
-                >
-                  Mulai Sekarang
-                </Link>
-              )
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center animate-slide-up delay-200">
+            {activePeriod && activePeriod.isAttendanceOpen ? (
+              <Link
+                href="/absen"
+                className="w-full rounded-lg border border-gold/40 bg-gradient-to-r from-gold-300 via-gold to-gold-600 px-6 py-3.5 text-center font-semibold text-crimson-950 shadow-glow transition hover:brightness-110 sm:w-auto sm:min-w-[220px]"
+              >
+                Mulai Absensi
+              </Link>
             ) : (
-              <span className="w-full rounded-lg border border-white/10 bg-white/5 px-8 py-3.5 text-center text-sm font-semibold text-zinc-500 sm:w-auto cursor-not-allowed">
-                Pendaftaran Belum Dibuka
+              <span className="w-full cursor-not-allowed rounded-lg border border-white/10 bg-white/5 px-6 py-3.5 text-center text-sm font-semibold text-zinc-500 sm:w-auto sm:min-w-[220px]">
+                Absensi Ditutup
+              </span>
+            )}
+
+            {activePeriod && (activePeriod.isExamOpen || hasActiveAttempt) ? (
+              <Link
+                href="/ujian"
+                className="w-full rounded-lg border border-emerald-500/40 bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 px-6 py-3.5 text-center font-semibold text-white shadow-lg transition hover:brightness-110 sm:w-auto sm:min-w-[220px]"
+              >
+                {hasActiveAttempt ? "Lanjutkan Ujian" : "Mulai Ujian"}
+              </Link>
+            ) : (
+              <span className="w-full cursor-not-allowed rounded-lg border border-white/10 bg-white/5 px-6 py-3.5 text-center text-sm font-semibold text-zinc-500 sm:w-auto sm:min-w-[220px]">
+                Ujian Belum Dibuka
               </span>
             )}
           </div>
-          <div className="gold-line mx-auto mt-16 w-2/3" />
+          <div className="gold-line mx-auto mt-12 w-full max-w-xl" />
         </div>
       </section>
 
@@ -313,85 +331,59 @@ export default async function HomePage() {
       )}
 
       {/* ALUR REKRUTMEN */}
-      <section className="pb-20">
-        <h2 className="mb-8 text-center font-display text-2xl font-bold text-zinc-700 dark:text-zinc-100 md:text-3xl animate-slide-up">
+      <section className="pb-16 sm:pb-20">
+        <h2 className="mb-4 text-center font-display text-2xl font-bold text-zinc-700 dark:text-zinc-100 md:text-3xl animate-slide-up">
           Alur <span className="gold-text">Rekrutmen</span>
         </h2>
-        <div className="relative mx-auto max-w-3xl">
-          {/* Garis vertikal penghubung */}
-          <div className="absolute left-6 top-0 h-full w-0.5 bg-gradient-to-b from-gold/50 via-gold/30 to-transparent sm:left-1/2 sm:-translate-x-px" />
-
-          {/* Step 1 */}
-          <div className="relative mb-10 flex items-start gap-6 animate-slide-up delay-100">
-            <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-crimson-900 dark:bg-crimson-950 text-gold font-display font-bold text-lg shadow-lg shadow-gold/10">
-              1
-            </div>
-            <div className="pt-2">
-              <h3 className="font-display text-lg font-bold text-zinc-700 dark:text-gold">Daftar & Login</h3>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Buat akun dengan username Roblox dan Discord kamu. Sistem akan memverifikasi data secara otomatis.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 2 */}
-          <div className="relative mb-10 flex items-start gap-6 animate-slide-up delay-200">
-            <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-crimson-900 dark:bg-crimson-950 text-gold font-display font-bold text-lg shadow-lg shadow-gold/10">
-              2
-            </div>
-            <div className="pt-2">
-              <h3 className="font-display text-lg font-bold text-zinc-700 dark:text-gold">Absensi</h3>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Lakukan absensi untuk mengonfirmasi kehadiran. Role Tahap Akademik akan diberikan otomatis di Discord.
-              </p>
-            </div>
-          </div>
-
-          {/* Step 3 */}
-          <div className="relative mb-10 flex items-start gap-6 animate-slide-up delay-300">
-            <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-crimson-900 dark:bg-crimson-950 text-gold font-display font-bold text-lg shadow-lg shadow-gold/10">
-              3
-            </div>
-            <div className="pt-2">
-              <h3 className="font-display text-lg font-bold text-zinc-700 dark:text-gold">Tunggu Jadwal Ujian</h3>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Instruktur akan mengumumkan jadwal sesi ujian melalui Discord. Siapkan diri kamu!
-              </p>
-            </div>
-          </div>
-
-          {/* Step 4 */}
-          <div className="relative flex items-start gap-6 animate-slide-up delay-400">
-            <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-crimson-900 dark:bg-crimson-950 text-gold font-display font-bold text-lg shadow-lg shadow-gold/10">
-              4
-            </div>
-            <div className="pt-2">
-              <h3 className="font-display text-lg font-bold text-zinc-700 dark:text-gold">Kerjakan Ujian</h3>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                Kerjakan soal Tahap Akademik sesuai jadwal. Hasil dinilai otomatis dan dikirim ke Discord.
-              </p>
-            </div>
-          </div>
+        <p className="mx-auto mb-8 max-w-2xl text-center text-sm leading-7 text-zinc-500 dark:text-zinc-400">
+          Alur dibuat singkat supaya mudah diikuti. Ikuti tahapannya secara berurutan.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {recruitmentSteps.map((step, index) => (
+            <Card key={step.step} className={`animate-slide-up p-5 sm:p-6 delay-${(index + 1) * 100}`}>
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-gold/50 bg-crimson-900 text-gold font-display text-lg font-bold shadow-lg shadow-gold/10 dark:bg-crimson-950">
+                  {step.step}
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-zinc-700 dark:text-gold">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-zinc-500 dark:text-zinc-400">{step.desc}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       </section>
 
-      {/* FEATURES */}
+      {/* GALERI BARESKRIM */}
       <section className="pb-20">
-        <h2 className="mb-8 text-center font-display text-2xl font-bold text-zinc-700 dark:text-zinc-100 md:text-3xl animate-slide-up">
-          Keunggulan <span className="gold-text">Sistem Ini</span>
-        </h2>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((f, i) => (
-            <Card
-              key={f.title}
-              className={`group stagger-child animate-slide-up p-6 transition-all duration-300 delay-${(i + 1) * 100}`}
-            >
-              <div className="mb-3 text-3xl">{f.icon}</div>
-              <h3 className="font-display text-base font-bold text-zinc-700 dark:text-gold">{f.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300">{f.desc}</p>
-              <div className="mt-3 h-1 w-0 bg-gradient-to-r from-gold via-amber-300 to-gold opacity-0 blur-sm transition-all duration-300 group-hover:mt-2 group-hover:w-2/3 group-hover:opacity-100" />
-            </Card>
-          ))}
+        <div className="mb-8 text-center">
+          <h2 className="mb-4 font-display text-2xl font-bold text-zinc-700 dark:text-zinc-100 md:text-3xl animate-slide-up">
+            Galeri <span className="gold-text">Bareskrim</span>
+          </h2>
+          <p className="mx-auto max-w-3xl whitespace-pre-line text-sm leading-7 text-zinc-500 dark:text-zinc-400">
+            {historyCaption}
+          </p>
+        </div>
+
+        <div className="grid auto-rows-[170px] gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {galleryImages.map((src, i) => {
+            const featured = i < 2;
+            return (
+              <div
+                key={src}
+                className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 shadow-lg animate-slide-up ${featured ? "sm:col-span-1 sm:row-span-2 lg:col-span-1" : ""}`}
+              >
+                <img
+                  src={src}
+                  alt={`Galeri Bareskrim ${i + 1}`}
+                  className={`h-full w-full transition duration-500 group-hover:scale-[1.03] group-hover:brightness-110 ${featured ? "object-contain bg-black/70 p-2" : "object-cover"}`}
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-80" />
+              </div>
+            );
+          })}
         </div>
       </section>
     </div>

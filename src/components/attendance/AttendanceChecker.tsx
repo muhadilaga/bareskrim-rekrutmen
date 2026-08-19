@@ -25,6 +25,7 @@ export function AttendanceChecker() {
   } | null>(null);
   const [robloxUsername, setRobloxUsername] = useState("");
   const [discordUsername, setDiscordUsername] = useState("");
+  const [motivation, setMotivation] = useState("");
   const [verifyResult, setVerifyResult] = useState<{
     ok: boolean;
     message: string;
@@ -37,6 +38,8 @@ export function AttendanceChecker() {
     };
     roleAssigned?: boolean;
     roleError?: string;
+    motivationStatus?: string;
+    motivationReason?: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [captchaA, setCaptchaA] = useState(0);
@@ -89,7 +92,7 @@ export function AttendanceChecker() {
 
   // Verifikasi Roblox + assign role
   async function handleVerify() {
-    if (!robloxUsername.trim() || !discordUsername.trim()) return;
+    if (!robloxUsername.trim() || !discordUsername.trim() || !motivation.trim()) return;
     const answer = Number(captchaInput.trim());
     if (Number.isNaN(answer) || answer !== captchaA + captchaB) {
       setError("Jawaban captcha salah. Coba lagi.");
@@ -112,6 +115,7 @@ export function AttendanceChecker() {
         body: JSON.stringify({
           robloxUsername: robloxUsername.trim(),
           discordUsername: discordUsername.trim(),
+          motivation: motivation.trim(),
         }),
       });
       const data = await res.json();
@@ -247,6 +251,12 @@ export function AttendanceChecker() {
               {verifyResult.roleAssigned ? (
                 <>
                   Role <span className="font-bold">Tahap Akademik</span> sudah diberikan.
+                  {verifyResult.user?.username ? (
+                    <>
+                      <br />
+                      Nickname Discord berhasil diubah menjadi <span className="font-bold">[CASIS] {verifyResult.user.username}</span>.
+                    </>
+                  ) : null}
                 </>
               ) : verifyResult.roleError ? (
                 <>
@@ -254,6 +264,12 @@ export function AttendanceChecker() {
                   <span className="text-yellow-300">belum diberikan</span>.
                   <br />
                   <span className="text-xs text-zinc-400">{verifyResult.roleError}</span>
+                  {verifyResult.motivationStatus ? (
+                    <>
+                      <br />
+                      <span className="text-xs text-zinc-500">Status motivasi: {verifyResult.motivationStatus}.</span>
+                    </>
+                  ) : null}
                 </>
               ) : (
                 <>
@@ -362,7 +378,7 @@ export function AttendanceChecker() {
               placeholder="Contoh: BangReskrim_01"
               className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && robloxUsername.trim() && discordUsername.trim() && captchaInput.trim() && Number(captchaInput.trim()) === captchaA + captchaB) {
+                if (e.key === "Enter" && robloxUsername.trim() && discordUsername.trim() && motivation.trim() && captchaInput.trim() && Number(captchaInput.trim()) === captchaA + captchaB) {
                   handleVerify();
                 }
               }}
@@ -385,14 +401,33 @@ export function AttendanceChecker() {
               placeholder="Contoh: bang_reskrim"
               className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && robloxUsername.trim() && discordUsername.trim() && captchaInput.trim() && Number(captchaInput.trim()) === captchaA + captchaB) {
+                if (e.key === "Enter" && robloxUsername.trim() && discordUsername.trim() && motivation.trim() && captchaInput.trim() && Number(captchaInput.trim()) === captchaA + captchaB) {
                   handleVerify();
                 }
               }}
             />
-            <p className="mt-1 text-[11px] text-zinc-500">
-              Username Discord yang terdaftar di server pusdik
+            <p className="mt-1 text-[11px] leading-5 text-zinc-500">
+              Isi username Discord yang terdaftar di server pusdik, tanpa tanda <span className="font-semibold text-zinc-400">@</span>.
             </p>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Alasan / Motivasi Masuk Bareskrim
+            </label>
+            <textarea
+              value={motivation}
+              onChange={(e) => {
+                setMotivation(e.target.value);
+                setVerified(false);
+                setAttended(false);
+                setVerifyResult(null);
+              }}
+              placeholder="Jelaskan alasan Anda masuk Bareskrim dan kenapa Anda layak mengikuti tahap akademik."
+              rows={4}
+              className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
+            />
+            <p className="mt-1 text-[11px] leading-5 text-zinc-500">Jawaban terlalu singkat atau tidak jelas tidak akan otomatis mendapat role Tahap Akademik.</p>
           </div>
 
           <div>
@@ -414,7 +449,7 @@ export function AttendanceChecker() {
                 placeholder="Jawaban"
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-gold/60 focus:ring-2 focus:ring-gold/20"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && robloxUsername.trim() && discordUsername.trim() && captchaInput.trim() && Number(captchaInput.trim()) === captchaA + captchaB) {
+                  if (e.key === "Enter" && robloxUsername.trim() && discordUsername.trim() && motivation.trim() && captchaInput.trim() && Number(captchaInput.trim()) === captchaA + captchaB) {
                     handleVerify();
                   }
                 }}
@@ -444,6 +479,7 @@ export function AttendanceChecker() {
           disabled={
             !robloxUsername.trim() ||
             !discordUsername.trim() ||
+            !motivation.trim() ||
             !captchaInput.trim() ||
             Number(captchaInput.trim()) !== captchaA + captchaB
           }
@@ -453,6 +489,7 @@ export function AttendanceChecker() {
 
         <div className="mt-4 space-y-1.5 text-left text-xs text-zinc-500">
           <p>• Sistem otomatis memverifikasi data Roblox Anda.</p>
+          <p>• Alasan/motivasi yang terlalu singkat tidak otomatis mendapat role Tahap Akademik.</p>
           <p>• Pangkat minimal: <span className="text-gold">Bhayangkara Kepala</span>.</p>
           <p>• Tidak boleh terdaftar di matra lain (TNI AD/AL).</p>
           <p>• Harus terdaftar di grup <span className="text-gold">[RI] Republic Indonesia</span>.</p>

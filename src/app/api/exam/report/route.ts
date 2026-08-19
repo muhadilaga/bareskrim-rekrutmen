@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { ensureSchema } from "@/lib/init-schema";
 import { sendDiscordExamReport } from "@/lib/discord";
-import { assignDiscordRoleById, removeDiscordRoleById, sendDiscordDM } from "@/lib/discord-api";
+import { assignDiscordRoleById, removeDiscordRoleById } from "@/lib/discord-api";
 import { CONFIG } from "@/lib/constants";
 import { clientIp, createRateLimiter, userSubmitLimiter } from "@/lib/rate-limit";
 import type { GradedAnswerDetail } from "@/lib/grading";
@@ -68,9 +68,10 @@ export async function POST(req: Request) {
       // Laporan sudah terkirim, tapi coba assign/remove role jika belum
       const discordUsername = result.attempt.user.discordUsername;
       if (discordUsername) {
-        if (result.passed && CONFIG.tahapInterviewRoleId) {
+        if (CONFIG.tahapInterviewRoleId) {
           await assignDiscordRoleById(discordUsername, CONFIG.tahapInterviewRoleId);
-        } else if (!result.passed && CONFIG.tahapAkademikRoleId) {
+        }
+        if (CONFIG.tahapAkademikRoleId) {
           await removeDiscordRoleById(discordUsername, CONFIG.tahapAkademikRoleId);
         }
       }
@@ -114,28 +115,17 @@ export async function POST(req: Request) {
     const discordUsername = result.attempt.user.discordUsername;
     console.log(`[ExamReport] discordUsername=${discordUsername}, passed=${result.passed}, interviewRoleId=${CONFIG.tahapInterviewRoleId}, akademikRoleId=${CONFIG.tahapAkademikRoleId}`);
     if (discordUsername) {
-      if (result.passed) {
-        if (CONFIG.tahapInterviewRoleId) {
-          const roleResult = await assignDiscordRoleById(discordUsername, CONFIG.tahapInterviewRoleId);
-          console.log(`[ExamReport] Assign interview role to ${discordUsername}: ok=${roleResult.ok} msg=${roleResult.message}`);
-        } else {
-          console.log(`[ExamReport] SKIP assign interview role: tahapInterviewRoleId kosong`);
-        }
-        // Hapus role Tahap Akademik setelah lulus (pindah tahap)
-        if (CONFIG.tahapAkademikRoleId) {
-          const removeResult = await removeDiscordRoleById(discordUsername, CONFIG.tahapAkademikRoleId);
-          console.log(`[ExamReport] Remove tahap akademik role (lulus) from ${discordUsername}: ok=${removeResult.ok} msg=${removeResult.message}`);
-        }
+      if (CONFIG.tahapInterviewRoleId) {
+        const roleResult = await assignDiscordRoleById(discordUsername, CONFIG.tahapInterviewRoleId);
+        console.log(`[ExamReport] Assign interview role to ${discordUsername}: ok=${roleResult.ok} msg=${roleResult.message}`);
       } else {
-        if (CONFIG.tahapAkademikRoleId) {
-          const removeResult = await removeDiscordRoleById(discordUsername, CONFIG.tahapAkademikRoleId);
-          console.log(`[ExamReport] Remove tahap akademik role from ${discordUsername}: ok=${removeResult.ok} msg=${removeResult.message}`);
-        } else {
-          console.log(`[ExamReport] SKIP remove tahap akademik role: tahapAkademikRoleId kosong`);
-        }
-        const dmContent = `Halo ${result.attempt.user.displayName},\n\nHasil ujian rekrutmen Bareskrim Polri RP telah keluar.\n\n**Status: TIDAK LULUS**\nSkor: ${result.score}/${result.maxScore} (${Math.round((result.score / result.maxScore) * 100)}%)\n\nSilakan menghubungi admin jika ada pertanyaan.\nTerima kasih.`;
-        const dmResult = await sendDiscordDM(discordUsername, dmContent);
-        console.log(`[ExamReport] Send DM to ${discordUsername}: ok=${dmResult.ok} msg=${dmResult.message}`);
+        console.log(`[ExamReport] SKIP assign interview role: tahapInterviewRoleId kosong`);
+      }
+      if (CONFIG.tahapAkademikRoleId) {
+        const removeResult = await removeDiscordRoleById(discordUsername, CONFIG.tahapAkademikRoleId);
+        console.log(`[ExamReport] Remove tahap akademik role after exam from ${discordUsername}: ok=${removeResult.ok} msg=${removeResult.message}`);
+      } else {
+        console.log(`[ExamReport] SKIP remove tahap akademik role: tahapAkademikRoleId kosong`);
       }
     } else {
       console.log(`[ExamReport] SKIP role/DM: discordUsername kosong di user record`);

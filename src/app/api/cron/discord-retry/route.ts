@@ -2,11 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ensureSchema } from "@/lib/init-schema";
 import { sendDiscordExamReport, type ExamReportInput } from "@/lib/discord";
+import { getAdminKey } from "@/lib/constants";
+import { logAdminAction } from "@/lib/audit";
 
 // Endpoint cron job untuk retry laporan Discord yang gagal.
 // Dapat dipanggil oleh Netlify Scheduled Functions tanpa perlu autentikasi
 // karena URL endpoint-nya sudah aman dan tidak diekspos ke publik secara langsung.
-export async function GET() {
+function isAdmin(req: Request): boolean {
+  return req.headers.get("x-admin-key") === getAdminKey();
+}
+
+export async function GET(req: Request) {
   try {
     await ensureSchema();
 
@@ -17,6 +23,14 @@ export async function GET() {
     });
 
     if (pending.length === 0) {
+      if (isAdmin(req)) {
+        await logAdminAction({
+          action: "RETRY_DISCORD_REPORTS",
+          target: "pending-discord-report",
+          detail: { processed: 0, sent: 0, failed: 0, message: "Tidak ada laporan yang perlu di-retry." },
+        });
+      }
+
       return NextResponse.json({
         ok: true,
         message: "Tidak ada laporan yang perlu di-retry.",
@@ -99,6 +113,14 @@ export async function GET() {
     console.log(
       `[cron-retry] Selesai. Terkirim: ${sent}, Gagal: ${failed}, Total diproses: ${sent + failed}`
     );
+
+    if (isAdmin(req)) {
+      await logAdminAction({
+        action: "RETRY_DISCORD_REPORTS",
+        target: "pending-discord-report",
+        detail: { processed: sent + failed, sent, failed, errors: errors.slice(0, 5) },
+      });
+    }
 
     return NextResponse.json({
       ok: true,

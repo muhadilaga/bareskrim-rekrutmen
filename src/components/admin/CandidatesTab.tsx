@@ -192,7 +192,7 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
   async function deleteRow(id: string) {
     if (
       !window.confirm(
-        "Hapus rekap ini? Laporan Discord ikut terhapus, dan casis bisa mengikuti ujian kembali pada periode tersebut.",
+        "Hapus rekap ini?\n\nLaporan Discord ikut terhapus, dan casis akan bisa mengikuti ujian lagi pada periode ini.",
       )
     )
       return;
@@ -278,7 +278,7 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
                         <Skeleton className="h-4 w-4 rounded-full" />
                         <span>Memuat data...</span>
                       </div>
-                    ) : "Belum ada hasil ujian."}
+                    ) : "Belum ada hasil ujian. Minta casis menyelesaikan ujian atau cek apakah periode dan akses ujian sudah dibuka."}
                   </td>
                 </tr>
               ) : (

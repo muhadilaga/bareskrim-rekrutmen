@@ -16,6 +16,7 @@ let runtimeSettings: Partial<{
   discordBotApiUrl: string;
   discordBotSecret: string;
   discordWebhookUrl: string;
+  discordBlacklistPendidikanChannelId: string;
 }> = {};
 
 function getEnvOrRuntime<T>(key: keyof typeof runtimeSettings, envValue: T): T {
@@ -55,6 +56,10 @@ function buildConfig() {
     discordGuildId: getEnvOrRuntime("discordGuildId", process.env.DISCORD_GUILD_ID ?? ""),
     discordChannelId: getEnvOrRuntime("discordChannelId", process.env.DISCORD_CHANNEL_ID ?? ""),
     discordWebhookUrl: getEnvOrRuntime("discordWebhookUrl", process.env.DISCORD_WEBHOOK_URL ?? ""),
+    discordBlacklistPendidikanChannelId: getEnvOrRuntime(
+      "discordBlacklistPendidikanChannelId",
+      process.env.DISCORD_BLACKLIST_PENDIDIKAN_CHANNEL_ID ?? ""
+    ),
   } as const;
 }
 
@@ -117,6 +122,7 @@ export function getSettings() {
     discordBotApiUrl: cfg.discordBotApiUrl,
     discordBotSecret: cfg.discordBotSecret,
     discordWebhookUrl: cfg.discordWebhookUrl,
+    discordBlacklistPendidikanChannelId: cfg.discordBlacklistPendidikanChannelId,
   };
 }
 

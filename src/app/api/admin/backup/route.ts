@@ -7,6 +7,14 @@ function isAdmin(req: Request): boolean {
   return req.headers.get("x-admin-key") === getAdminKey();
 }
 
+function jsonSafe(value: unknown) {
+  return JSON.stringify(
+    value,
+    (_key, current) => (typeof current === "bigint" ? current.toString() : current),
+    2
+  );
+}
+
 export async function GET(req: Request) {
   if (!isAdmin(req)) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
@@ -41,7 +49,7 @@ export async function GET(req: Request) {
       logs,
     };
 
-    return new NextResponse(JSON.stringify(backupData, null, 2), {
+    return new NextResponse(jsonSafe(backupData), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

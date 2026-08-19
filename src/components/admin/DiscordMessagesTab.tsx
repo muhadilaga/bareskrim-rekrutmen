@@ -64,7 +64,7 @@ export function DiscordMessagesTab({ headers }: Props) {
 
   const deleteSelected = async () => {
     if (selected.size === 0) return;
-    if (!confirm(`Hapus ${selected.size} pesan terpilih dari Discord?`)) return;
+    if (!confirm(`Hapus ${selected.size} pesan terpilih dari Discord?\n\nPesan yang dihapus tidak bisa dipulihkan dari panel ini.`)) return;
 
     setDeleting(true);
     try {
@@ -88,7 +88,7 @@ export function DiscordMessagesTab({ headers }: Props) {
   };
 
   const deleteAll = async () => {
-    if (!confirm("Hapus SEMUA pesan bot dari Discord? Tindakan ini tidak bisa dibatalkan.")) return;
+    if (!confirm("Hapus SEMUA pesan bot dari Discord?\n\nSemua pesan bot yang cocok akan dihapus permanen dari channel. Tindakan ini tidak bisa dibatalkan.")) return;
 
     setDeleting(true);
     try {
@@ -145,7 +145,7 @@ export function DiscordMessagesTab({ headers }: Props) {
 
       {!fetched && !loading && (
         <p className="text-sm text-zinc-500">
-          Klik &quot;Ambil Pesan&quot; untuk melihat pesan bot di channel Discord.
+          Klik &quot;Ambil Pesan&quot; untuk melihat 50 pesan bot terbaru di channel Discord. Gunakan ini untuk cek hasil kirim atau bersih-bersih pesan lama.
         </p>
       )}
 
@@ -154,7 +154,7 @@ export function DiscordMessagesTab({ headers }: Props) {
       )}
 
       {fetched && messages.length === 0 && (
-        <p className="py-8 text-center text-sm text-zinc-500">Tidak ada pesan bot di channel.</p>
+        <p className="py-8 text-center text-sm text-zinc-500">Tidak ada pesan bot di channel. Kalau seharusnya ada, cek diagnostics Discord dan webhook lalu coba kirim ulang laporan.</p>
       )}
 
       {messages.length > 0 && (

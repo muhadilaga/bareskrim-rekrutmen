@@ -4,7 +4,7 @@ import { CONFIG } from "@/lib/constants";
 import { logStudentAction } from "@/lib/audit";
 import { clientIp, createRateLimiter, userSubmitLimiter } from "@/lib/rate-limit";
 import { getSessionUser } from "@/lib/auth";
-import { assignDiscordRole } from "@/lib/discord-api";
+import { assignDiscordRoleAndNickname } from "@/lib/discord-api";
 
 const ipLimiter = createRateLimiter({ windowMs: 60_000, max: 3 });
 
@@ -121,9 +121,17 @@ export async function POST(req: Request) {
     let roleError: string | null = null;
 
     if (CONFIG.discordBotToken && CONFIG.discordGuildId) {
-      const result = await assignDiscordRole(discordUserId.trim(), "Tahap Akademik");
+      const result = await assignDiscordRoleAndNickname(
+        discordUserId.trim(),
+        "Tahap Akademik",
+        `[CASIS] ${user.username}`
+      );
       roleAssigned = result.ok;
-      roleError = result.ok ? null : result.message;
+      roleError = result.ok
+        ? result.nicknameOk
+          ? null
+          : `Role berhasil, tapi nickname gagal diubah: ${result.nicknameMessage}`
+        : result.message;
     } else {
       roleError = "DISCORD_BOT_TOKEN / DISCORD_GUILD_ID belum dikonfigurasi.";
     }
@@ -136,7 +144,9 @@ export async function POST(req: Request) {
     });
 
     const successMessage = roleAssigned
-      ? "Absensi berhasil! Role Tahap Akademik sudah diberikan."
+      ? roleError
+        ? `Absensi berhasil! Role Tahap Akademik sudah diberikan, tetapi nickname Discord belum berubah otomatis: ${roleError}`
+        : "Absensi berhasil! Role Tahap Akademik sudah diberikan dan nickname Discord sudah diperbarui."
       : roleError
         ? `Absensi berhasil, tapi role gagal diberikan: ${roleError}. Hubungi admin untuk assign manual.`
         : "Absensi berhasil! Role Tahap Akademik akan diberikan oleh admin.";

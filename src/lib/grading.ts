@@ -151,7 +151,7 @@ export interface GradingResult {
 export function gradeExam(
   snapshot: SnapshotQuestion[],
   answers: Record<string, string>,
-  kkm: number = CONFIG.kkm
+  _kkm: number = CONFIG.kkm
 ): GradingResult {
   let score = 0;
   let maxScore = 0;
@@ -203,13 +203,13 @@ export function gradeExam(
     }
   }
 
-  const passed = score >= kkm;
+  const passed = true;
   return {
     score,
     maxScore,
     mcqScore,
     essayScore,
-    status: passed ? "LULUS" : "TIDAK_LULUS",
+    status: "LULUS",
     passed,
     details,
   };

@@ -50,8 +50,8 @@ export function Navbar() {
 
       {/* Mobile dropdown */}
       {open && (
-        <nav className="border-t border-white/10 bg-black/50 px-4 pb-4 pt-2 md:hidden">
-          <div className="flex flex-col gap-1">
+        <nav className="border-t border-white/10 bg-black/60 px-4 pb-4 pt-3 shadow-xl md:hidden">
+          <div className="flex flex-col gap-1.5">
             <Link href="/" onClick={() => setOpen(false)} className="rounded-md px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:bg-crimson-800/60 hover:text-gold">
               Beranda
             </Link>

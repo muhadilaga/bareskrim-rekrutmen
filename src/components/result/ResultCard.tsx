@@ -34,10 +34,9 @@ export function ResultCard({
           <p className="mt-3 font-display text-6xl font-bold gold-text">{result.score}</p>
           <p className="text-sm text-zinc-400">dari {result.maxScore} poin</p>
           <div className="mt-4 flex items-center justify-center gap-3">
-            <Badge tone={passed ? "green" : "red"} className="text-sm">
-              {passed ? "LULUS KKM" : "TIDAK LULUS"}
+            <Badge tone="green" className="text-sm">
+              LOLOS TAHAP INTERVIEW
             </Badge>
-            <Badge tone="gold">KKM {kkm}</Badge>
           </div>
           <div className="mx-auto mt-6 h-2 w-full max-w-xs overflow-hidden rounded-full bg-white/10">
             <div

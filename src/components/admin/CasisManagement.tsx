@@ -20,7 +20,7 @@ interface CasisUser {
   avatarUrl: string | null;
   discordUsername: string | null;
   policeGroupRank: string | null;
-  attendance: { id: string; discordUserId: string | null; createdAt: string } | null;
+  attendance: { id: string; discordUserId: string | null; createdAt: string; motivation: string | null; motivationStatus: string | null; motivationReason: string | null; motivationAttemptCount: number; roleEligible: boolean } | null;
   attempt: { id: string; startedAt: string; submittedAt: string | null } | null;
   status: "belum_absen" | "sudah_absen" | "sedang_mengerjakan" | "selesai";
 }
@@ -81,7 +81,7 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
   async function deleteUser(userId: string, username: string) {
     if (
       !window.confirm(
-        `Hapus semua data "${username}"? Ini akan menghapus absensi, attempt, hasil ujian, dan data user.`
+        `Hapus semua data "${username}"?\n\nYang ikut terhapus: absensi, sesi ujian, hasil ujian, dan data user. Tindakan ini permanen.`
       )
     )
       return;
@@ -116,7 +116,7 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
     if (
       !window.confirm(
         `HAPUS SEMUA ${total} casis (termasuk ${totalAbsen} absensi)?\n\n` +
-          "Semua absensi, attempt, hasil ujian, dan data user akan dihapus permanen. Tindakan ini TIDAK bisa dibatalkan!"
+        "Semua absensi, sesi ujian, hasil ujian, dan data user akan dihapus permanen. Tindakan ini TIDAK bisa dibatalkan."
       )
     )
       return;
@@ -225,7 +225,7 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
           Belum Absen ({belumAbsen.length})
         </h3>
         {belumAbsen.length === 0 ? (
-          <p className="text-xs text-zinc-500">Tidak ada.</p>
+          <p className="text-xs text-zinc-500">Tidak ada. Semua casis yang terdaftar sudah pernah absen atau daftar user masih kosong.</p>
         ) : (
           <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
             {belumAbsen.map((u) => (
@@ -246,6 +246,11 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
                     @{u.username} · {u.policeGroupRank ?? "-"}
                     {u.discordUsername && <> · Discord: {u.discordUsername}</>}
                   </p>
+                  {u.attendance?.motivationStatus && (
+                    <p className="mt-1 text-[11px] leading-5 text-zinc-500">
+                      Motivasi: {u.attendance.motivationStatus} · percobaan {u.attendance.motivationAttemptCount}/2
+                    </p>
+                  )}
                 </div>
                 <Badge tone="neutral">Belum Absen</Badge>
                 <button
@@ -267,7 +272,7 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
           Sedang Mengerjakan ({sedangMengerjakan.length})
         </h3>
         {sedangMengerjakan.length === 0 ? (
-          <p className="text-xs text-zinc-500">Tidak ada yang sedang mengerjakan.</p>
+          <p className="text-xs text-zinc-500">Tidak ada yang sedang mengerjakan. Kalau seharusnya ada, cek apakah sesi ujian sudah expired atau belum dibuat.</p>
         ) : (
           <div className="space-y-2">
             {sedangMengerjakan.map((u) => (
@@ -288,6 +293,11 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
                     @{u.username} · {u.policeGroupRank ?? "-"}
                     {u.discordUsername && <> · Discord: {u.discordUsername}</>}
                   </p>
+                  {u.attendance?.motivationStatus && (
+                    <p className="mt-1 text-[11px] leading-5 text-zinc-500">
+                      Motivasi: {u.attendance.motivationStatus} · percobaan {u.attendance.motivationAttemptCount}/2
+                    </p>
+                  )}
                   <p className="text-[11px] text-zinc-500">
                     Mulai: {new Date(u.attempt!.startedAt).toLocaleString("id-ID")}
                   </p>
@@ -386,6 +396,16 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
                     @{u.username} · {u.policeGroupRank ?? "-"}
                     {u.discordUsername && <> · Discord: {u.discordUsername}</>}
                   </p>
+                  {u.attendance?.motivationStatus && (
+                    <p className="mt-1 text-[11px] leading-5 text-zinc-500">
+                      Motivasi: {u.attendance.motivationStatus} · percobaan {u.attendance.motivationAttemptCount}/2
+                    </p>
+                  )}
+                </div>
+                <div className="min-w-[220px] text-xs text-zinc-400">
+                  {u.attendance?.motivationStatus ? `Motivasi ${u.attendance.motivationStatus} · percobaan ${u.attendance.motivationAttemptCount}/2` : "Motivasi belum tercatat"}
+                  {u.attendance?.motivationReason ? <div className="mt-1 text-zinc-500">{u.attendance.motivationReason}</div> : null}
+                  {u.attendance?.motivation ? <div className="mt-1 line-clamp-3 text-zinc-500">{u.attendance.motivation}</div> : null}
                 </div>
                 <Badge tone="gold">Absen</Badge>
                 <button

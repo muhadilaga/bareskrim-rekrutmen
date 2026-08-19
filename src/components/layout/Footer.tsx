@@ -2,11 +2,11 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="mt-16 border-t border-white/10 bg-black/30">
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <div className="flex flex-col items-center gap-8 md:flex-row md:justify-between">
+    <footer className="mt-12 border-t border-white/10 bg-black/30">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+        <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
           {/* Logo & Brand */}
-          <div className="flex flex-col items-center gap-3 md:items-start">
+          <div className="flex flex-col items-center gap-3 text-center md:items-start md:text-left">
             <div className="flex items-center gap-3">
               <img
                 src="/logos/logo-header.png"
@@ -25,7 +25,7 @@ export function Footer() {
             </div>
             <p className="text-xs text-zinc-500">[RI] Badan Reserse Kriminal</p>
             {/* Social Media */}
-            <div className="flex items-start gap-4 mt-1">
+            <div className="mt-2 flex items-start justify-center gap-4 md:justify-start">
               <div className="flex flex-col items-center gap-1">
                 <a
                   href="https://www.tiktok.com/@bareskrim.polri.roblox?_r=1&_t=ZS-98b4Dm1WNl2"
@@ -58,7 +58,7 @@ export function Footer() {
           </div>
 
           {/* Links */}
-          <div className="flex gap-8 text-sm">
+          <div className="grid w-full max-w-sm grid-cols-2 gap-6 text-sm sm:max-w-none sm:flex sm:w-auto sm:gap-8">
             <div className="flex flex-col gap-2">
               <p className="font-semibold text-zinc-300">Menu</p>
               <Link href="/" className="text-zinc-500 transition hover:text-gold">Beranda</Link>
@@ -75,7 +75,7 @@ export function Footer() {
 
         {/* Bottom */}
         <div className="gold-line mt-8" />
-        <div className="mt-6 flex flex-col items-center justify-between gap-2 text-xs text-zinc-600 sm:flex-row">
+        <div className="mt-6 flex flex-col items-center justify-between gap-2 text-center text-xs text-zinc-600 sm:flex-row sm:text-left">
           <p>&copy; {new Date().getFullYear()} Bareskrim Polri RBX. All rights reserved.</p>
           <p>Designed & Developed by <span className="font-semibold gold-text">4DIBERL4G4</span></p>
         </div>

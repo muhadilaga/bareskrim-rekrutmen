@@ -167,6 +167,11 @@ const statements: string[] = [
      "tahap" TEXT NOT NULL DEFAULT 'AKADEMIK',
      "status" TEXT NOT NULL DEFAULT 'HADIR',
      "discordUserId" TEXT,
+     "motivation" TEXT,
+     "motivationStatus" TEXT,
+     "motivationReason" TEXT,
+     "motivationAttemptCount" INTEGER NOT NULL DEFAULT 1,
+     "roleEligible" BOOLEAN NOT NULL DEFAULT false,
      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
      CONSTRAINT "Attendance_pkey" PRIMARY KEY ("id"),
      CONSTRAINT "Attendance_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -183,6 +188,11 @@ const statements: string[] = [
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isExamOpen" BOOLEAN NOT NULL DEFAULT false;`,
   `ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "isAttendanceOpen" BOOLEAN NOT NULL DEFAULT false;`,
   `ALTER TABLE "ExamPeriod" ALTER COLUMN "openedAt" DROP NOT NULL;`,
+  `ALTER TABLE "Attendance" ADD COLUMN IF NOT EXISTS "motivation" TEXT;`,
+  `ALTER TABLE "Attendance" ADD COLUMN IF NOT EXISTS "motivationStatus" TEXT;`,
+  `ALTER TABLE "Attendance" ADD COLUMN IF NOT EXISTS "motivationReason" TEXT;`,
+  `ALTER TABLE "Attendance" ADD COLUMN IF NOT EXISTS "motivationAttemptCount" INTEGER NOT NULL DEFAULT 1;`,
+  `ALTER TABLE "Attendance" ADD COLUMN IF NOT EXISTS "roleEligible" BOOLEAN NOT NULL DEFAULT false;`,
 
   // ===== Index Unik =====
   `CREATE UNIQUE INDEX IF NOT EXISTS "User_robloxId_key" ON "User"("robloxId");`,
@@ -230,6 +240,10 @@ export async function schemaExists(): Promise<boolean> {
          (SELECT COUNT(*) FROM information_schema.columns
             WHERE table_schema = 'public'
               AND table_name = 'ExamPeriod' AND column_name IN ('isExamOpen', 'isAttendanceOpen')) = 2
+         AND
+         (SELECT COUNT(*) FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'Attendance' AND column_name IN ('motivation', 'motivationStatus', 'motivationReason', 'motivationAttemptCount', 'roleEligible')) = 5
        ) AS ok`
     );
     return (rows as Array<{ ok: boolean }>)[0]?.ok === true;
