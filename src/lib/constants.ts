@@ -19,6 +19,15 @@ let runtimeSettings: Partial<{
   discordBlacklistPendidikanChannelId: string;
 }> = {};
 
+function cleanEnvString(value: string | undefined | null): string {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return "";
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 function getEnvOrRuntime<T>(key: keyof typeof runtimeSettings, envValue: T): T {
   const runtime = runtimeSettings[key];
   return runtime !== undefined ? (runtime as T) : envValue;
@@ -47,18 +56,18 @@ function buildConfig() {
       .map((s) => s.trim())
       .filter(Boolean)),
     // Discord Bot API
-    discordBotApiUrl: getEnvOrRuntime("discordBotApiUrl", process.env.DISCORD_BOT_API_URL ?? "http://localhost:3001"),
-    discordBotSecret: getEnvOrRuntime("discordBotSecret", process.env.DISCORD_BOT_SECRET ?? "BareskrimBotSecret2026"),
-    tahapAkademikRoleId: getEnvOrRuntime("tahapAkademikRoleId", process.env.TAHAP_AKADEMIK_ROLE_ID ?? ""),
-    tahapInterviewRoleId: getEnvOrRuntime("tahapInterviewRoleId", process.env.TAHAP_INTERVIEW_ROLE_ID ?? ""),
+    discordBotApiUrl: getEnvOrRuntime("discordBotApiUrl", cleanEnvString(process.env.DISCORD_BOT_API_URL) || "http://localhost:3001"),
+    discordBotSecret: getEnvOrRuntime("discordBotSecret", cleanEnvString(process.env.DISCORD_BOT_SECRET) || "BareskrimBotSecret2026"),
+    tahapAkademikRoleId: getEnvOrRuntime("tahapAkademikRoleId", cleanEnvString(process.env.TAHAP_AKADEMIK_ROLE_ID)),
+    tahapInterviewRoleId: getEnvOrRuntime("tahapInterviewRoleId", cleanEnvString(process.env.TAHAP_INTERVIEW_ROLE_ID)),
     // Discord REST API (langsung dari server, tanpa bot server)
-    discordBotToken: getEnvOrRuntime("discordBotToken", process.env.DISCORD_BOT_TOKEN ?? ""),
-    discordGuildId: getEnvOrRuntime("discordGuildId", process.env.DISCORD_GUILD_ID ?? ""),
-    discordChannelId: getEnvOrRuntime("discordChannelId", process.env.DISCORD_CHANNEL_ID ?? ""),
-    discordWebhookUrl: getEnvOrRuntime("discordWebhookUrl", process.env.DISCORD_WEBHOOK_URL ?? ""),
+    discordBotToken: getEnvOrRuntime("discordBotToken", cleanEnvString(process.env.DISCORD_BOT_TOKEN)),
+    discordGuildId: getEnvOrRuntime("discordGuildId", cleanEnvString(process.env.DISCORD_GUILD_ID)),
+    discordChannelId: getEnvOrRuntime("discordChannelId", cleanEnvString(process.env.DISCORD_CHANNEL_ID)),
+    discordWebhookUrl: getEnvOrRuntime("discordWebhookUrl", cleanEnvString(process.env.DISCORD_WEBHOOK_URL)),
     discordBlacklistPendidikanChannelId: getEnvOrRuntime(
       "discordBlacklistPendidikanChannelId",
-      process.env.DISCORD_BLACKLIST_PENDIDIKAN_CHANNEL_ID ?? ""
+      cleanEnvString(process.env.DISCORD_BLACKLIST_PENDIDIKAN_CHANNEL_ID)
     ),
   } as const;
 }
