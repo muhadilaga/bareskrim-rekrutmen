@@ -82,7 +82,6 @@ export async function GET(req: Request) {
 
   try {
     const periods = await prisma.examPeriod.findMany({
-      orderBy: { openedAt: "desc" },
       include: {
         _count: { select: { attempts: true, attendances: true } },
         attempts: {
@@ -100,6 +99,15 @@ export async function GET(req: Request) {
           },
         },
       },
+    });
+    periods.sort((a, b) => {
+      if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+      const aOpened = a.openedAt ? new Date(a.openedAt).getTime() : 0;
+      const bOpened = b.openedAt ? new Date(b.openedAt).getTime() : 0;
+      if (aOpened !== bOpened) return bOpened - aOpened;
+      const aClosed = a.closedAt ? new Date(a.closedAt).getTime() : 0;
+      const bClosed = b.closedAt ? new Date(b.closedAt).getTime() : 0;
+      return bClosed - aClosed;
     });
     return NextResponse.json({ ok: true, periods });
   } catch (e) {
@@ -151,10 +159,16 @@ export async function PATCH(req: Request) {
       await logAdminAction({ action: "TUTUP_PERIODE", target: period?.name ?? periodId });
       return NextResponse.json({ ok: true, message: "Periode berhasil ditutup." });
     } else if (action === "reopen") {
-      await prisma.examPeriod.update({
-        where: { id: periodId },
-        data: { closedAt: null, isActive: true },
-      });
+      await prisma.$transaction([
+        prisma.examPeriod.updateMany({
+          where: { isActive: true, NOT: { id: periodId } },
+          data: { isActive: false, closedAt: new Date() },
+        }),
+        prisma.examPeriod.update({
+          where: { id: periodId },
+          data: { closedAt: null, isActive: true },
+        }),
+      ]);
       await logAdminAction({ action: "BUKA_KEMBALI_PERIODE", target: period?.name ?? periodId });
       return NextResponse.json({ ok: true, message: "Periode berhasil dibuka kembali." });
     } else if (action === "reset") {
