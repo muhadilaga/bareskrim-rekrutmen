@@ -1,6 +1,6 @@
 # 🛡️ BARESKRIM POLRI — Sistem Rekrutmen & Ujian Online (Roblox RP)
 
-Sistem website full-stack untuk rekrutmen calon anggota (casis) Bareskrim Polri Roblox Roleplay. Tema **Red & Gold/Crimson** khas instansi kepolisian, dengan verifikasi identitas Roblox langsung, cross-group check anti-matra, ujian 20 soal (15 PG + 5 Essay) auto-grading server-side, pembatasan 1x percobaan per periode, serta laporan real-time ke Discord.
+Sistem website full-stack untuk rekrutmen calon anggota (casis) Bareskrim Polri Roblox Roleplay. Tema **Red & Gold/Crimson** khas instansi kepolisian, dengan verifikasi identitas Roblox langsung, cross-group check anti-matra, absensi awal dengan alasan/motivasi, ujian 20 soal (15 PG + 5 Essay) auto-grading server-side, pembatasan 1x percobaan per periode, panel admin 2-step verification, serta laporan real-time ke Discord.
 
 ## ✨ Fitur Utama
 
@@ -11,12 +11,15 @@ Sistem website full-stack untuk rekrutmen calon anggota (casis) Bareskrim Polri 
 | ⛔ Matra Check | Tolak otomatis bila casis terdaftar di grup matra lain (TNI AD / TNI AL) |
 | 📝 Ujian 20 Soal | 15 Pilihan Ganda (4 poin) + 5 Essay (8 poin) = total 100 poin |
 | ⚡ Auto-Grading | PG dinilai otomatis server-side, essay via kata kunci, nilai instan & transparan |
-| ✅ KKM 70 | Status tegas `LULUS KKM` / `TIDAK LULUS` (KKM dapat diubah via admin panel) |
+| 🖼️ Galeri Bareskrim | Landing page menampilkan galeri dokumentasi + caption sejarah singkat pendirian |
+| 🧠 Alasan / Motivasi | Absensi awal menyimpan alasan/motivasi, dinilai deterministik, dan bisa direview admin |
+| ✅ Lolos ke Tahap Interview | KKM tidak lagi menjadi gerbang kelulusan; hasil ujian diarahkan ke tahap interview |
 | 🔒 Limit 1x | Satu percobaan per casis per periode; percobaan ulang menampilkan hasil lama |
 | 🎲 Reset & Acak Soal | Setiap periode baru: seed baru → subset & urutan soal berbeda dari periode sebelumnya |
-| 📣 Discord Webhook | Embed real-time ke channel `pusdik` (avatar, nama, pangkat, skor, rekap jawaban) |
+| 📣 Discord Integration | Laporan hasil ujian, assignment role, dan admin fetch pesan channel via Discord API/Webhook |
+| 🔐 Admin 2-Step Verification | Admin panel butuh `ADMIN_KEY` + verifikasi role Discord `Personel Staff Pusdik` |
 | 🔐 Anti-Cheat | Kunci jawaban tidak pernah dikirim ke client; grading 100% di server |
-| ⚙️ Admin Panel Runtime Settings | KKM, durasi ujian, jumlah soal, grup ID, role ID, konfigurasi Discord dapat diubah tanpa restart server (meminjam dari `getSettings()`) |
+| ⚙️ Admin Panel Runtime Settings | Durasi ujian, jumlah soal, grup ID, role ID, dan konfigurasi Discord dapat diubah tanpa restart server (meminjam dari `getSettings()`) |
 | 🛡️ Security Headers | CSP & CSRF protection via `next.config.mjs` |
 | 📜 Structured Logging | Pino‑based logger dengan level, audit, timing, dan HTTP request logging |
 | ✅ Unit & E2E Tests | Vitest untuk unit, Playwright untuk end‑to‑end smoke test |
@@ -31,7 +34,7 @@ Sistem website full-stack untuk rekrutmen calon anggota (casis) Bareskrim Polri 
 - **ORM:** Prisma
 - **Auth:** JWT (jose) dalam HTTP‑only cookie
 - **Validasi:** Zod
-- **Integrasi:** Roblox Public API + Discord Webhook
+- **Integrasi:** Roblox Public API + Discord REST API + Discord Webhook
 - **Testing:** Vitest, Playwright
 - **Linting / Formatting:** ESLint + Prettier (opsional)
 
@@ -82,8 +85,8 @@ bareskrim-rekrutmen/
     │   ├── auth.ts        # JWT + session cookie utilities
     │   ├── grading.ts     # Shuffle soal berbasis seed + auto‑grading engine
     │   ├── exam-service.ts# Logika mulai/submit ujian
-    │   ├── discord.ts     # Discord webhook embed builder
-    │   ├── constants.ts   # Konfigurasi default (KKM, grup, dll) + getSettings()/updateSettings()
+    │   ├── discord.ts     # Discord report/webhook helper
+    │   ├── constants.ts   # Konfigurasi default (grup, role Discord, env runtime) + getSettings()/updateSettings()
     │   ├── logger.ts      # Pino‑based logger dengan audit & timing
     │   ├── csrf.ts        # CSRF protection helper
     │   └── utils.ts       # Helper fungsi umum
@@ -98,7 +101,7 @@ bareskrim-rekrutmen/
 
 - Node.js **18.18+** / 20+
 - PostgreSQL (lokal / Supabase / Neon / Railway)
-- Discord Webhook URL (channel `pusdik`)
+- Discord Bot Token + Guild/Channel ID + Discord Webhook URL
 
 ### Langkah
 
@@ -111,8 +114,10 @@ npm install
 
 # 3. Siapkan environment
 cp .env.example .env
-#    lalu isi DATABASE_URL, JWT_SECRET, DISCORD_WEBHOOK_URL,
-#    REQUIRED_GROUP_ID, POLICE_GROUP_ID, BANNED_GROUP_IDS, ADMIN_KEY, dll.
+#    lalu isi DATABASE_URL, JWT_SECRET, ADMIN_KEY,
+#    DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_CHANNEL_ID,
+#    DISCORD_WEBHOOK_URL, REQUIRED_GROUP_ID, POLICE_GROUP_ID,
+#    BANNED_GROUP_IDS, role ID Discord, dll.
 
 # 4. Buat database + tabel
 npm run db:migrate        # atau: npm run db:push
@@ -148,6 +153,10 @@ Casis → /login (input username Roblox)
           ├─ Terdaftar di grup TNI AD / TNI AL?        ── ya ────> /tolak (matra block)
           ├─ Ambil pangkat di grup Kepolisian
           └─ Buat/update User + set cookie JWT (httpOnly)
+      → /absensi
+          ├─ Input alasan / motivasi
+          ├─ Evaluasi deterministik (APPROVED / REVIEW / REJECTED)
+          └─ Lolos verifikasi → boleh lanjut ujian
       → /ujian
           ├─ startExamSession: cek periode aktif
           ├─ Sudah pernah submit periode ini? ── ya ──> redirect /hasil (tampil hasil lama)
@@ -156,8 +165,9 @@ Casis → /login (input username Roblox)
           ├─ Validasi kepemilikan attempt & waktu
           ├─ Auto-grade server-side (PG + essay keyword)
           ├─ Simpan ExamResult, ExamAnswer, tandai attempt submitted
-          └─ Kirim Discord embed ke channel pusdik (real‑time)
-      → /hasil  (nilai instan, LULUS/TIDAK LULUS, rekap jawaban)
+          ├─ Assign role Discord tahap interview
+          └─ Kirim laporan Discord (real‑time)
+      → /hasil  (nilai instan, LOLOS TAHAP INTERVIEW, rekap jawaban)
 ```
 
 ### Periode Baru (Reset & Pengacakan)
@@ -176,8 +186,9 @@ Admin membuka periode baru di `/admin` → API menutup periode lama, membuat per
 
 ## 📣 Contoh Output Discord (channel `pusdik`)
 
-- **Embed 1:** Foto avatar casis (thumbnail), nama/username, link profil Roblox, pangkat grup Kepolisian, skor akhir `X/100`, status `LULUS KKM 🟢` / `TIDAK LULUS 🔴`, rincian nilai MCQ & Essay.
-- **Embed 2:** Rekap jawaban Pilihan Ganda (jawaban vs kunci) dan Essay (teks jawaban) untuk cross‑check instruktur.
+- **Embed 1:** Foto avatar casis (thumbnail), nama/username, link profil Roblox, pangkat grup Kepolisian, skor akhir `X/100`, dan tahap lanjutan `TAHAP INTERVIEW`.
+- **Embed 2:** Rekap jawaban Pilihan Ganda (jawaban vs kunci) dan Essay (teks jawaban) untuk cross-check instruktur.
+- Admin panel juga dapat mengambil daftar pesan bot terbaru langsung dari channel Discord untuk pengecekan / pembersihan.
 
 ## 🗃️ Ringkasan Database Schema
 
@@ -186,7 +197,7 @@ Admin membuka periode baru di `/admin` → API menutup periode lama, membuat per
 - `Question` — bank soal MCQ (`options`, `correctKey`) & Essay (`keywords`).
 - `ExamAttempt` — satu percobaan per periode (`attemptKey` unik), snapshot soal + waktu.
 - `ExamAnswer` — jawaban tiap soal (arsip + rekap).
-- `ExamResult` — skor akhir, status KKM, rekap JSON, timestamp.
+- `ExamResult` — skor akhir, status hasil, rekap JSON, timestamp.
 - Semua tabel memiliki kolom `deletedAt` untuk soft delete serta indeks yang sesuai untuk performa.
 
 ## 🧪 Scripts
