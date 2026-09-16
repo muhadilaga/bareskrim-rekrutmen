@@ -20,7 +20,6 @@ export interface RobloxGroupRole {
 
 const ROBLOX_HEADERS = {
   "Content-Type": "application/json",
-  "User-Agent": "BareskrimRekrutmen/1.0 (roleplay-community)",
 };
 
 function sleep(ms: number): Promise<void> {
@@ -65,19 +64,36 @@ const resolveCache = new Map<string, { at: number; value: RobloxUserInfo | null 
 export async function resolveUserByUsername(
   username: string
 ): Promise<RobloxUserInfo | null> {
-  const key = username.trim().toLowerCase();
-  const hit = resolveCache.get(key);
+  const lookup = username.trim();
+  const profileIdMatch = lookup.match(/^(?:https?:\/\/)?(?:www\.)?roblox\.com\/users\/(\d+)\/profile\/?$/i);
+  const numericId = profileIdMatch?.[1] ?? (/^\d+$/.test(lookup) ? lookup : null);
+  if (numericId) {
+    return getUserById(Number(numericId));
+  }
+  const cacheKey = lookup.toLowerCase();
+  const hit = resolveCache.get(cacheKey);
   if (hit && Date.now() - hit.at < RESOLVE_CACHE_TTL_MS) {
     return hit.value;
   }
-  const value = await doResolve(key);
+  const value = await doResolve(lookup);
   if (resolveCache.size > 1000) resolveCache.clear();
-  resolveCache.set(key, { at: Date.now(), value });
+  resolveCache.set(cacheKey, { at: Date.now(), value });
   return value;
 }
 
-async function doResolve(key: string): Promise<RobloxUserInfo | null> {
-  const body = { usernames: [key], excludeBannedUsers: true };
+async function getUserById(userId: number): Promise<RobloxUserInfo | null> {
+  const json = await robloxFetch<{
+    id: number;
+    name: string;
+    displayName: string;
+  }>(`https://users.roblox.com/v1/users/${userId}`);
+
+  return { id: json.id, name: json.name, displayName: json.displayName };
+}
+
+async function doResolve(username: string): Promise<RobloxUserInfo | null> {
+  const cacheKey = username.toLowerCase();
+  const body = { usernames: [username], excludeBannedUsers: false };
   const json = await robloxFetch<{
     data: Array<{
       requestedUsername: string;
@@ -91,7 +107,11 @@ async function doResolve(key: string): Promise<RobloxUserInfo | null> {
     body: JSON.stringify(body),
   });
 
-  const hit = json.data.find((u) => u.requestedUsername.toLowerCase() === key);
+  const hit = json.data.find(
+    (u) =>
+      u.requestedUsername.toLowerCase() === cacheKey ||
+      u.name.toLowerCase() === cacheKey
+  );
   if (!hit) return null;
   return { id: hit.id, name: hit.name, displayName: hit.displayName };
 }

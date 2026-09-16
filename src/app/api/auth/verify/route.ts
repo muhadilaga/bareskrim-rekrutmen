@@ -39,14 +39,20 @@ function rankBlockedResponse(rankName: string | null) {
   );
 }
 
-// Apakah user sudah absen pada periode aktif? (by userId terverifikasi)
-async function needsAbsen(userId: string): Promise<boolean> {
+// Status absensi pada periode aktif. Jika absensi sedang dibuka, login boleh lanjut
+// ke kartu casis tanpa dipaksa callback ke /absen agar halaman ringan.
+async function getAttendanceGate(userId: string): Promise<{ needsAbsen: boolean; attendanceOpen: boolean }> {
   const activePeriod = await prisma.examPeriod.findFirst({ where: { isActive: true } });
-  if (!activePeriod) return false;
+  if (!activePeriod) return { needsAbsen: false, attendanceOpen: false };
+  const now = new Date();
+  const attendanceOpen =
+    activePeriod.isAttendanceOpen &&
+    (!activePeriod.openedAt || now >= activePeriod.openedAt) &&
+    (!activePeriod.closedAt || now <= activePeriod.closedAt);
   const count = await prisma.attendance.count({
     where: { periodId: activePeriod.id, tahap: "AKADEMIK", userId },
   });
-  return count === 0;
+  return { needsAbsen: count === 0, attendanceOpen };
 }
 
 export async function POST(req: Request) {
@@ -94,12 +100,13 @@ export async function POST(req: Request) {
           where: { id: cached.id },
           data: { discordUsername: parsed.data.discordUsername },
         });
-        const mustAbsen = await needsAbsen(cached.id);
+        const gate = await getAttendanceGate(cached.id);
         await createSessionCookie(cached.id, Number(cached.robloxId));
         return NextResponse.json({
           success: true,
-          code: mustAbsen ? "NO_ATTENDANCE" : undefined,
-          needsAbsen: mustAbsen,
+          code: gate.needsAbsen && !gate.attendanceOpen ? "NO_ATTENDANCE" : undefined,
+          needsAbsen: gate.needsAbsen,
+          attendanceOpen: gate.attendanceOpen,
           user: {
             robloxId: Number(cached.robloxId),
             username: cached.username,
@@ -281,13 +288,14 @@ export async function POST(req: Request) {
       // Tidak fatal, user bisa coba lagi
     }
 
-    const mustAbsen = await needsAbsen(user.id);
-    await createSessionCookie(user.id, Number(user.robloxId));
+    const gate = await getAttendanceGate(user.id);
+    await createSessionCookie(user.id, Number(userInfo.id));
 
     return NextResponse.json({
       success: true,
-      code: mustAbsen ? "NO_ATTENDANCE" : undefined,
-      needsAbsen: mustAbsen,
+      code: gate.needsAbsen && !gate.attendanceOpen ? "NO_ATTENDANCE" : undefined,
+      needsAbsen: gate.needsAbsen,
+      attendanceOpen: gate.attendanceOpen,
       user: {
         robloxId: Number(user.robloxId),
         username: user.username,

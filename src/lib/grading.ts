@@ -203,13 +203,13 @@ export function gradeExam(
     }
   }
 
-  const passed = true;
+  const passed = score >= _kkm;
   return {
     score,
     maxScore,
     mcqScore,
     essayScore,
-    status: "LULUS",
+    status: passed ? "LULUS" : "TIDAK_LULUS",
     passed,
     details,
   };

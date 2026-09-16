@@ -394,6 +394,11 @@ export interface DiscordChannelMessage {
   id: string;
   content?: string;
   timestamp?: string;
+  mentions?: Array<{
+    id: string;
+    username?: string;
+    global_name?: string;
+  }>;
   embeds?: Array<{
     title?: string;
     description?: string;
@@ -421,22 +426,36 @@ export async function fetchDiscordChannelMessages(
   }
 
   try {
-    const res = await fetch(
-      `${DISCORD_API}/channels/${channelId}/messages?limit=${Math.max(1, Math.min(limit, 100))}`,
-      { headers: botHeaders(), signal: AbortSignal.timeout(20_000) }
-    );
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      const hint = res.status === 403
-        ? " Bot kemungkinan belum punya izin Read Message History / View Channel pada channel ini."
-        : "";
-      return {
-        ok: false,
-        messages: [],
-        message: `Gagal membaca pesan channel Discord: ${res.status}${body ? ` ${body.slice(0, 200)}` : ""}.${hint}`,
-      };
+    const maxMessages = Math.max(1, Math.min(limit, 500));
+    const messages: DiscordChannelMessage[] = [];
+    let before: string | null = null;
+
+    while (messages.length < maxMessages) {
+      const pageLimit = Math.min(100, maxMessages - messages.length);
+      const beforeParam = before ? `&before=${before}` : "";
+      const res = await fetch(
+        `${DISCORD_API}/channels/${channelId}/messages?limit=${pageLimit}${beforeParam}`,
+        { headers: botHeaders(), signal: AbortSignal.timeout(20_000) }
+      );
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        const hint = res.status === 403
+          ? " Bot kemungkinan belum punya izin Read Message History / View Channel pada channel ini."
+          : "";
+        return {
+          ok: false,
+          messages: [],
+          message: `Gagal membaca pesan channel Discord: ${res.status}${body ? ` ${body.slice(0, 200)}` : ""}.${hint}`,
+        };
+      }
+
+      const page = (await res.json()) as DiscordChannelMessage[];
+      if (page.length === 0) break;
+      messages.push(...page);
+      before = page[page.length - 1]?.id ?? null;
+      if (page.length < pageLimit || !before) break;
     }
-    const messages = (await res.json()) as DiscordChannelMessage[];
+
     return { ok: true, messages };
   } catch (e) {
     console.error("fetchDiscordChannelMessages error:", e);
@@ -445,5 +464,32 @@ export async function fetchDiscordChannelMessages(
       messages: [],
       message: `Error membaca pesan channel Discord: ${e instanceof Error ? e.message : String(e)}`,
     };
+  }
+}
+
+export async function fetchDiscordGuildMemberNames(userId: string): Promise<string[]> {
+  const token = CONFIG.discordBotToken;
+  const guildId = CONFIG.discordGuildId;
+  if (!token || !guildId || !userId) return [];
+
+  try {
+    const res = await fetch(`${DISCORD_API}/guilds/${guildId}/members/${userId}`, {
+      headers: botHeaders(),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) return [];
+
+    const member = await res.json() as {
+      nick?: string | null;
+      user?: {
+        username?: string | null;
+        global_name?: string | null;
+      };
+    };
+
+    return [member.nick, member.user?.username, member.user?.global_name]
+      .filter((name): name is string => !!name?.trim());
+  } catch {
+    return [];
   }
 }

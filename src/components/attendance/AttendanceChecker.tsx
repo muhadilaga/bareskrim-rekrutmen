@@ -17,7 +17,6 @@ export function AttendanceChecker() {
   const [warning, setWarning] = useState(false);
   const [noPeriod, setNoPeriod] = useState<boolean | null>(null);
   const [fetchError, setFetchError] = useState(false);
-  const [attendanceOpen, setAttendanceOpen] = useState<boolean | null>(null);
   const [checkingAttendance, setCheckingAttendance] = useState(true);
   const [attendanceData, setAttendanceData] = useState<{
     status: string;
@@ -65,7 +64,6 @@ export function AttendanceChecker() {
     ])
       .then(([periodData, attendData]) => {
         setNoPeriod(!periodData.active);
-        setAttendanceOpen(periodData.period?.isAttendanceOpen ?? false);
         if (attendData.attended) {
           // Sudah absen → tampilkan tombol mulai ujian
           setAttended(true);
@@ -183,25 +181,6 @@ export function AttendanceChecker() {
     );
   }
 
-  // Periode aktif tapi absen belum dibuka
-  if (!attendanceOpen && !attended) {
-    return (
-      <div className="bg-hero-radial flex min-h-[70vh] items-center justify-center px-4 py-16">
-        <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/10">
-            <span className="text-3xl">📋</span>
-          </div>
-          <h1 className="font-display text-xl font-bold text-zinc-100">Absen Belum Dibuka</h1>
-          <p className="mt-3 text-sm text-zinc-400">
-            Instruktur belum membuka sesi absen. Silakan tunggu pengumuman dari Discord.
-          </p>
-          <Link href="/" className="mt-6 inline-block">
-            <Button variant="ghost">Kembali ke Beranda</Button>
-          </Link>
-        </Card>
-      </div>
-    );
-  }
 
   // Loading state
   if (loading || checkingAttendance) {

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { CONFIG } from "@/lib/constants";
 import { gradeExam } from "@/lib/grading";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const now = new Date();
   const graceMs = 5 * 60_000;

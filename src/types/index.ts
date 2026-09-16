@@ -15,6 +15,7 @@ export interface VerifyResponse {
     | "INTERNAL";
   message?: string;
   needsAbsen?: boolean;
+  attendanceOpen?: boolean;
   user?: {
     robloxId: number;
     username: string;

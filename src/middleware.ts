@@ -12,6 +12,7 @@ const PROTECTED_PREFIXES = [
 const EXEMPT_PATHS = new Set([
   "/api/admin/auth/verify-staff",
   "/api/admin/auth/session",
+  "/api/admin/init",
 ]);
 
 function isProtected(pathname: string) {

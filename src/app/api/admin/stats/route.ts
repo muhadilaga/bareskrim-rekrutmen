@@ -3,6 +3,8 @@ import { getAdminKey } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 // GET: Statistik ringkasan untuk dashboard admin.
 // ?periodId= opsional; default periode aktif (atau semua bila tidak ada aktif).
 export async function GET(req: Request) {

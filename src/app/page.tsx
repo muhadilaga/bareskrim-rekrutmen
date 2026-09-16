@@ -1,11 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { prisma } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 const recruitmentSteps = [
   {
@@ -31,20 +31,20 @@ const recruitmentSteps = [
 ];
 
 const galleryImages = [
-  "/galeri-bareskrim/PROPAGANDA_RESMOB.png",
-  "/galeri-bareskrim/PROPAGANDA_JATANRAS.png",
-  "/galeri-bareskrim/1.png",
-  "/galeri-bareskrim/2.png",
-  "/galeri-bareskrim/3.png",
-  "/galeri-bareskrim/4.png",
-  "/galeri-bareskrim/5.png",
-  "/galeri-bareskrim/6.png",
-  "/galeri-bareskrim/7.png",
-  "/galeri-bareskrim/8.png",
-  "/galeri-bareskrim/9.png",
-  "/galeri-bareskrim/10.png",
-  "/galeri-bareskrim/11.png",
-  "/galeri-bareskrim/12.jpg",
+  "/galeri-bareskrim/PROPAGANDA_RESMOB.webp",
+  "/galeri-bareskrim/PROPAGANDA_JATANRAS.webp",
+  "/galeri-bareskrim/1.webp",
+  "/galeri-bareskrim/2.webp",
+  "/galeri-bareskrim/3.webp",
+  "/galeri-bareskrim/4.webp",
+  "/galeri-bareskrim/5.webp",
+  "/galeri-bareskrim/6.webp",
+  "/galeri-bareskrim/7.webp",
+  "/galeri-bareskrim/8.webp",
+  "/galeri-bareskrim/9.webp",
+  "/galeri-bareskrim/10.webp",
+  "/galeri-bareskrim/11.webp",
+  "/galeri-bareskrim/12.webp",
 ];
 
 const historyCaption = `Sejarah Singkat Pendirian Bareskrim Polri Roblox
@@ -108,7 +108,7 @@ function HomePageSkeleton() {
         Memuat periode aktif dan status rekrutmen...
       </div>
       <section className="relative overflow-hidden py-20 text-center md:py-28">
-        <div className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: "url('/logos/background.png')", backgroundPosition: "center 70%", backgroundSize: "cover", opacity: 0.3 }} />
+        <div className="absolute inset-0 bg-no-repeat" style={{ backgroundImage: "url('/logos/background.webp')", backgroundPosition: "center 70%", backgroundSize: "cover", opacity: 0.3 }} />
         <div className="absolute inset-0 bg-rose-50/30 dark:hidden" />
         <div className="absolute inset-0 dark:bg-crimson-950/70" />
         <div className="absolute inset-0 chequered opacity-20 dark:opacity-30" />
@@ -142,22 +142,10 @@ function HomePageSkeleton() {
 }
 
 export default async function HomePage() {
-  const user = await getSessionUser();
   const activePeriod = await prisma.examPeriod
     .findFirst({ where: { isActive: true } })
     .catch(() => null);
 
-  let hasActiveAttempt = false;
-  if (user && activePeriod) {
-    const attempt = await prisma.examAttempt.findFirst({
-      where: {
-        periodId: activePeriod.id,
-        userId: user.id,
-        submittedAt: null,
-      },
-    });
-    hasActiveAttempt = !!attempt;
-  }
   const closedRecently = await prisma.examPeriod
     .findFirst({
       where: { isActive: false, closedAt: { not: null } },
@@ -203,7 +191,7 @@ export default async function HomePage() {
         <div
           className="absolute inset-0 bg-no-repeat"
           style={{
-            backgroundImage: "url('/logos/background.png')",
+            backgroundImage: "url('/logos/background.webp')",
             backgroundPosition: "center 70%",
             backgroundSize: "cover",
             opacity: 0.3,
@@ -226,12 +214,12 @@ export default async function HomePage() {
             key={"h-" + i}
             className="absolute rounded-full dark:bg-gold/20 bg-crimson-400/30"
             style={{
-              top: `${10 + Math.random() * 80}%`,
-              left: `${Math.random() * 15}%`,
-              width: `${1 + Math.random() * 2}px`,
-              height: `${1 + Math.random() * 2}px`,
-              animation: `twinkle ${2 + Math.random() * 3}s infinite ease-in-out`,
-              animationDelay: `${-Math.random() * 5}s`,
+              top: `${10 + ((i * 17) % 80)}%`,
+              left: `${(i * 7) % 15}%`,
+              width: `${1 + (i % 3)}px`,
+              height: `${1 + (i % 3)}px`,
+              animation: `twinkle ${2 + (i % 4)}s infinite ease-in-out`,
+              animationDelay: `${-(i % 5)}s`,
             }}
           />
         ))}
@@ -240,12 +228,12 @@ export default async function HomePage() {
             key={"r-" + i}
             className="absolute rounded-full dark:bg-gold/20 bg-crimson-400/30"
             style={{
-              top: `${10 + Math.random() * 80}%`,
-              right: `${Math.random() * 15}%`,
-            width: `${1 + Math.random() * 2}px`,
-            height: `${1 + Math.random() * 2}px`,
-            animation: `twinkle ${2 + Math.random() * 3}s infinite ease-in-out`,
-            animationDelay: `${-Math.random() * 5}s`,
+              top: `${10 + ((i * 19) % 80)}%`,
+              right: `${(i * 11) % 15}%`,
+            width: `${1 + (i % 3)}px`,
+            height: `${1 + (i % 3)}px`,
+            animation: `twinkle ${2 + (i % 4)}s infinite ease-in-out`,
+            animationDelay: `${-(i % 5)}s`,
           }}
         />
       ))}
@@ -275,12 +263,12 @@ export default async function HomePage() {
               </span>
             )}
 
-            {activePeriod && (activePeriod.isExamOpen || hasActiveAttempt) ? (
+            {activePeriod && activePeriod.isExamOpen ? (
               <Link
                 href="/ujian"
                 className="w-full rounded-lg border border-emerald-500/40 bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-700 px-6 py-3.5 text-center font-semibold text-white shadow-lg transition hover:brightness-110 sm:w-auto sm:min-w-[220px]"
               >
-                {hasActiveAttempt ? "Lanjutkan Ujian" : "Mulai Ujian"}
+                Mulai Ujian
               </Link>
             ) : (
               <span className="w-full cursor-not-allowed rounded-lg border border-white/10 bg-white/5 px-6 py-3.5 text-center text-sm font-semibold text-zinc-500 sm:w-auto sm:min-w-[220px]">
@@ -374,10 +362,12 @@ export default async function HomePage() {
                 key={src}
                 className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 shadow-lg animate-slide-up ${featured ? "sm:col-span-1 sm:row-span-2 lg:col-span-1" : ""}`}
               >
-                <img
+                <Image
                   src={src}
                   alt={`Galeri Bareskrim ${i + 1}`}
-                  className={`h-full w-full transition duration-500 group-hover:scale-[1.03] group-hover:brightness-110 ${featured ? "object-contain bg-black/70 p-2" : "object-cover"}`}
+                  fill
+                  sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                  className={`transition duration-500 group-hover:scale-[1.03] group-hover:brightness-110 ${featured ? "object-contain bg-black/70 p-2" : "object-cover"}`}
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-80" />

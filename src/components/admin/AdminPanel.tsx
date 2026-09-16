@@ -1,14 +1,16 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { CandidatesTab } from "@/components/admin/CandidatesTab";
-import { BlacklistTab } from "@/components/admin/BlacklistTab";
-import { CasisManagement } from "@/components/admin/CasisManagement";
-import { DiscordMessagesTab } from "@/components/admin/DiscordMessagesTab";
 import { useToastContext } from "@/components/ui/Toast";
+
+const CandidatesTab = dynamic(() => import("@/components/admin/CandidatesTab").then((mod) => mod.CandidatesTab), { ssr: false });
+const BlacklistTab = dynamic(() => import("@/components/admin/BlacklistTab").then((mod) => mod.BlacklistTab), { ssr: false });
+const CasisManagement = dynamic(() => import("@/components/admin/CasisManagement").then((mod) => mod.CasisManagement), { ssr: false });
+const DiscordMessagesTab = dynamic(() => import("@/components/admin/DiscordMessagesTab").then((mod) => mod.DiscordMessagesTab), { ssr: false });
 
 interface Stats {
   totalUsers: number;
@@ -314,24 +316,36 @@ export function AdminPanel() {
     setAuthed(true);
     // Simpan kunci agar tidak perlu memasukkan ulang saat pindah panel/refresh.
     if (key) sessionStorage.setItem("admin_key", key);
-    // Muat statistik & log secara best-effort
+    // Muat statistik ringan saja; log/diagnostics/discord queue dimuat saat tab terkait dibuka.
     fetch("/api/admin/stats", { headers })
       .then((r) => (r.ok ? r.json() : null))
       .then((sj) => setStats(sj?.stats ?? null))
       .catch(() => {});
-    fetch("/api/admin/logs?limit=30", { headers })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((lj) => setLogs(lj?.logs ?? []))
-      .catch(() => {});
-    fetch("/api/admin/diagnostics", { headers })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((dj) => setDiagnostics(dj ? { healthy: !!dj.healthy, warnings: dj.warnings ?? [], checks: dj.checks ?? {} } : null))
-      .catch(() => {});
-    fetch("/api/admin/discord-retry", { headers })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((rq) => setRetryQueue(rq ? { pending: rq.pending ?? 0, total: rq.total ?? 0, exhausted: rq.exhausted ?? 0, items: rq.items ?? [] } : null))
-      .catch(() => {});
   }, [headers, key]);
+
+  useEffect(() => {
+    if (!authed) return;
+    if (tab === "log") {
+      if (logs.length === 0) {
+        fetch("/api/admin/logs?limit=30", { headers })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((lj) => setLogs(lj?.logs ?? []))
+          .catch(() => {});
+      }
+      if (!retryQueue) {
+        fetch("/api/admin/discord-retry", { headers })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((rq) => setRetryQueue(rq ? { pending: rq.pending ?? 0, total: rq.total ?? 0, exhausted: rq.exhausted ?? 0, items: rq.items ?? [] } : null))
+          .catch(() => {});
+      }
+    }
+    if (tab === "settings" && !diagnostics) {
+      fetch("/api/admin/diagnostics", { headers })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((dj) => setDiagnostics(dj ? { healthy: !!dj.healthy, warnings: dj.warnings ?? [], checks: dj.checks ?? {} } : null))
+        .catch(() => {});
+    }
+  }, [authed, tab, headers, logs.length, retryQueue, diagnostics]);
 
   async function initDb() {
     setBusy(true);
@@ -1053,6 +1067,28 @@ export function AdminPanel() {
                       className="rounded-md border border-orange-500/40 px-3 py-2 text-xs text-orange-400 transition hover:bg-orange-500/10"
                     >
                       Reset Ujian
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Hapus periode "${p.name}"?\n\nPastikan backup JSON sudah diunduh. Periode, absensi, attempt, jawaban, dan hasil terkait akan dihapus permanen.`))
+                          return;
+                        const res = await fetch("/api/admin/period", {
+                          method: "PATCH",
+                          headers,
+                          body: JSON.stringify({ periodId: p.id, action: "delete" }),
+                        });
+                        const json = await res.json();
+                        setMsg({ ok: json.ok, text: json.message });
+                        if (json.ok) {
+                          toast.success(json.message);
+                          await load();
+                        } else {
+                          toast.error(json.message ?? "Gagal menghapus periode.");
+                        }
+                      }}
+                      className="rounded-md border border-red-500/40 px-3 py-2 text-xs text-red-400 transition hover:bg-red-500/10"
+                    >
+                      Hapus Periode
                     </button>
                   </div>
                 </div>

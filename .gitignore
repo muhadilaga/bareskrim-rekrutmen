@@ -41,3 +41,4 @@ push*.cjs
 /coverage
 /playwright-report
 /test-results
+.env*

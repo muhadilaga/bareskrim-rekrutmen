@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { CONFIG, getAdminKey } from "@/lib/constants";
 
+export const dynamic = "force-dynamic";
+
 const DISCORD_API = "https://discord.com/api/v10";
 
 function botHeaders() {

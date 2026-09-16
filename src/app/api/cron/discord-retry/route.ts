@@ -5,6 +5,8 @@ import { sendDiscordExamReport, type ExamReportInput } from "@/lib/discord";
 import { getAdminKey } from "@/lib/constants";
 import { logAdminAction } from "@/lib/audit";
 
+export const dynamic = "force-dynamic";
+
 // Endpoint cron job untuk retry laporan Discord yang gagal.
 // Dapat dipanggil oleh Netlify Scheduled Functions tanpa perlu autentikasi
 // karena URL endpoint-nya sudah aman dan tidak diekspos ke publik secara langsung.

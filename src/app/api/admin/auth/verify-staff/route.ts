@@ -9,7 +9,7 @@ import { logAdminAction } from "@/lib/audit";
 
 const BodySchema = z.object({
   adminKey: z.string().trim().min(1),
-  discordUsername: z.string().trim().min(2).max(40),
+  discordUsername: z.string().trim().transform(v => v.replace(/^@+/, "")).pipe(z.string().min(2).max(40)),
 });
 
 export async function POST(req: Request) {

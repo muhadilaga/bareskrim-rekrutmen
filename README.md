@@ -16,13 +16,14 @@ Sistem website full-stack untuk rekrutmen calon anggota (casis) Bareskrim Polri 
 | ✅ Lolos ke Tahap Interview | KKM tidak lagi menjadi gerbang kelulusan; hasil ujian diarahkan ke tahap interview |
 | 🔒 Limit 1x | Satu percobaan per casis per periode; percobaan ulang menampilkan hasil lama |
 | 🎲 Reset & Acak Soal | Setiap periode baru: seed baru → subset & urutan soal berbeda dari periode sebelumnya |
-| 📣 Discord Integration | Laporan hasil ujian, assignment role, dan admin fetch pesan channel via Discord API/Webhook |
+| 📣 Discord Integration | Laporan hasil ujian, assignment role, admin fetch pesan channel, serta blacklist Pusdik berbasis Discord API/Webhook |
+| ⛔ Blacklist Pusdik Live + Cache | Parser channel blacklist mendukung teks, multi-username, mention `<@id>`, user yang sudah keluar guild, dan cache 15 menit agar deploy tetap ringan |
 | 🔐 Admin 2-Step Verification | Admin panel butuh `ADMIN_KEY` + verifikasi role Discord `Personel Staff Pusdik` |
 | 🔐 Anti-Cheat | Kunci jawaban tidak pernah dikirim ke client; grading 100% di server |
 | ⚙️ Admin Panel Runtime Settings | Durasi ujian, jumlah soal, grup ID, role ID, dan konfigurasi Discord dapat diubah tanpa restart server (meminjam dari `getSettings()`) |
-| 🛡️ Security Headers | CSP & CSRF protection via `next.config.mjs` |
-| 📜 Structured Logging | Pino‑based logger dengan level, audit, timing, dan HTTP request logging |
-| ✅ Unit & E2E Tests | Vitest untuk unit, Playwright untuk end‑to‑end smoke test |
+| ⚡ Optimasi Deploy | Homepage ISR, aset galeri WebP, tab admin lazy-load, dan cache Discord untuk menekan TTFB serta payload |
+| 🛡️ Security Headers | CSP dan header keamanan via `next.config.mjs` |
+| ✅ Unit & E2E Tests | Vitest untuk unit, Playwright |
 | 📦 Easy Deploy | Siap untuk Vercel, Netlify, atau VPS (Docker siap ditambahkan) |
 
 ## 🏗️ Tech Stack
@@ -87,8 +88,6 @@ bareskrim-rekrutmen/
     │   ├── exam-service.ts# Logika mulai/submit ujian
     │   ├── discord.ts     # Discord report/webhook helper
     │   ├── constants.ts   # Konfigurasi default (grup, role Discord, env runtime) + getSettings()/updateSettings()
-    │   ├── logger.ts      # Pino‑based logger dengan audit & timing
-    │   ├── csrf.ts        # CSRF protection helper
     │   └── utils.ts       # Helper fungsi umum
     └── types/             # Tipe bersama client/server
 ```
@@ -199,6 +198,14 @@ Admin membuka periode baru di `/admin` → API menutup periode lama, membuat per
 - `ExamAnswer` — jawaban tiap soal (arsip + rekap).
 - `ExamResult` — skor akhir, status hasil, rekap JSON, timestamp.
 - Semua tabel memiliki kolom `deletedAt` untuk soft delete serta indeks yang sesuai untuk performa.
+
+## ⚡ Catatan Performa Produksi
+
+- Landing page menggunakan ISR (`revalidate = 30`) agar halaman publik tidak melakukan query database berat pada setiap request.
+- Galeri dan background utama menggunakan aset WebP terkompresi; aset galeri besar dipangkas dari puluhan MB menjadi sekitar 2 MB total.
+- Tab besar admin (`Rekap`, `Kelola Casis`, `Putusan & Blacklist`, `Discord`) di-load secara lazy agar panel admin awal lebih ringan.
+- Blacklist Pusdik yang dibaca dari Discord memakai cache global 15 menit. Request pertama dapat lebih lama karena sistem resolve mention Discord secara serial untuk menghindari rate-limit, request berikutnya memakai cache.
+- Parser blacklist Pusdik mendukung format `Nama : user`, `@user/user2`, alias dalam kurung, mention `<@id>`, dan metadata mention untuk user yang sudah keluar guild.
 
 ## 🧪 Scripts
 

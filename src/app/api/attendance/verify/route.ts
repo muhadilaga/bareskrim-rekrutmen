@@ -6,6 +6,8 @@ import { ensureSchema } from "@/lib/init-schema";
 import { CONFIG } from "@/lib/constants";
 import { verifyLimiter, clientIp } from "@/lib/rate-limit";
 import { assignDiscordRoleAndNickname } from "@/lib/discord-api";
+import { findLatestPusdikBlacklistMatch, getCachedPusdikBlacklistMessages } from "@/lib/blacklist-pusdik";
+import { getEffectiveSettings } from "@/lib/runtime-settings";
 import { evaluateMotivation } from "@/lib/motivation-evaluator";
 import {
   resolveUserByUsername,
@@ -14,10 +16,18 @@ import {
   type RobloxGroupRole,
 } from "@/lib/roblox";
 
+function normalizeRobloxUsername(value: string): string {
+  const trimmed = value.trim();
+  const profileMatch = trimmed.match(/roblox\.com\/users\/(\d+)\/profile/i);
+  if (profileMatch) return profileMatch[1];
+  const compacted = trimmed.replace(/^@+/, "").replace(/[\s\u200B-\u200D\uFEFF]+/g, "");
+  return compacted;
+}
+
 const VerifySchema = z.object({
-  robloxUsername: z.string().trim().min(2).max(40),
-  discordUsername: z.string().trim().min(2).max(40),
-  motivation: z.string().trim().min(8).max(500),
+  robloxUsername: z.string().transform(normalizeRobloxUsername).pipe(z.string().min(2).max(40).regex(/^\d+$|^[A-Za-z][A-Za-z0-9_]*$/)),
+  discordUsername: z.string().trim().transform(v => v.replace(/^@+/, "")).pipe(z.string().min(2).max(40)),
+  motivation: z.string().trim(),
 });
 
 export async function POST(req: Request) {
@@ -35,8 +45,12 @@ export async function POST(req: Request) {
     const parsed = VerifySchema.safeParse(body);
 
     if (!parsed.success) {
+      const field = parsed.error.issues[0]?.path[0];
+      const message = field === "discordUsername"
+          ? "Username Discord minimal 2 karakter dan maksimal 40 karakter."
+          : "Username Roblox hanya boleh berisi huruf, angka, dan underscore, tanpa spasi.";
       return NextResponse.json(
-        { ok: false, message: "Username tidak valid." },
+        { ok: false, message },
         { status: 400 }
       );
     }
@@ -111,6 +125,30 @@ export async function POST(req: Request) {
       if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021")) {
         throw e;
       }
+    }
+
+    // 2a) Cek blacklist Pusdik langsung dari channel Discord.
+    try {
+      const settings = await getEffectiveSettings();
+      const channelId = settings.discordBlacklistPendidikanChannelId?.trim();
+      const guildId = settings.discordGuildId?.trim();
+      if (channelId && guildId) {
+        const fetched = await getCachedPusdikBlacklistMessages(channelId);
+        if (fetched.ok) {
+          const pusdikMatch = findLatestPusdikBlacklistMatch(fetched.messages, userInfo.name, guildId, channelId);
+          if (pusdikMatch) {
+            return NextResponse.json(
+              {
+                ok: false,
+                message: "Akses ditolak: nama Anda terdaftar dalam blacklist pendidikan.",
+              },
+              { status: 403 }
+            );
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Pusdik blacklist channel check failed:", e);
     }
 
     // 2b) Cek putusan sidang: TIDAK_LULUS memblokir absensi.

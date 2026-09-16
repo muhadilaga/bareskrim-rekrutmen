@@ -7,8 +7,12 @@ import { getAdminKey } from "@/lib/constants";
 import { logAdminAction } from "@/lib/audit";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 
-function isAdmin(req: Request): boolean {
-  return req.headers.get("x-admin-key") === getAdminKey();
+export const dynamic = "force-dynamic";
+
+async function isAdmin(req: Request): Promise<boolean> {
+  if (req.headers.get("x-admin-key") !== getAdminKey()) return false;
+  const { assertVerifiedAdmin } = await import("@/lib/admin-auth");
+  return !!(await assertVerifiedAdmin(req));
 }
 
 const adminLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
@@ -26,7 +30,7 @@ const OpenPeriodSchema = z.object({
 // Buka periode rekrutmen baru: periode lama ditutup otomatis,
 // seed baru dihasilkan -> bank soal ter-reset & teracak ulang.
 export async function POST(req: Request) {
-  if (!isAdmin(req)) {
+  if (!(await isAdmin(req))) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
   const limited = adminLimiter.check(clientIp(req));
@@ -76,7 +80,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
-  if (!isAdmin(req)) {
+  if (!(await isAdmin(req))) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
 
@@ -124,7 +128,7 @@ function isTableMissing(e: unknown): boolean {
 
 // PATCH: Tutup atau buka periode
 export async function PATCH(req: Request) {
-  if (!isAdmin(req)) {
+  if (!(await isAdmin(req))) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
   const limited = adminLimiter.check(clientIp(req));
@@ -211,6 +215,26 @@ export async function PATCH(req: Request) {
         detail: { isAttendanceOpen: Boolean(isAttendanceOpen) },
       });
       return NextResponse.json({ ok: true, message: `Akses absen ${isAttendanceOpen ? "dibuka" : "ditutup"}.` });
+    } else if (action === "delete") {
+      if (period?.name == null) {
+        return NextResponse.json({ ok: false, message: "Periode tidak ditemukan." }, { status: 404 });
+      }
+      const deleted = await prisma.examPeriod.delete({
+        where: { id: periodId },
+        include: {
+          _count: { select: { attempts: true, attendances: true } },
+        },
+      });
+      await logAdminAction({
+        action: "HAPUS_PERIODE",
+        target: deleted.name,
+        detail: {
+          periodId,
+          attempts: deleted._count.attempts,
+          attendances: deleted._count.attendances,
+        },
+      });
+      return NextResponse.json({ ok: true, message: `Periode "${deleted.name}" berhasil dihapus.` });
     } else if (action === "edit") {
       // Edit periode: tanggal (openedAt/closedAt) dan/atau konfigurasi
       // (mcqCount/essayCount/passThreshold). Semua opsional.
@@ -328,7 +352,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ ok: true, message: "Periode berhasil diperbarui." });
     } else {
       return NextResponse.json(
-        { ok: false, message: "Action harus 'close', 'reopen', 'reset', 'toggleAttendanceOpen', atau 'edit'." },
+        { ok: false, message: "Action harus 'close', 'reopen', 'reset', 'delete', 'toggleAttendanceOpen', atau 'edit'." },
         { status: 400 }
       );
     }

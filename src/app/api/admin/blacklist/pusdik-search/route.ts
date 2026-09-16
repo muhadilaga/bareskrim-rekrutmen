@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminKey } from "@/lib/constants";
 import { getEffectiveSettings } from "@/lib/runtime-settings";
-import { fetchDiscordChannelMessages } from "@/lib/discord-api";
-import { findLatestPusdikBlacklistMatch } from "@/lib/blacklist-pusdik";
-import type { DiscordChannelMessage } from "@/lib/discord-api";
+import {
+  findLatestPusdikBlacklistMatch,
+  getCachedPusdikBlacklistMessages,
+} from "@/lib/blacklist-pusdik";
 import { logAdminAction } from "@/lib/audit";
 
 function isAdmin(req: Request): boolean {
@@ -14,55 +15,6 @@ function isAdmin(req: Request): boolean {
 const SearchSchema = z.object({
   username: z.string().trim().min(1).max(40),
 });
-
-const CACHE_TTL_MS = 60_000;
-type CachedFetchResult =
-  | { ok: true; messages: DiscordChannelMessage[]; fetchedAt: string; cached: boolean }
-  | { ok: false; message?: string; messages: DiscordChannelMessage[] };
-
-let cache:
-  | {
-      channelId: string;
-      messages: DiscordChannelMessage[];
-      expiresAt: number;
-      fetchedAt: string;
-    }
-  | null = null;
-
-async function getCachedBlacklistMessages(channelId: string): Promise<CachedFetchResult> {
-  const now = Date.now();
-  if (cache && cache.channelId === channelId && cache.expiresAt > now) {
-    return {
-      ok: true,
-      messages: cache.messages,
-      fetchedAt: cache.fetchedAt,
-      cached: true,
-    };
-  }
-
-  const fetched = await fetchDiscordChannelMessages(channelId, 100);
-  if (!fetched.ok) {
-    return {
-      ok: false,
-      message: fetched.message,
-      messages: fetched.messages,
-    };
-  }
-
-  cache = {
-    channelId,
-    messages: fetched.messages,
-    expiresAt: now + CACHE_TTL_MS,
-    fetchedAt: new Date(now).toISOString(),
-  };
-
-  return {
-    ok: true,
-    messages: fetched.messages,
-    fetchedAt: cache.fetchedAt,
-    cached: false,
-  };
-}
 
 export async function POST(req: Request) {
   if (!isAdmin(req)) {
@@ -91,8 +43,8 @@ export async function POST(req: Request) {
     );
   }
 
-  const fetched = await getCachedBlacklistMessages(channelId);
-  if (fetched.ok === false) {
+  const fetched = await getCachedPusdikBlacklistMessages(channelId);
+  if (!fetched.ok) {
     return NextResponse.json(
       { ok: false, message: fetched.message ?? "Gagal membaca channel blacklist pendidikan." },
       { status: 502 }
@@ -120,7 +72,6 @@ export async function POST(req: Request) {
       scanned: fetched.messages.length,
       cached: fetched.cached,
       fetchedAt: fetched.fetchedAt,
-      cacheTtlMs: CACHE_TTL_MS,
     });
   }
 
@@ -145,6 +96,5 @@ export async function POST(req: Request) {
     scanned: fetched.messages.length,
     cached: fetched.cached,
     fetchedAt: fetched.fetchedAt,
-    cacheTtlMs: CACHE_TTL_MS,
   });
 }

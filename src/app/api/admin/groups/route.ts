@@ -3,6 +3,8 @@ import { getAdminKey } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { getUserGroups } from "@/lib/roblox";
 
+export const dynamic = "force-dynamic";
+
 // GET: Lihat daftar grup yang diikuti casis (berdasarkan robloxId atau userId)
 export async function GET(req: Request) {
   try {

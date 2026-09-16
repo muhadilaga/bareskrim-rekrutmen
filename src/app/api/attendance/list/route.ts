@@ -3,6 +3,8 @@ import { getAdminKey } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { ensureSchema } from "@/lib/init-schema";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   try {
     const adminKey = req.headers.get("x-admin-key");
