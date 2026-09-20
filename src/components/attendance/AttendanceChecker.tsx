@@ -97,8 +97,8 @@ export function AttendanceChecker() {
       generateCaptcha();
       return;
     }
-    if (!/^[a-zA-Z0-9_]{2,32}$/.test(discordUsername.trim())) {
-      setError("Username Discord tidak valid. Hanya huruf, angka, dan underscore (max 32 karakter).");
+    if (discordUsername.trim().length < 2 || discordUsername.trim().length > 32) {
+      setError("Username Discord harus 2–32 karakter.");
       return;
     }
     setLoading(true);

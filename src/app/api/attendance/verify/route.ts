@@ -25,7 +25,7 @@ function normalizeRobloxUsername(value: string): string {
 }
 
 const VerifySchema = z.object({
-  robloxUsername: z.string().transform(normalizeRobloxUsername).pipe(z.string().min(2).max(40).regex(/^\d+$|^[A-Za-z][A-Za-z0-9_]*$/)),
+  robloxUsername: z.string().transform(normalizeRobloxUsername).pipe(z.string().min(2).max(40)),
   discordUsername: z.string().trim().transform(v => v.replace(/^@+/, "")).pipe(z.string().min(2).max(40)),
   motivation: z.string().trim(),
 });
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       const field = parsed.error.issues[0]?.path[0];
       const message = field === "discordUsername"
           ? "Username Discord minimal 2 karakter dan maksimal 40 karakter."
-          : "Username Roblox hanya boleh berisi huruf, angka, dan underscore, tanpa spasi.";
+          : "Username tidak valid. Minimal 2 karakter, maksimal 40 karakter.";
       return NextResponse.json(
         { ok: false, message },
         { status: 400 }
