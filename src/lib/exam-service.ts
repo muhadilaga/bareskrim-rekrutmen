@@ -127,14 +127,10 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
     };
   }
 
-  // Cek apakah periode sudah ditutup (closedAt)
-  if (period.closedAt && new Date() > period.closedAt) {
-    return {
-      ok: false,
-      code: "PERIOD_CLOSED",
-      message: "Periode ujian sudah ditutup oleh instruktur. Tidak bisa mengakses soal lagi.",
-    };
-  }
+  // NOTE: `closedAt` hanya mengontrol jendela absensi, bukan akses ujian.
+  // Akses ujian di-control oleh `isExamOpen` + `examStartTime`/`examEndTime`.
+  // Tidak ada check `closedAt` di sini agar tidak konflik dengan toggle
+  // "Buka Ujian" di admin panel.
 
   // Cek apakah sesi ujian sudah dibuka admin
   if (!period.isExamOpen) {
