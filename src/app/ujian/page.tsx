@@ -7,6 +7,7 @@ import { ExamForm } from "@/components/exam/ExamForm";
 import { TabLock } from "@/components/exam/TabLock";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { isNextRedirectError } from "@/lib/utils";
 import Link from "next/link";
 
 export const metadata = { title: "Ujian - Rekrutmen Bareskrim PolriRbx [RI]" };
@@ -140,6 +141,7 @@ export default async function ExamPage() {
       </TabLock>
     );
   } catch (e) {
+    if (isNextRedirectError(e)) throw e;
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[ExamPage] server error:", msg);
     return (
