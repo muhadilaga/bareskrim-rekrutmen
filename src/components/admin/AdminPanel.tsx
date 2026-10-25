@@ -1510,7 +1510,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
   const [settings, setSettings] = useState<Record<string, unknown>>({
     kkm: 70,
     examDurationMinutes: 45,
-    minPoliceRank: 225,
+    minPoliceRank: 224,
     requiredGroupId: "",
     policeGroupId: "",
     bannedGroupIds: [],
@@ -1634,7 +1634,7 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
                 type="number"
                 min={1}
                 max={255}
-                value={(settings.minPoliceRank as number) ?? 225}
+                value={(settings.minPoliceRank as number) ?? 224}
                 onChange={(e) => handleChange("minPoliceRank", Number(e.target.value))}
                 className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
               />

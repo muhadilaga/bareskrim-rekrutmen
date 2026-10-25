@@ -28,11 +28,21 @@ describe("createRateLimiter", () => {
 });
 
 describe("clientIp", () => {
-  it("mengambil IP paling kanan dari x-forwarded-for", () => {
+  it("mengutamakan x-real-ip (IP klien Vercel, bukan hop proxy)", () => {
+    const req = new Request("http://localhost", {
+      headers: {
+        "x-forwarded-for": "1.2.3.4, 10.0.0.1, 127.0.0.1",
+        "x-real-ip": "1.2.3.4",
+      },
+    });
+    expect(clientIp(req)).toBe("1.2.3.4");
+  });
+
+  it("mengambil IP paling kiri dari x-forwarded-for bila x-real-ip kosong", () => {
     const req = new Request("http://localhost", {
       headers: { "x-forwarded-for": "1.2.3.4, 5.6.7.8" },
     });
-    expect(clientIp(req)).toBe("5.6.7.8");
+    expect(clientIp(req)).toBe("1.2.3.4");
   });
 
   it("fallback ke x-real-ip bila tidak ada forwarded", () => {

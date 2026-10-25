@@ -43,8 +43,8 @@ Buka **Site settings → Environment variables**, tambahkan semua ini:
 | `REQUIRED_GROUP_NAME` | `[RI] Republic Indonesia` |
 | `POLICE_GROUP_ID` | `14460225` |
 | `POLICE_GROUP_NAME` | `Kepolisian` |
-| `MIN_POLICE_RANK` | `225` |
-| `MIN_POLICE_RANK_NAME` | `Bhayangkara Kepala` |
+| `MIN_POLICE_RANK` | `224` |
+| `MIN_POLICE_RANK_NAME` | `Bhayangkara Satu` |
 | `BANNED_GROUP_IDS` | `367050757,34766643` |
 | `BANNED_GROUP_NAMES` | `TNI AD,TNI AL` |
 | `DISCORD_WEBHOOK_URL` | URL webhook channel pusdik |

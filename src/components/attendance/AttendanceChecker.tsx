@@ -469,7 +469,7 @@ export function AttendanceChecker() {
         <div className="mt-4 space-y-1.5 text-left text-xs text-zinc-500">
           <p>• Sistem otomatis memverifikasi data Roblox Anda.</p>
           <p>• Alasan/motivasi yang terlalu singkat tidak otomatis mendapat role Tahap Akademik.</p>
-          <p>• Pangkat minimal: <span className="text-gold">Bhayangkara Kepala</span>.</p>
+          <p>• Pangkat minimal: <span className="text-gold">Bhayangkara Satu</span>.</p>
           <p>• Tidak boleh terdaftar di matra lain (TNI AD/AL).</p>
           <p>• Harus terdaftar di grup <span className="text-gold">[RI] Republic Indonesia</span>.</p>
         </div>

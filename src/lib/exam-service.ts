@@ -15,6 +15,7 @@ import {
   type SnapshotQuestion,
 } from "@/lib/grading";
 import { ensureSchema } from "@/lib/init-schema";
+import { decideExamSessionAction } from "@/lib/exam-window";
 import type { User } from "@prisma/client";
 
 export type ExamSessionResult =
@@ -129,35 +130,8 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
 
   // NOTE: `closedAt` hanya mengontrol jendela absensi, bukan akses ujian.
   // Akses ujian di-control oleh `isExamOpen` + `examStartTime`/`examEndTime`.
-  // Tidak ada check `closedAt` di sini agar tidak konflik dengan toggle
-  // "Buka Ujian" di admin panel.
-
-  // Cek apakah sesi ujian sudah dibuka admin
-  if (!period.isExamOpen) {
-    return {
-      ok: false,
-      code: "EXAM_NOT_OPEN",
-      message: "Sesi ujian belum dibuka oleh instruktur. Silakan tunggu pengumuman jadwal ujian.",
-    };
-  }
-
-  // Cek apakah ujian sudah dimulai (jika examStartTime diatur)
-  if (period.examStartTime && new Date() < period.examStartTime) {
-    return {
-      ok: false,
-      code: "EXAM_NOT_OPEN",
-      message: `Ujian belum dimulai. Jadwal mulai: ${period.examStartTime.toLocaleString("id-ID")}.`,
-    };
-  }
-
-  // Cek apakah ujian sudah berakhir (jika examEndTime diatur)
-  if (period.examEndTime && new Date() > period.examEndTime) {
-    return {
-      ok: false,
-      code: "EXAM_NOT_OPEN",
-      message: "Sesi ujian sudah ditutup oleh instruktur. Tidak bisa mengakses soal lagi.",
-    };
-  }
+  // Attempt yang sudah dimulai tetap boleh dilanjutkan/disubmit setelah
+  // examEndTime; jendela itu hanya menolak attempt baru.
 
   // Gerbang absensi: tanpa record absen, soal tidak bisa diakses
   // lewat halaman maupun API (session). Attendance yang belum ter-link
@@ -191,6 +165,21 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
         message: "Anda sudah mengisi ujian pada periode ini. Hasil akan ditampilkan.",
       };
     }
+  }
+
+  const windowDecision = decideExamSessionAction({
+    now: new Date(),
+    isExamOpen: period.isExamOpen,
+    examStartTime: period.examStartTime,
+    examEndTime: period.examEndTime,
+    hasUnsubmittedAttempt: !!existing,
+  });
+  if (windowDecision.action === "block") {
+    return {
+      ok: false,
+      code: windowDecision.code,
+      message: windowDecision.message,
+    };
   }
 
   // Lanjutkan percobaan yang belum selesai (misal halaman ter-refresh).

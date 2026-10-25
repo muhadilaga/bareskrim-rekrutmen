@@ -132,8 +132,6 @@ export default async function ExamPage() {
             durationMinutes={CONFIG.examDurationMinutes}
             remainingSeconds={session.remainingSeconds}
             serverSavedAnswers={session.savedAnswers}
-            examStartTime={session.period.examStartTime}
-            examEndTime={session.period.examEndTime}
             serverFlaggedQuestions={session.flaggedQuestions}
             serverBookmarkedQuestions={session.bookmarkedQuestions}
           />

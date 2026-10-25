@@ -148,7 +148,7 @@ export function LoginForm() {
           <li>• Sistem otomatis mengambil foto profil & pangkat dari Roblox.</li>
           <li>• Username Discord diwajibkan untuk keperluan verifikasi identitas.</li>
           <li>• Peserta anggota matra lain (TNI AD/AL) ditolak otomatis.</li>
-          <li>• Pangkat di grup Kepolisian minimal <span className="text-gold">Bhayangkara Kepala</span>.</li>
+          <li>• Pangkat di grup Kepolisian minimal <span className="text-gold">Bhayangkara Satu</span>.</li>
           <li>• Batas pengerjaan: <span className="text-gold">1x saja</span> per periode.</li>
         </ul>
       </div>

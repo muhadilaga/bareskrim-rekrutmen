@@ -18,8 +18,6 @@ export function ExamForm({
   durationMinutes,
   remainingSeconds,
   serverSavedAnswers,
-  examStartTime,
-  examEndTime,
   serverFlaggedQuestions,
   serverBookmarkedQuestions,
 }: {
@@ -29,8 +27,6 @@ export function ExamForm({
   durationMinutes: number;
   remainingSeconds?: number;
   serverSavedAnswers?: Record<string, string> | null;
-  examStartTime?: string | null;
-  examEndTime?: string | null;
   serverFlaggedQuestions?: string[];
   serverBookmarkedQuestions?: string[];
 }) {
@@ -81,12 +77,9 @@ const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
       }
     });
 
-   // Cek apakah ujian sudah dimulai / belum berakhir
-   const now = Date.now();
-   const examStartMs = examStartTime ? new Date(examStartTime).getTime() : null;
-   const examEndMs = examEndTime ? new Date(examEndTime).getTime() : null;
-   const examNotStarted = examStartMs !== null && now < examStartMs;
-   const examAlreadyEnded = examEndMs !== null && now > examEndMs;
+   // Jendela examStartTime/examEndTime hanya menolak attempt BARU di server.
+   // Form ini hanya dirender untuk attempt yang sudah berjalan; gerbang submit
+   // adalah timer pribadi (remainingSeconds), bukan jam tutup periode.
 
    // Peringatan saat user mau keluar dari halaman ujian
   useEffect(() => {
@@ -291,52 +284,6 @@ const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
 
   function onExpire() {
     if (!submittedRef.current) void doSubmit();
-  }
-
-  // Tampilkan pesan jika ujian belum dimulai
-  if (examNotStarted) {
-    return (
-      <div className="mx-auto max-w-3xl">
-        <Card strong className="p-8 text-center animate-scale-in">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/20">
-            <span className="text-3xl">⏳</span>
-          </div>
-          <h1 className="font-display text-xl font-bold text-yellow-300">Ujian Belum Dimulai</h1>
-          <p className="mt-3 text-sm text-zinc-400">
-            Sesi ujian akan dimulai pada{" "}
-            <span className="font-semibold text-gold">
-              {examStartTime
-                ? new Date(examStartTime).toLocaleString("id-ID")
-                : "-"}
-            </span>
-            . Silakan tunggu.
-          </p>
-        </Card>
-      </div>
-    );
-  }
-
-  // Tampilkan pesan jika ujian sudah berakhir
-  if (examAlreadyEnded) {
-    return (
-      <div className="mx-auto max-w-3xl">
-        <Card strong className="p-8 text-center animate-scale-in">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20">
-            <span className="text-3xl">🔒</span>
-          </div>
-          <h1 className="font-display text-xl font-bold text-red-300">Ujian Sudah Ditutup</h1>
-          <p className="mt-3 text-sm text-zinc-400">
-            Sesi ujian sudah berakhir pada{" "}
-            <span className="font-semibold text-gold">
-              {examEndTime
-                ? new Date(examEndTime).toLocaleString("id-ID")
-                : "-"}
-            </span>
-            . Tidak bisa mengakses soal lagi.
-          </p>
-        </Card>
-      </div>
-    );
   }
 
   return (

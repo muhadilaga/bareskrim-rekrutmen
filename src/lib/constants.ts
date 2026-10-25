@@ -45,8 +45,8 @@ function buildConfig() {
     requiredGroupName: getEnvOrRuntime("requiredGroupName", process.env.REQUIRED_GROUP_NAME ?? "[RI] Republic Indonesia"),
     policeGroupId: getEnvOrRuntime("policeGroupId", Number(process.env.POLICE_GROUP_ID ?? 17166238)),
     policeGroupName: getEnvOrRuntime("policeGroupName", process.env.POLICE_GROUP_NAME ?? "Kepolisian"),
-    minPoliceRank: getEnvOrRuntime("minPoliceRank", Number(process.env.MIN_POLICE_RANK ?? 225)),
-    minPoliceRankName: process.env.MIN_POLICE_RANK_NAME ?? "Bhayangkara Kepala",
+    minPoliceRank: getEnvOrRuntime("minPoliceRank", Number(process.env.MIN_POLICE_RANK ?? 224)),
+    minPoliceRankName: process.env.MIN_POLICE_RANK_NAME ?? "Bhayangkara Satu",
     bannedGroupIds: getEnvOrRuntime("bannedGroupIds", (process.env.BANNED_GROUP_IDS ?? "367050757,34766643")
       .split(",")
       .map((s) => Number(s.trim()))

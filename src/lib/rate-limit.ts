@@ -46,15 +46,18 @@ export function createRateLimiter(options: { windowMs: number; max: number }) {
 }
 
 export function clientIp(req: Request): string {
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  if (realIp && /^[\d.:a-fA-F]+$/.test(realIp)) {
+    return realIp;
+  }
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) {
-    const ips = forwarded.split(",");
-    const clientIp = ips[ips.length - 1]?.trim();
-    if (clientIp && /^[\d.:a-fA-F]+$/.test(clientIp)) {
-      return clientIp;
+    const first = forwarded.split(",")[0]?.trim();
+    if (first && /^[\d.:a-fA-F]+$/.test(first)) {
+      return first;
     }
   }
-  return req.headers.get("x-real-ip")?.trim() ?? "unknown";
+  return "unknown";
 }
 
 // 10 permintaan verifikasi per menit per IP

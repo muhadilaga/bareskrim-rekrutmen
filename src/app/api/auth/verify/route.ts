@@ -257,7 +257,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // 9) Blokir pangkat: di bawah minimal (Bhayangkara Kepala) => tidak bisa
+    // 9) Blokir pangkat: di bawah minimal (Bhayangkara Satu) => tidak bisa
     //     mengikuti ujian. User tetap di-upsert agar blokir dilayani dari cache.
     if (!policeRole || (policeRole.roleRank ?? 0) < CONFIG.minPoliceRank) {
       return rankBlockedResponse(policeRole?.roleName ?? null);

@@ -42,3 +42,9 @@ push*.cjs
 /playwright-report
 /test-results
 .env*
+
+# V2 isolation hardening: file berisi secrets V1 tidak boleh masuk repo V2
+netlify-env.txt
+.vercel
+.netlify
+setup-vercel-env.ps1
