@@ -142,6 +142,18 @@ describe("ensureSchema — Legacy Schema Guard (TASK 03G)", () => {
     await ensureSchema();
     expect(mockPrisma.$queryRawUnsafe.mock.calls.length).toBe(callsAfterFirst);
   });
+
+  it("bypasses check in production mode without querying information_schema", async () => {
+    const origEnv = process.env.NODE_ENV;
+    try {
+      (process.env as Record<string, string | undefined>).NODE_ENV = "production";
+      const { ensureSchema } = await loadFresh();
+      await expect(ensureSchema()).resolves.toBeUndefined();
+      expect(mockPrisma.$queryRawUnsafe).not.toHaveBeenCalled();
+    } finally {
+      (process.env as Record<string, string | undefined>).NODE_ENV = origEnv;
+    }
+  });
 });
 
 describe("initSchema — dinonaktifkan (TASK 03G)", () => {

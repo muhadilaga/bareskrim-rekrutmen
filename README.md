@@ -1,229 +1,158 @@
-# 🛡️ BARESKRIM POLRI — Sistem Rekrutmen & Ujian Online (Roblox RP)
+# 🛡️ PUSDIK RESERSE BARESKRIM POLRI — Sistem Rekrutmen & Portal Casis V2
 
-Sistem website full-stack untuk rekrutmen calon anggota (casis) Bareskrim Polri Roblox Roleplay. Tema **Red & Gold/Crimson** khas instansi kepolisian, dengan verifikasi identitas Roblox langsung, cross-group check anti-matra, absensi awal dengan alasan/motivasi, ujian 20 soal (15 PG + 5 Essay) auto-grading server-side, pembatasan 1x percobaan per periode, panel admin 2-step verification, serta laporan real-time ke Discord.
+Sistem portal seleksi dan evaluasi calon siswa (casis) Pusdik Reserse Bareskrim Polri Roblox Community. Dibangun dengan **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, **Prisma ORM**, dan **PostgreSQL (Supabase PgBouncer)**. Mengusung identitas visual prestisius Pusdik Reserse (**Midnight Navy & Pure Gold/Brass**) dengan arsitektur terisolasi antara portal publik, portal casis mandiri, dan panel instruktur/admin.
 
-## ✨ Fitur Utama
+---
 
-| Fitur | Keterangan |
-|-------|------------|
-| 🎨 Tema Red & Gold | Glassmorphism, gradient subtle, motif kepolisian, responsif mobile/desktop |
-| 🤖 Integrasi Roblox API | Foto headshot terbaru, cek grup wajib `[RI] Republic Indonesia`, pangkat grup `Kepolisian` |
-| ⛔ Matra Check | Tolak otomatis bila casis terdaftar di grup matra lain (TNI AD / TNI AL) |
-| 📝 Ujian 20 Soal | 15 Pilihan Ganda (4 poin) + 5 Essay (8 poin) = total 100 poin |
-| ⚡ Auto-Grading | PG dinilai otomatis server-side, essay via kata kunci, nilai instan & transparan |
-| 🖼️ Galeri Bareskrim | Landing page menampilkan galeri dokumentasi + caption sejarah singkat pendirian |
-| 🧠 Alasan / Motivasi | Absensi awal menyimpan alasan/motivasi, dinilai deterministik, dan bisa direview admin |
-| ✅ Lolos ke Tahap Interview | KKM tidak lagi menjadi gerbang kelulusan; hasil ujian diarahkan ke tahap interview |
-| 🔒 Limit 1x | Satu percobaan per casis per periode; percobaan ulang menampilkan hasil lama |
-| 🎲 Reset & Acak Soal | Setiap periode baru: seed baru → subset & urutan soal berbeda dari periode sebelumnya |
-| 📣 Discord Integration | Laporan hasil ujian, assignment role, admin fetch pesan channel, serta blacklist Pusdik berbasis Discord API/Webhook |
-| ⛔ Blacklist Pusdik Live + Cache | Parser channel blacklist mendukung teks, multi-username, mention `<@id>`, user yang sudah keluar guild, dan cache 15 menit agar deploy tetap ringan |
-| 🔐 Admin 2-Step Verification | Admin panel butuh `ADMIN_KEY` + verifikasi role Discord `Personel Staff Pusdik` |
-| 🔐 Anti-Cheat | Kunci jawaban tidak pernah dikirim ke client; grading 100% di server |
-| ⚙️ Admin Panel Runtime Settings | Durasi ujian, jumlah soal, grup ID, role ID, dan konfigurasi Discord dapat diubah tanpa restart server (meminjam dari `getSettings()`) |
-| ⚡ Optimasi Deploy | Homepage ISR, aset galeri WebP, tab admin lazy-load, dan cache Discord untuk menekan TTFB serta payload |
-| 🛡️ Security Headers | CSP dan header keamanan via `next.config.mjs` |
-| ✅ Unit & E2E Tests | Vitest untuk unit, Playwright |
-| 📦 Easy Deploy | Siap untuk Vercel, Netlify, atau VPS (Docker siap ditambahkan) |
+## ✨ Fitur Utama V2
+
+| Fitur | Keterangan & Arsitektur |
+|---|---|
+| 🎨 **Identitas Visual Pusdik Reserse** | Desain dark editorial premium dengan palet Navy (`#070b12`), Accent Gold (`#d4af37`), dan tipografi *Cinzel* + *Outfit* + *JetBrains Mono*. Bebas dari palet crimson/merah legacy. |
+| 📋 **Portal Casis Mandiri (`/dashboard`)** | Portal presensi apel dan pengecekan hasil seleksi mandiri tanpa ketergantungan OAuth login Roblox. Casis dapat input kehadiran apel dan memeriksa apakah status sudah diverifikasi instruktur serta memperoleh role tahap akademik. |
+| 🛡️ **Pemisahan Panel Admin (`/admin`)** | Halaman admin sepenuhnya terpisah dari rute casis guna mencegah kebocoran otorisasi. Dilindungi autentikasi sesi admin independen (`AUTH_COOKIE_NAME` + `ADMIN_KEY` / verifikasi Discord Staff Pusdik). |
+| ⚙️ **Konfigurasi Konten Dinamis** | Seluruh detail teks landing page, pengumuman, tahapan timeline seleksi (`/rekrutmen`), kuota angkatan, dan batas waktu periode dapat dikonfigurasi langsung dari Admin Panel tanpa restart server. |
+| 📝 **Ujian Online & Auto-Grading** | Bank soal terisi 20 Pilihan Ganda (4 poin) + 5 Esai (4 poin) = 100 poin. Kunci jawaban dan kata kunci esai tersimpan aman di server (anti-cheat client-side). Dilengkapi fitur *tab-lock monitor*. |
+| 🖼️ **Galeri Dokumentasi & Arsip** | Halaman `/galeri` untuk dokumentasi kegiatan Pusdik Reserse dan `/arsip` untuk rekam jejak lulusan angkatan sebelumnya. |
+| 📊 **Verifikasi Presensi Instruktur** | Instruktur dapat memvalidasi kehadiran casis, mengubah status presensi (`APPROVED`/`PENDING`/`REJECTED`), dan menentukan kelayakan role tahap akademik casis. |
+| 🔒 **Security Hardened & Trust Boundary** | Melewati audit keamanan ketat: pencegahan query injection pada 50 raw SQL queries, proteksi 51 route handlers `/api/admin/*`, dan isolasi token sesi pada endpoint pengecekan presensi publik. |
+| 🚀 **Optimal untuk Vercel & Supabase** | Konfigurasi runtime serverless-ready, bypass bootstrap skema otomatis di produksi, serta kompatibel dengan PostgreSQL connection pooler (port 6543). |
+
+---
 
 ## 🏗️ Tech Stack
 
-- **Frontend:** Next.js 14 (App Router) + React 18 + TypeScript
-- **Styling:** Tailwind CSS 3
-- **Backend:** Next.js Route Handlers (`src/app/api/**`) + Server Components
-- **Database:** PostgreSQL (Supabase, Neon, Railway, atau lokal)
-- **ORM:** Prisma
-- **Auth:** JWT (jose) dalam HTTP‑only cookie
-- **Validasi:** Zod
-- **Integrasi:** Roblox Public API + Discord REST API + Discord Webhook
-- **Testing:** Vitest, Playwright
-- **Linting / Formatting:** ESLint + Prettier (opsional)
+- **Framework:** Next.js 14.2 (App Router) + React 18
+- **Bahasa:** TypeScript 5
+- **Database & ORM:** PostgreSQL + Prisma ORM 5
+- **Styling:** CSS Modules / Vanilla CSS Scoped (`casis.css`, `admin.css`, `landing.css`) + Tailwind CSS
+- **Autentikasi & Enkripsi:** JOSE (JWT) dengan cookie HTTP-only terisolasi
+- **Validasi Data:** Zod Schema Validation
+- **Testing:** Vitest (51+ Test Suites, >780 Unit & Integration Tests)
+- **Deployment Platform:** Vercel (Produksi) / PostgreSQL via Supabase Pooler
 
-> Arsitektur **monorepo full‑stack** dalam satu aplikasi Next.js — frontend & backend berbagi satu codebase, mudah di‑deploy ke Vercel / Railway / VPS.
+---
 
-## 📁 Struktur Folder
+## 📁 Struktur Rute & Direktori
 
 ```
-bareskrim-rekrutmen/
+bareskrim-rekrutmen-v2/
 ├── prisma/
-│   ├── schema.prisma          # Database schema (termasuk soft‑delete fields, indexes, kolom baru)
-│   └── seed.ts                # Seed bank soal + periode pertama
+│   ├── schema.prisma              # Skema 14 model database PostgreSQL
+│   └── seed.ts                    # Seeder bank soal MCQ, Esai, dan periode seleksi
 ├── public/
-│   └── shield.svg             # Favicon / logo
+│   ├── galeri-bareskrim/          # Aset dokumentasi foto kegiatan Pusdik
+│   └── lambang-polri-gold.png     # Lambang resmi Pusdik Reserse
 └── src/
-    ├── middleware.ts          # Proteksi route /ujian /hasil /admin
     ├── app/
-    │   ├── layout.tsx         # Layout root (Navbar + Footer)
-    │   ├── globals.css        # Tema Red & Gold (glass, gold‑text, dll)
-    │   ├── page.tsx           # Landing page
-    │   ├── login/page.tsx     # Form verifikasi Roblox
-    │   ├── ujian/page.tsx     # Halaman ujian (server component)
-    │   ├── hasil/page.tsx     # Halaman hasil nilai instan
-    │   ├── tolak/page.tsx     # Halaman tolak matra (AD/AL)
-    │   ├── admin/page.tsx     # Panel admin (termasuk SettingsForm)
-    │   └── api/
-    │       ├── auth/verify/route.ts        # Verifikasi Roblox + matra check
-    │       ├── exam/session/route.ts       # Mulai / resume sesi ujian
-    │       ├── exam/submit/route.ts        # Submit + auto‑grading
-    │       ├── admin/period/route.ts       # Buka periode baru (reset & acak)
-    │       ├── admin/questions/route.ts    # Kelola bank soal
-    │       ├── admin/settings/route.ts     # GET/PATCH pengaturan runtime
-    │       ├── exam/review/route.ts        # Review jawaban setelah submit
-    │       ├── exam/save/route.ts          # Auto‑save jawaban (debounce)
-    │       ├── cron/auto-submit/route.ts   # Auto‑submit untuk attempt yang lewat waktu
-    │       ├── health/route.ts             # Health check
-    │       └── ...
+    │   ├── (landing)/             # Rute publik (Beranda, Rekrutmen, Galeri, Arsip, Tentang)
+    │   │   ├── page.tsx           # Beranda resmi Pusdik Reserse
+    │   │   ├── rekrutmen/page.tsx # Jadwal, persyaratan & countdown seleksi
+    │   │   ├── galeri/page.tsx    # Dokumentasi visual kegiatan Pusdik
+    │   │   └── arsip/page.tsx     # Arsip angkatan & riwayat kelulusan
+    │   ├── (casis)/               # Rute portal siswa
+    │   │   └── dashboard/page.tsx # Form presensi & cek hasil verifikasi akademik
+    │   ├── (app)/                 # Rute pelaksanaan ujian casis
+    │   │   ├── ujian/page.tsx     # Ruang ujian & pengerjaan 25 butir soal
+    │   │   ├── hasil/page.tsx     # Rekap perolehan skor & status kelulusan
+    │   │   ├── review/[id]/       # Peninjauan jawaban pasca ujian
+    │   │   └── tolak/page.tsx     # Halaman penolakan akses
+    │   ├── admin/                 # Panel komando instruktur & administrator
+    │   │   ├── page.tsx           # Dashboard admin, verifikasi presensi & konten
+    │   │   └── layout.tsx         # Isolasi layout & theme khusus admin
+    │   └── api/                   # Route handlers backend
+    │       ├── admin/             # API pengelolaan casis, soal, periode, dan audit
+    │       ├── attendance/        # API submit & check presensi casis
+    │       ├── exam/              # API sesi ujian, simpan progres & auto-grade
+    │       └── auth/logout/       # Endpoint pembersihan cookie & session
     ├── components/
-    │   ├── layout/        # Navbar, Footer
-    │   ├── ui/            # Logo, Card, Button, Badge
-    │   ├── login/         # LoginForm
-    │   ├── exam/          # ExamForm, MCQQuestion, EssayQuestion, CountdownTimer
-    │   ├── result/        # ResultCard (nilai + rekap)
-    │   └── admin/         # AdminPanel + SettingsForm
+    │   ├── admin/                 # Komponen manajemen admin & pengaturan dinamis
+    │   ├── attendance/            # Komponen form presensi & status verifikasi casis
+    │   ├── exam/                  # Form butir soal, tab lock, timer countdown
+    │   ├── galeri/                # Komponen viewer dokumentasi foto
+    │   └── landing/               # Komponen navbar, hero, timeline, dan footer V2
     ├── lib/
-    │   ├── prisma.ts      # Prisma client singleton
-    │   ├── roblox.ts      # Roblox API client (resolve user, groups, avatar)
-    │   ├── auth.ts        # JWT + session cookie utilities
-    │   ├── grading.ts     # Shuffle soal berbasis seed + auto‑grading engine
-    │   ├── exam-service.ts# Logika mulai/submit ujian
-    │   ├── discord.ts     # Discord report/webhook helper
-    │   ├── constants.ts   # Konfigurasi default (grup, role Discord, env runtime) + getSettings()/updateSettings()
-    │   └── utils.ts       # Helper fungsi umum
-    └── types/             # Tipe bersama client/server
+    │   ├── auth.ts                # Token signing & session verification
+    │   ├── exam-service.ts        # Engine sesi ujian & grading deterministik
+    │   ├── prisma.ts              # Prisma Client instance
+    │   └── site-content.ts        # Helper pembacaan konfigurasi konten dinamis
+    └── styles/
+        ├── admin.css              # Token visual & layout panel admin
+        ├── casis.css              # Token visual portal casis & ruang ujian
+        └── landing.css            # Styling beranda, jadwal rekrutmen, dan galeri
 ```
 
-## 🚀 Cara Menjalankan
+---
 
-> 📦 **Mau deploy ke Netlify?** Ikuti panduan lengkap di **[DEPLOY-NETLIFY.md](./DEPLOY-NETLIFY.md)** — sudah termasuk inisialisasi database tanpa terminal (tombol *Initialize Database* di `/admin`).
+## 🚀 Panduan Instalasi Lokal
 
-### Prasyarat
+### 1. Prasyarat Sistem
+- **Node.js:** Versi `>= 18.18.0` atau `20.x`
+- **Package Manager:** `npm` (atau `pnpm` / `bun`)
+- **Database:** PostgreSQL (Lokal atau Cloud seperti Supabase)
 
-- Node.js **18.18+** / 20+
-- PostgreSQL (lokal / Supabase / Neon / Railway)
-- Discord Bot Token + Guild/Channel ID + Discord Webhook URL
-
-### Langkah
-
+### 2. Langkah Setup
 ```bash
-# 1. Clone / masuk ke folder proyek
-cd bareskrim-rekrutmen
+# 1. Masuk ke direktori proyek
+cd bareskrim-rekrutmen-v2
 
-# 2. Install dependensi
+# 2. Pasang dependensi
 npm install
 
-# 3. Siapkan environment
+# 3. Konfigurasi Environment Variables
 cp .env.example .env
-#    lalu isi DATABASE_URL, JWT_SECRET, ADMIN_KEY,
-#    DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DISCORD_CHANNEL_ID,
-#    DISCORD_WEBHOOK_URL, REQUIRED_GROUP_ID, POLICE_GROUP_ID,
-#    BANNED_GROUP_IDS, role ID Discord, dll.
+# Sesuaikan isi DATABASE_URL, DIRECT_URL, JWT_SECRET, dan ADMIN_KEY
 
-# 4. Buat database + tabel
-npm run db:migrate        # atau: npm run db:push
+# 4. Sinkronisasi Skema Database & Generate Client
+npx prisma generate
+npx prisma db push
 
-# 5. Isi bank soal + buka periode pertama
+# 5. Seeding Bank Soal & Periode Angkatan Pertama
 npm run db:seed
 
-# 6. Jalankan server dev
+# 6. Jalankan Server Development
 npm run dev
-# buka http://localhost:3000
+# Buka http://localhost:3000 pada browser
+```
 
-# Build produksi
+---
+
+## 🧪 Pengujian & Verifikasi Kualitas
+
+Seluruh fungsionalitas dan aspek keamanan diuji secara otomatis:
+
+```bash
+# Menjalankan seluruh test suite Vitest
+npm test
+
+# Menjalankan type-checking TypeScript
+npm run typecheck
+
+# Menjalankan linting ESLint
+npm run lint
+
+# Kompilasi build produksi Next.js
 npm run build
-npm run start
 ```
 
-### Menemukan nilai konfigurasi Roblox
+---
 
-1. Buka grup Roblox Anda → URL berformat `https://www.roblox.com/groups/{GROUP_ID}/...`
-2. `REQUIRED_GROUP_ID` = ID grup `[RI] Republic Indonesia`
-3. `POLICE_GROUP_ID` = ID grup `Kepolisian` (sumber pangkat casis)
-4. `BANNED_GROUP_IDS` = ID grup TNI AD, TNI AL (dipisah koma)
+## 🛡️ Catatan Penting Deployment Produksi (Vercel)
 
-## 🔄 Alur Sistem
+1. **Database Connection Pooler:**
+   - Gunakan `DATABASE_URL` dengan Supabase PgBouncer (Transaction Mode) pada port **`6543`** untuk menangani concurrency koneksi serverless.
+   - Gunakan `DIRECT_URL` pada port **`5432`** khusus untuk operasi migrasi / schema push.
+2. **Environment Variables Wajib di Vercel:**
+   - `DATABASE_URL`: Connection string PostgreSQL pooler.
+   - `DIRECT_URL`: Connection string PostgreSQL langsung.
+   - `JWT_SECRET`: Kunci rahasia enkripsi token sesi admin.
+   - `ADMIN_KEY`: Kunci sandi instruktur/admin untuk login pertama kali.
+   - `NEXT_PUBLIC_APP_URL`: Domain resmi website (contoh: `https://rekrutmen-bareskrim.org`).
+3. **Custom Domain:**
+   - Tambahkan custom domain melalui dashboard Vercel (**Settings > Domains**), lalu arahkan CNAME/A record DNS sesuai instruksi Vercel.
 
-```
-Casis → /login (input username Roblox)
-      → POST /api/auth/verify
-          ├─ Resolve user via Roblox API (users.roblox.com)
-          ├─ Ambil avatar headshot (thumbnails.roblox.com)
-          ├─ Ambil daftar grup (groups.roblox.com)
-          ├─ Wajib anggota "[RI] Republic Indonesia"?  ── tidak ──> tolak
-          ├─ Terdaftar di grup TNI AD / TNI AL?        ── ya ────> /tolak (matra block)
-          ├─ Ambil pangkat di grup Kepolisian
-          └─ Buat/update User + set cookie JWT (httpOnly)
-      → /absensi
-          ├─ Input alasan / motivasi
-          ├─ Evaluasi deterministik (APPROVED / REVIEW / REJECTED)
-          └─ Lolos verifikasi → boleh lanjut ujian
-      → /ujian
-          ├─ startExamSession: cek periode aktif
-          ├─ Sudah pernah submit periode ini? ── ya ──> redirect /hasil (tampil hasil lama)
-          ├─ Belum? Buat ExamAttempt + snapshot 20 soal acak (seed periode)
-      → Submit (client) → POST /api/exam/submit
-          ├─ Validasi kepemilikan attempt & waktu
-          ├─ Auto-grade server-side (PG + essay keyword)
-          ├─ Simpan ExamResult, ExamAnswer, tandai attempt submitted
-          ├─ Assign role Discord tahap interview
-          └─ Kirim laporan Discord (real‑time)
-      → /hasil  (nilai instan, LOLOS TAHAP INTERVIEW, rekap jawaban)
-```
+---
 
-### Periode Baru (Reset & Pengacakan)
+## 📄 Lisensi & Hak Cipta
 
-Admin membuka periode baru di `/admin` → API menutup periode lama, membuat periode baru dengan `seed` acak → `buildQuestionSet()` memilih **subset** berbeda dari bank soal dan **mengacak urutan + opsi** soal secara deterministik dari seed. Butir & urutan soal dijamin berbeda dari periode sebelumnya.
-
-## 🔐 Keamanan (Anti‑Cheat)
-
-1. **Grading 100% server‑side** — kunci jawaban (`correctKey`) & kata kunci essay hanya tersimpan di database (`ExamAttempt.questionsJson`) dan tidak pernah dikirim ke browser.
-2. **Snapshot per attempt** — soal disajikan dari snapshot ber‑*seed*, bukan langsung dari bank soal; jawaban untuk soal di luar snapshot ditolak.
-3. **Sesi JWT httpOnly cookie** — client tidak bisa mengubah identitas casis.
-4. **Limit 1x** — constraint unik `attemptKey` (`periodId_userId`) + validasi `submittedAt`.
-5. **Waktu** — batas durasi + grace period diverifikasi ulang di server.
-6. **Matra re‑check** — flag `matraBlocked` diperiksa ulang di page, session API, dan submit API.
-7. **Rate‑limit saran produksi** — tambahkan middleware rate‑limit (mis. `@upstash/ratelimit`) pada `/api/auth/verify` & `/api/exam/submit` untuk publikasi.
-
-## 📣 Contoh Output Discord (channel `pusdik`)
-
-- **Embed 1:** Foto avatar casis (thumbnail), nama/username, link profil Roblox, pangkat grup Kepolisian, skor akhir `X/100`, dan tahap lanjutan `TAHAP INTERVIEW`.
-- **Embed 2:** Rekap jawaban Pilihan Ganda (jawaban vs kunci) dan Essay (teks jawaban) untuk cross-check instruktur.
-- Admin panel juga dapat mengambil daftar pesan bot terbaru langsung dari channel Discord untuk pengecekan / pembersihan.
-
-## 🗃️ Ringkasan Database Schema
-
-- `User` — identitas Roblox casis + snapshot keanggotaan (pangkat, grup matra).
-- `ExamPeriod` — periode rekrutmen; `isActive` + `seed` untuk reset & pengacakan.
-- `Question` — bank soal MCQ (`options`, `correctKey`) & Essay (`keywords`).
-- `ExamAttempt` — satu percobaan per periode (`attemptKey` unik), snapshot soal + waktu.
-- `ExamAnswer` — jawaban tiap soal (arsip + rekap).
-- `ExamResult` — skor akhir, status hasil, rekap JSON, timestamp.
-- Semua tabel memiliki kolom `deletedAt` untuk soft delete serta indeks yang sesuai untuk performa.
-
-## ⚡ Catatan Performa Produksi
-
-- Landing page menggunakan ISR (`revalidate = 30`) agar halaman publik tidak melakukan query database berat pada setiap request.
-- Galeri dan background utama menggunakan aset WebP terkompresi; aset galeri besar dipangkas dari puluhan MB menjadi sekitar 2 MB total.
-- Tab besar admin (`Rekap`, `Kelola Casis`, `Putusan & Blacklist`, `Discord`) di-load secara lazy agar panel admin awal lebih ringan.
-- Blacklist Pusdik yang dibaca dari Discord memakai cache global 15 menit. Request pertama dapat lebih lama karena sistem resolve mention Discord secara serial untuk menghindari rate-limit, request berikutnya memakai cache.
-- Parser blacklist Pusdik mendukung format `Nama : user`, `@user/user2`, alias dalam kurung, mention `<@id>`, dan metadata mention untuk user yang sudah keluar guild.
-
-## 🧪 Scripts
-
-| Command | Fungsi |
-|---------|--------|
-| `npm run dev` | Development server |
-| `npm run build` / `start` | Build & jalankan produksi |
-| `npm run typecheck` | Type‑check TypeScript |
-| `npm run lint` | ESLint (setup pertama kali) |
-| `npm run db:migrate` | Migrasi schema Prisma |
-| `npm run db:push` | Sinkronisasi schema tanpa migrasi |
-| `npm run db:seed` | Seed bank soal + periode |
-| `npm run db:studio` | Prisma Studio (UI database) |
-| `npm run test` | Jalankan Vitest unit tests |
-| `npm run test:e2e` | Jalankan Playwright end‑to‑end test |
-
-## 📄 Lisensi
-
-Proyek ini disediakan sebagaimana‑nya tanpa jaminan, untuk keperluan roleplay / komunitas Roblox. Anda bebas men‑modifikasi dan mendistribusikan sesuai kebutuhan, tetapi tidak diperjualbelikan secara komersial tanpa izin.
-
-© Bareskrim Polri Roblox Roleplay. Project boilerplate untuk keperluan roleplay / game komunitas.
+Proyek ini dikembangkan khusus untuk keperluan seleksi dan komunitas **Pusdik Reserse Bareskrim Polri Roblox Roleplay**. Seluruh lambang, atribut, dan materi grafis kepolisian digunakan dalam koridor simulasi komunitas bermain peran dan tidak untuk tujuan penipuan atau komersialisasi di luar ketentuan.

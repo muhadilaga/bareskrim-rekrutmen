@@ -120,6 +120,10 @@ let schemaPromise: Promise<void> | null = null;
 // - Kegagalan TIDAK di-cache (retry di request berikutnya).
 // ============================================================
 export async function ensureSchema(): Promise<void> {
+  // Production bypass: lepas pemanggilan check runtime di production agar startup ringan
+  if (process.env.NODE_ENV === "production" && process.env.ENABLE_RUNTIME_SCHEMA_CHECK !== "true") {
+    return;
+  }
   if (schemaVerified) return;
   if (!schemaPromise) {
     schemaPromise = (async () => {
