@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { useToastContext } from "@/components/ui/Toast";
 
 interface DiscordMessage {
@@ -112,90 +110,112 @@ export function DiscordMessagesTab({ headers }: Props) {
   };
 
   return (
-    <Card strong className="p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-bold gold-text">💬 Pesan Bot Discord</h2>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={fetchMessages} disabled={loading}>
+    <article className="panel-card !p-6 sm:!p-8">
+      {/* Panel Heading Prototype */}
+      <div className="panel-heading !pb-4">
+        <div>
+          <span className="section-kicker">COMMUNICATION</span>
+          <h2 className="font-serif">Pesan Bot Discord</h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Pantau dan bersihkan pesan bot penerimaan pada channel Discord resmi Pusdik Reserse.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="outline-button !min-h-[40px] px-4 text-xs font-semibold"
+            onClick={fetchMessages}
+            disabled={loading}
+          >
             {loading ? "Memuat..." : fetched ? "Muat Ulang" : "Ambil Pesan"}
-          </Button>
+          </button>
           {messages.length > 0 && (
             <>
-              <Button
-                variant="ghost"
+              <button
+                type="button"
                 onClick={deleteSelected}
                 disabled={deleting || selected.size === 0}
-                className="text-red-400 hover:text-red-300"
+                className="reject-button !min-h-[40px] px-4 text-xs font-semibold"
               >
                 {deleting ? "Menghapus..." : `Hapus Terpilih (${selected.size})`}
-              </Button>
-              <Button
-                variant="ghost"
+              </button>
+              <button
+                type="button"
                 onClick={deleteAll}
                 disabled={deleting}
-                className="text-red-400 hover:text-red-300"
+                className="reject-button !min-h-[40px] px-4 text-xs font-semibold"
               >
                 Hapus Semua Bot
-              </Button>
+              </button>
             </>
           )}
         </div>
       </div>
-      <div className="gold-line my-3" />
 
       {!fetched && !loading && (
-        <p className="text-sm text-zinc-500">
-          Klik &quot;Ambil Pesan&quot; untuk melihat 50 pesan bot terbaru di channel Discord. Gunakan ini untuk cek hasil kirim atau bersih-bersih pesan lama.
-        </p>
+        <div className="empty-panel !min-h-[220px]">
+          <p className="mt-4 text-sm text-[var(--muted)]">
+            Klik &quot;Ambil Pesan&quot; untuk melihat 50 pesan bot terbaru di channel Discord.
+            Gunakan fitur ini untuk verifikasi pengiriman laporan atau membersihkan pesan berkala.
+          </p>
+        </div>
       )}
 
       {loading && (
-        <div className="py-8 text-center text-sm text-zinc-400">Memuat pesan dari Discord...</div>
+        <div className="py-12 text-center text-sm text-[var(--muted)]">
+          Memuat pesan dari Discord...
+        </div>
       )}
 
       {fetched && messages.length === 0 && (
-        <p className="py-8 text-center text-sm text-zinc-500">Tidak ada pesan bot di channel. Kalau seharusnya ada, cek diagnostics Discord dan webhook lalu coba kirim ulang laporan.</p>
+        <div className="empty-panel !min-h-[200px]">
+          <p className="text-sm text-[var(--muted)]">
+            Tidak ada pesan bot di channel. Kalau seharusnya ada, cek diagnostics Discord dan webhook lalu coba kirim ulang laporan.
+          </p>
+        </div>
       )}
 
       {messages.length > 0 && (
         <>
-          <div className="mb-3 flex items-center gap-3">
+          <div className="my-4 flex items-center justify-between border-b border-[var(--border)] pb-3">
             <button
+              type="button"
               onClick={selectAll}
-              className="text-xs text-gold/80 hover:text-gold"
+              className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--text)] transition"
             >
               {selected.size === messages.length ? "Batal Pilih Semua" : "Pilih Semua"}
             </button>
-            <span className="text-xs text-zinc-500">{messages.length} pesan bot</span>
+            <span className="panel-count">{messages.length} pesan bot</span>
           </div>
-          <div className="max-h-96 space-y-2 overflow-y-auto pr-1">
+
+          <div className="max-h-[500px] space-y-2.5 overflow-y-auto pr-1">
             {messages.map((m) => (
               <div
                 key={m.id}
                 onClick={() => toggleSelect(m.id)}
-                className={`cursor-pointer rounded-lg border p-3 transition ${
+                className={`cursor-pointer rounded-[3px] border p-3.5 transition ${
                   selected.has(m.id)
-                    ? "border-gold/50 bg-gold/10"
-                    : "border-white/10 bg-white/5 hover:border-white/20"
+                    ? "border-[var(--red)]/60 bg-[var(--surface-3)]"
+                    : "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--border-strong)]"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-gold">{m.author}</span>
-                      <span className="font-mono text-[10px] text-zinc-600">{m.id}</span>
+                      <span className="text-xs font-semibold text-[#68b478]">{m.author}</span>
+                      <span className="font-mono text-[10px] text-[var(--muted-2)]">{m.id}</span>
                     </div>
                     {m.embedTitle && (
-                      <p className="mt-1 text-sm font-medium text-zinc-200">{m.embedTitle}</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--text)]">{m.embedTitle}</p>
                     )}
                     {m.embedDescription && (
-                      <p className="mt-0.5 text-xs text-zinc-400 line-clamp-2">{m.embedDescription}</p>
+                      <p className="mt-0.5 text-xs text-[var(--muted)] line-clamp-2">{m.embedDescription}</p>
                     )}
                     {!m.embedTitle && m.content && (
-                      <p className="mt-1 text-xs text-zinc-400 line-clamp-2">{m.content}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)] line-clamp-2">{m.content}</p>
                     )}
                   </div>
-                  <span className="shrink-0 text-[10px] text-zinc-600">
+                  <span className="shrink-0 text-[10px] text-[var(--muted-2)]">
                     {new Date(m.timestamp).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
@@ -204,6 +224,6 @@ export function DiscordMessagesTab({ headers }: Props) {
           </div>
         </>
       )}
-    </Card>
+    </article>
   );
 }

@@ -4,17 +4,16 @@
 
 @layer base {
   :root {
-    --crimson: #7b1113;
-    --gold: #d4af37;
-    --bg: #140507;
+    --crimson: #b71920;
+    --gold: #ad9564;
+    --bg: #080909;
     --bg-gradient:
-      radial-gradient(1100px 600px at 50% -5%, rgba(123, 17, 19, 0.5), transparent 60%),
-      radial-gradient(900px 700px at 100% 100%, rgba(212, 175, 55, 0.07), transparent 60%),
-      linear-gradient(180deg, #1a080a 0%, #140507 40%, #0c0304 100%);
-    --text: #f4f4f5;
-    --text-muted: #a1a1aa;
-    --card-bg: rgba(255, 255, 255, 0.05);
-    --card-border: rgba(255, 255, 255, 0.1);
+      radial-gradient(1100px 600px at 50% -5%, rgba(183, 25, 32, 0.12), transparent 60%),
+      linear-gradient(180deg, #0d0e0e 0%, #080909 100%);
+    --text: #f1f1ed;
+    --text-muted: #9d9d98;
+    --card-bg: #101212;
+    --card-border: rgba(255, 255, 255, 0.12);
   }
 
   html:not(.dark) {
@@ -244,13 +243,16 @@
     border-top-color: rgba(123, 17, 19, 0.12);
   }
 
-  /* Scrollbar light — merah emas */
+  /* Scrollbar light — netral modern */
   html:not(.dark) ::-webkit-scrollbar-track {
-    background: linear-gradient(180deg, #faf5f0, #f0e8de);
+    background: #f4f4f5;
   }
   html:not(.dark) ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #7b1113, #d4af37);
+    background: #d4d4d8;
     border-radius: 8px;
+  }
+  html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+    background: #a1a1aa;
   }
 }
 
@@ -307,14 +309,18 @@
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #140507;
+  background: #0b0b0b;
 }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(#7b1113, #d4af37);
+  background: #27272a;
   border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
 }
 
 /* Pattern polisi samar — merah emas diagonal */
@@ -335,12 +341,15 @@ html:not(.dark) .chequered {
   );
 }
 
-/* Scrollbar light mode — merah emas */
+/* Scrollbar light mode — netral */
 html:not(.dark) ::-webkit-scrollbar-track {
-  background: linear-gradient(180deg, #faf5f0, #f0e8de);
+  background: #f4f4f5;
 }
 html:not(.dark) ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #7b1113, #d4af37);
+  background: #d4d4d8;
+}
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
 }
 
 /* Entrance animations */

@@ -1,9 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { useToastContext } from "@/components/ui/Toast";
 
 interface BlacklistTabProps {
@@ -164,16 +161,22 @@ export function BlacklistTab({ headers }: BlacklistTabProps) {
   };
 
   return (
-    <Card strong className="p-6">
-      <h2 className="font-display text-lg font-bold gold-text">Putusan & Blacklist</h2>
-      <p className="mt-1 text-xs text-zinc-500">
-        Pengganti pembacaan channel Discord: data dikelola di sini. Blacklist Polri & Pendidikan otomatis
-        memblokir login casis; putusan sidang bersifat informasional.
-      </p>
+    <article className="panel-card !p-6 sm:!p-8">
+      {/* Panel Heading Prototype */}
+      <div className="panel-heading !pb-4">
+        <div>
+          <span className="section-kicker">DECISION & RESTRICTIONS</span>
+          <h2 className="font-serif">Putusan & Blacklist</h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Pengganti pembacaan channel Discord: data dikelola di sini. Blacklist Polri & Pendidikan otomatis
+            memblokir login casis; putusan sidang bersifat informasional.
+          </p>
+        </div>
+      </div>
 
-      <div className="mt-4 grid gap-3 rounded-xl border border-gold/30 bg-black/30 p-4">
-        <p className="text-sm font-semibold text-zinc-200">🔎 Cross-check Manual di Channel Discord</p>
-        <p className="text-xs text-zinc-500">
+      <div className="mt-4 rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+        <span className="section-kicker mb-1 block">CROSS-CHECK DISCORD</span>
+        <p className="text-xs text-[var(--muted)] mb-3">
           Klik untuk membuka channel Discord terkait, lalu lakukan cross-check manual terhadap nama
           calon siswa pada putusan sidang, blacklist Polri, dan blacklist Pendidikan.
         </p>
@@ -196,7 +199,8 @@ export function BlacklistTab({ headers }: BlacklistTabProps) {
         </div>
       </div>
 
-      <div className="mt-4 flex overflow-hidden rounded-lg border border-white/15">
+      {/* Subtab Navigation Prototype */}
+      <nav className="admin-nav !mt-4 !p-1">
         {(
           [
             ["putusan", "Putusan Sidang"],
@@ -206,18 +210,25 @@ export function BlacklistTab({ headers }: BlacklistTabProps) {
         ).map(([t, label]) => (
           <button
             key={t}
+            type="button"
             onClick={() => setSubTab(t)}
-            className={`flex-1 px-3 py-2 text-sm font-semibold transition ${
-              subTab === t ? "bg-crimson-800 text-gold" : "bg-white/5 text-zinc-400"
-            }`}
+            className={`admin-tab ${subTab === t ? "active" : ""}`}
           >
             {label}
           </button>
         ))}
-      </div>
+      </nav>
 
-      {msg && (
-        <p className={`mt-3 text-sm ${msg.ok ? "text-emerald-400" : "text-red-400"}`}>{msg.text}</p>
+      {Boolean(msg?.text) && (
+        <div
+          className={`mt-4 rounded-[3px] border px-4 py-2.5 text-xs ${
+            msg!.ok
+              ? "border-[#68b478]/40 bg-[var(--surface-2)] text-[#68b478]"
+              : "border-[#d87575]/40 bg-[#1e1313] text-[#d87575]"
+          }`}
+        >
+          {msg!.text}
+        </div>
       )}
 
       <div className="mt-4">
@@ -253,7 +264,7 @@ export function BlacklistTab({ headers }: BlacklistTabProps) {
           />
         )}
       </div>
-    </Card>
+    </article>
   );
 }
 
@@ -288,17 +299,18 @@ function BlacklistSection({
   return (
     <div className="space-y-4">
       {enablePusdikLookup && headers && <PusdikBlacklistLookup headers={headers} busy={busy} />}
-      <div className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
-        <p className="text-sm font-semibold text-zinc-200">Tambah entri {label}</p>
-        <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+        <span className="section-kicker mb-2 block">Tambah entri {label}</span>
+        <div className="flex flex-col gap-2 sm:flex-row items-stretch sm:items-center">
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Username Roblox"
-            className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+            className="flex-1 h-11 rounded-[3px] border border-[var(--border-strong)] bg-[var(--surface)] px-3 text-sm text-[var(--text)] outline-none focus:border-[#b52228]"
           />
-          <Button
-            variant="gold"
+          <button
+            type="button"
+            className="primary-button !mt-0 !w-auto !min-h-[44px] px-5 text-xs font-semibold shrink-0"
             onClick={() => {
               onAdd(username, reason).then(() => {
                 setUsername("");
@@ -308,35 +320,36 @@ function BlacklistSection({
             disabled={busy || !username.trim()}
           >
             Tambah
-          </Button>
+          </button>
         </div>
         <input
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           placeholder="Alasan (opsional)"
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none"
+          className="mt-2 w-full h-10 rounded-[3px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)] outline-none"
         />
       </div>
 
-      <div className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
-        <p className="text-sm font-semibold text-zinc-200">Import massal (paste dari Discord)</p>
+      <div className="rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+        <span className="section-kicker mb-2 block">Import massal (paste dari Discord)</span>
         <textarea
           value={bulkText}
           onChange={(e) => setBulkText(e.target.value)}
-          rows={4}
+          rows={3}
           placeholder={"Satu username per baris, contoh:\nuser_a\nuser_b\nuser_c"}
-          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+          className="w-full rounded-[3px] border border-[var(--border-strong)] bg-[var(--surface)] p-3 text-sm text-[var(--text)] outline-none focus:border-[#b52228]"
         />
-        <div>
-          <Button
-            variant="gold"
+        <div className="mt-2">
+          <button
+            type="button"
+            className="outline-button !min-h-[38px] px-4 text-xs font-semibold"
             onClick={() => {
               onBulk(bulkText).then(() => setBulkText(""));
             }}
             disabled={busy || !bulkText.trim()}
           >
             Import
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -345,26 +358,27 @@ function BlacklistSection({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Cari username..."
-          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+          className="w-full h-11 rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none focus:border-[#b52228]"
         />
         <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
           {filtered.length === 0 ? (
-            <p className="py-4 text-center text-sm text-zinc-500">Tidak ada entri. Tambah manual, import banyak username, atau pakai lookup Discord untuk cross-check nama yang dicurigai.</p>
+            <p className="py-4 text-center text-sm text-[var(--muted)]">Tidak ada entri. Tambah manual, import banyak username, atau pakai lookup Discord untuk cross-check nama yang dicurigai.</p>
           ) : (
             filtered.map((e) => (
               <div
                 key={e.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3"
+                className="case-card flex items-start justify-between gap-3 !py-3"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-zinc-100">{e.username}</p>
-                  {e.reason && <p className="mt-0.5 text-xs text-zinc-500">{e.reason}</p>}
-                  <p className="mt-1 text-[11px] text-zinc-600">{fmtDate(e.createdAt)}</p>
+                  <p className="text-sm font-semibold text-[var(--text)]">{e.username}</p>
+                  {e.reason && <p className="mt-0.5 text-xs text-[var(--muted)]">{e.reason}</p>}
+                  <p className="mt-1 text-[11px] text-[var(--muted-2)]">{fmtDate(e.createdAt)}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => onDelete(e.id)}
                   disabled={busy}
-                  className="shrink-0 rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
+                  className="reject-button !min-h-[32px] !px-3 text-xs"
                 >
                   Hapus
                 </button>
@@ -428,19 +442,24 @@ function PusdikBlacklistLookup({
   }
 
   return (
-    <div className="grid gap-3 rounded-xl border border-gold/30 bg-black/20 p-4">
-      <p className="text-sm font-semibold text-zinc-200">Integrasi Channel Blacklist Pusdik</p>
-      <p className="text-xs text-zinc-500">Cari nama langsung di channel Discord blacklist pendidikan. Jika parsing alasan/durasi tidak lengkap, sistem tetap menampilkan cuplikan pesan sumber.</p>
+    <div className="grid gap-3 rounded-[3px] border border-[var(--border-strong)] bg-[var(--surface)] p-4">
+      <p className="text-sm font-semibold text-[var(--text)]">Integrasi Channel Blacklist Pusdik</p>
+      <p className="text-xs text-[var(--text-muted)]">Cari nama langsung di channel Discord blacklist pendidikan. Jika parsing alasan/durasi tidak lengkap, sistem tetap menampilkan cuplikan pesan sumber.</p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           placeholder="Username Roblox"
-          className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+          className="flex-1 h-11 rounded-[3px] border border-[var(--border-strong)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none focus:border-[#b52228]"
         />
-        <Button variant="gold" onClick={lookup} disabled={busy || loading || !username.trim()}>
+        <button
+          type="button"
+          className="primary-button !mt-0 !w-auto !min-h-[44px] px-5 text-xs font-semibold shrink-0"
+          onClick={lookup}
+          disabled={busy || loading || !username.trim()}
+        >
           {loading ? "Mencari..." : "Cari di Channel Blacklist Pusdik"}
-        </Button>
+        </button>
       </div>
 
       {result && (
@@ -494,25 +513,26 @@ function VerdictSection({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
-        <p className="text-sm font-semibold text-zinc-200">Tambah putusan sidang</p>
-        <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+        <span className="section-kicker mb-2 block">Tambah putusan sidang</span>
+        <div className="flex flex-col gap-2 sm:flex-row items-stretch sm:items-center">
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Username Roblox"
-            className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+            className="flex-1 h-11 rounded-[3px] border border-[var(--border-strong)] bg-[var(--surface)] px-3 text-sm text-[var(--text)] outline-none focus:border-[#b52228]"
           />
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as "LULUS" | "TIDAK_LULUS")}
-            className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none dark:bg-white/5 dark:text-zinc-100 bg-zinc-800 text-zinc-100"
+            className="h-11 rounded-[3px] border border-[var(--border-strong)] bg-[var(--surface)] px-3 text-sm text-[var(--text)] outline-none focus:border-[#b52228]"
           >
-            <option value="LULUS" className="bg-zinc-800 text-zinc-100">LULUS</option>
-            <option value="TIDAK_LULUS" className="bg-zinc-800 text-zinc-100">TIDAK LULUS</option>
+            <option value="LULUS">LULUS</option>
+            <option value="TIDAK_LULUS">TIDAK LULUS</option>
           </select>
-          <Button
-            variant="gold"
+          <button
+            type="button"
+            className="primary-button !mt-0 !w-auto !min-h-[44px] px-5 text-xs font-semibold shrink-0"
             onClick={() => {
               onAdd(username, status, note).then(() => {
                 setUsername("");
@@ -522,35 +542,36 @@ function VerdictSection({
             disabled={busy || !username.trim()}
           >
             Tambah
-          </Button>
+          </button>
         </div>
         <input
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Catatan (opsional)"
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none"
+          className="mt-2 w-full h-10 rounded-[3px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)] outline-none"
         />
       </div>
 
-      <div className="grid gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
-        <p className="text-sm font-semibold text-zinc-200">Import massal (status default LULUS)</p>
+      <div className="rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+        <span className="section-kicker mb-2 block">Import massal (status default LULUS)</span>
         <textarea
           value={bulkText}
           onChange={(e) => setBulkText(e.target.value)}
-          rows={4}
+          rows={3}
           placeholder={"Satu username per baris"}
-          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+          className="w-full rounded-[3px] border border-[var(--border-strong)] bg-[var(--surface)] p-3 text-sm text-[var(--text)] outline-none focus:border-[#b52228]"
         />
-        <div>
-          <Button
-            variant="gold"
+        <div className="mt-2">
+          <button
+            type="button"
+            className="outline-button !min-h-[38px] px-4 text-xs font-semibold"
             onClick={() => {
               onBulk(bulkText).then(() => setBulkText(""));
             }}
             disabled={busy || !bulkText.trim()}
           >
             Import
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -559,29 +580,32 @@ function VerdictSection({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           placeholder="Cari username..."
-          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+          className="w-full h-11 rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none focus:border-[#b52228]"
         />
         <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
           {filtered.length === 0 ? (
-            <p className="py-4 text-center text-sm text-zinc-500">Tidak ada putusan. Tambah putusan sidang manual atau import daftar username yang sudah diputus.</p>
+            <p className="py-4 text-center text-sm text-[var(--muted)]">Tidak ada putusan. Tambah putusan sidang manual atau import daftar username yang sudah diputus.</p>
           ) : (
             filtered.map((e) => (
               <div
                 key={e.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3"
+                className="case-card flex items-start justify-between gap-3 !py-3"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-zinc-100">{e.username}</p>
-                    <Badge tone={e.status === "LULUS" ? "green" : "red"}>{e.status}</Badge>
+                    <p className="text-sm font-semibold text-[var(--text)]">{e.username}</p>
+                    <span className={`status-badge ${e.status === "LULUS" ? "active" : "rejected"}`}>
+                      {e.status}
+                    </span>
                   </div>
-                  {e.note && <p className="mt-0.5 text-xs text-zinc-500">{e.note}</p>}
-                  <p className="mt-1 text-[11px] text-zinc-600">{fmtDate(e.createdAt)}</p>
+                  {e.note && <p className="mt-0.5 text-xs text-[var(--muted)]">{e.note}</p>}
+                  <p className="mt-1 text-[11px] text-[var(--muted-2)]">{fmtDate(e.createdAt)}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => onDelete(e.id)}
                   disabled={busy}
-                  className="shrink-0 rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
+                  className="reject-button !min-h-[32px] !px-3 text-xs"
                 >
                   Hapus
                 </button>
@@ -606,7 +630,7 @@ function ChannelButton({
   if (!href || !channelId) {
     return (
       <span
-        className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-zinc-500"
+        className="inline-flex items-center gap-2 rounded-[3px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--muted)]"
         title="Channel ID atau ID server belum diset di environment"
       >
         {label} (ID belum diset)
@@ -618,7 +642,7 @@ function ChannelButton({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-sm font-semibold text-gold transition hover:bg-gold/20 hover:text-gold-300"
+      className="outline-button !min-h-[40px] px-3.5 text-xs inline-flex items-center gap-1.5"
     >
       {label} ↗
     </a>

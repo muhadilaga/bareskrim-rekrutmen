@@ -1,9 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToastContext } from "@/components/ui/Toast";
 
@@ -59,7 +56,42 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
     loading: boolean;
     discordError: string | null;
   } | null>(null);
+  const [overrideModal, setOverrideModal] = useState<{
+    user: CasisUser;
+    saving: boolean;
+    customReason: string;
+  } | null>(null);
   const toast = useToastContext();
+
+  async function overrideMotivation(
+    attendanceId: string,
+    motivationStatus: "APPROVED" | "REVIEW" | "REJECTED",
+    roleEligible: boolean,
+    reason?: string
+  ) {
+    if (!overrideModal) return;
+    setOverrideModal((prev) => (prev ? { ...prev, saving: true } : null));
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({
+          attendanceId,
+          motivationStatus,
+          roleEligible,
+          motivationReason: reason,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message ?? "Gagal update status.");
+      toast.success(json.message ?? "Status motivasi berhasil diperbarui.");
+      setOverrideModal(null);
+      await loadUsers();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengupdate motivasi.");
+      setOverrideModal((prev) => (prev ? { ...prev, saving: false } : null));
+    }
+  }
 
   const loadUsers = useCallback(async () => {
     setBusy(true);
@@ -198,68 +230,116 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
   const belumAbsen = users.filter((u) => u.status === "belum_absen");
 
   return (
-    <Card strong className="p-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-bold gold-text">Manajemen Casis</h2>
-        <div className="flex items-center gap-2">
+    <article className="panel-card !p-6 sm:!p-8">
+      {/* Panel Heading Prototype */}
+      <div className="panel-heading !pb-4">
+        <div>
+          <span className="section-kicker">SELECTION</span>
+          <h2 className="font-serif">Manajemen Casis</h2>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            Pantau status pengerjaan ujian dan kehadiran casis secara real-time.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
             onClick={deleteAllUsers}
             disabled={deletingId === "__all__" || users.length === 0}
-            className="rounded-md border border-red-500/40 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/10 disabled:opacity-40"
+            className="reject-button !min-h-[42px] px-4 text-xs font-semibold shrink-0"
           >
             {deletingId === "__all__" ? "Menghapus semua..." : `Hapus Semua (${users.length})`}
           </button>
-          <Button variant="ghost" onClick={loadUsers} disabled={busy} className="text-xs">
+          <button
+            type="button"
+            onClick={loadUsers}
+            disabled={busy}
+            className="outline-button !min-h-[42px] px-4 text-xs font-semibold shrink-0"
+          >
             {busy ? "Memuat..." : "Refresh"}
-          </Button>
+          </button>
         </div>
       </div>
 
-      {msg && (
-        <p className={`mt-3 text-sm ${msg.ok ? "text-emerald-400" : "text-red-400"}`}>{msg.text}</p>
+      {Boolean(msg?.text) && (
+        <div
+          className={`mt-4 rounded-[3px] border px-4 py-2.5 text-xs ${
+            msg!.ok
+              ? "border-[#68b478]/40 bg-[var(--surface-2)] text-[#68b478]"
+              : "border-[#d87575]/40 bg-[#1e1313] text-[#d87575]"
+          }`}
+        >
+          {msg!.text}
+        </div>
       )}
 
-      {/* Belum Absen (terdaftar tapi belum absen) */}
-      <div className="mt-6">
-        <h3 className="mb-3 text-sm font-semibold text-zinc-300">
-          Belum Absen ({belumAbsen.length})
-        </h3>
+      {/* Grid Status Ringkasan */}
+      <div className="stats-grid !mt-6">
+        <div className="stat-card">
+          <span>Belum Absen</span>
+          <strong>{belumAbsen.length}</strong>
+          <small>terdaftar belum konfirmasi</small>
+        </div>
+        <div className="stat-card">
+          <span>Sudah Absen</span>
+          <strong>{sudahAbsen.length}</strong>
+          <small>siap mulai ujian</small>
+        </div>
+        <div className="stat-card">
+          <span>Sedang Mengerjakan</span>
+          <strong className="text-[#68b478]">{sedangMengerjakan.length}</strong>
+          <small>sesi ujian aktif</small>
+        </div>
+        <div className="stat-card">
+          <span>Sudah Selesai</span>
+          <strong>{sudahSelesai.length}</strong>
+          <small>jawaban terkumpul</small>
+        </div>
+      </div>
+
+      {/* Belum Absen */}
+      <div className="mt-8 border-t border-[var(--border)] pt-6">
+        <div className="card-heading !pb-3">
+          <div>
+            <span className="section-kicker">STATUS</span>
+            <h3>Belum Absen ({belumAbsen.length})</h3>
+          </div>
+        </div>
         {belumAbsen.length === 0 ? (
-          <p className="text-xs text-zinc-500">Tidak ada. Semua casis yang terdaftar sudah pernah absen atau daftar user masih kosong.</p>
+          <p className="py-4 text-xs text-[var(--muted)]">Tidak ada. Semua casis yang terdaftar sudah pernah absen atau daftar user masih kosong.</p>
         ) : (
-          <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+          <div className="case-list !mt-2">
             {belumAbsen.map((u) => (
               <div
                 key={u.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3"
+                className="case-card flex flex-wrap items-center justify-between gap-3 !py-3"
               >
-                <img
-                  src={u.avatarUrl ?? "/shield.svg"}
-                  alt={u.displayName}
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 rounded-full border border-gold/40 object-cover"
-                />
-                <div className="flex-1 min-w-[200px]">
-                  <p className="text-sm font-medium text-zinc-200">{u.displayName}</p>
-                  <p className="text-xs text-zinc-400">
-                    @{u.username} · {u.policeGroupRank ?? "-"}
-                    {u.discordUsername && <> · Discord: {u.discordUsername}</>}
-                  </p>
-                  {u.attendance?.motivationStatus && (
-                    <p className="mt-1 text-[11px] leading-5 text-zinc-500">
-                      Motivasi: {u.attendance.motivationStatus} · percobaan {u.attendance.motivationAttemptCount}/2
+                <div className="flex items-center gap-3">
+                  <img
+                    src={u.avatarUrl ?? "/shield.svg"}
+                    alt={u.displayName}
+                    width={34}
+                    height={34}
+                    className="h-8.5 w-8.5 rounded-full border border-[var(--border-strong)] object-cover"
+                  />
+                  <div>
+                    <strong className="text-sm font-semibold text-[var(--text)]">{u.displayName}</strong>
+                    <p className="text-xs text-[var(--muted)]">
+                      @{u.username} · {u.policeGroupRank ?? "-"}
+                      {u.discordUsername && <> · Discord: {u.discordUsername}</>}
                     </p>
-                  )}
+                  </div>
                 </div>
-                <Badge tone="neutral">Belum Absen</Badge>
-                <button
-                  onClick={() => deleteUser(u.id, u.username)}
-                  disabled={deletingId === u.id}
-                  className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
-                >
-                  {deletingId === u.id ? "..." : "Hapus"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="status-badge">Belum Absen</span>
+                  <button
+                    type="button"
+                    onClick={() => deleteUser(u.id, u.username)}
+                    disabled={deletingId === u.id}
+                    className="reject-button !min-h-[34px] !px-3 text-xs"
+                  >
+                    {deletingId === u.id ? "..." : "Hapus"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -267,55 +347,59 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
       </div>
 
       {/* Sedang Mengerjakan */}
-      <div className="mt-6">
-        <h3 className="mb-3 text-sm font-semibold text-zinc-300">
-          Sedang Mengerjakan ({sedangMengerjakan.length})
-        </h3>
+      <div className="mt-6 border-t border-[var(--border)] pt-6">
+        <div className="card-heading !pb-3">
+          <div>
+            <span className="section-kicker">AKTIF</span>
+            <h3 className="text-[#68b478]">Sedang Mengerjakan ({sedangMengerjakan.length})</h3>
+          </div>
+        </div>
         {sedangMengerjakan.length === 0 ? (
-          <p className="text-xs text-zinc-500">Tidak ada yang sedang mengerjakan. Kalau seharusnya ada, cek apakah sesi ujian sudah expired atau belum dibuat.</p>
+          <p className="py-4 text-xs text-[var(--muted)]">Tidak ada yang sedang mengerjakan. Kalau seharusnya ada, cek apakah sesi ujian sudah expired atau belum dibuat.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="case-list !mt-2">
             {sedangMengerjakan.map((u) => (
               <div
                 key={u.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3"
+                className="case-card flex flex-wrap items-center justify-between gap-3 !py-3 border-l-2 border-l-[#68b478] pl-3"
               >
-                <img
-                  src={u.avatarUrl ?? "/shield.svg"}
-                  alt={u.displayName}
-                  width={36}
-                  height={36}
-                  className="h-9 w-9 rounded-full border border-gold/40 object-cover"
-                />
-                <div className="flex-1 min-w-[200px]">
-                  <p className="text-sm font-semibold text-zinc-100">{u.displayName}</p>
-                  <p className="text-xs text-zinc-400">
-                    @{u.username} · {u.policeGroupRank ?? "-"}
-                    {u.discordUsername && <> · Discord: {u.discordUsername}</>}
-                  </p>
-                  {u.attendance?.motivationStatus && (
-                    <p className="mt-1 text-[11px] leading-5 text-zinc-500">
-                      Motivasi: {u.attendance.motivationStatus} · percobaan {u.attendance.motivationAttemptCount}/2
+                <div className="flex items-center gap-3">
+                  <img
+                    src={u.avatarUrl ?? "/shield.svg"}
+                    alt={u.displayName}
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 rounded-full border border-[var(--border-strong)] object-cover"
+                  />
+                  <div>
+                    <strong className="text-sm font-semibold text-[var(--text)]">{u.displayName}</strong>
+                    <p className="text-xs text-[var(--muted)]">
+                      @{u.username} · {u.policeGroupRank ?? "-"}
+                      {u.discordUsername && <> · Discord: {u.discordUsername}</>}
                     </p>
-                  )}
-                  <p className="text-[11px] text-zinc-500">
-                    Mulai: {new Date(u.attempt!.startedAt).toLocaleString("id-ID")}
-                  </p>
+                    <p className="text-[11px] text-[var(--muted-2)]">
+                      Mulai: {new Date(u.attempt!.startedAt).toLocaleString("id-ID")}
+                    </p>
+                  </div>
                 </div>
-                <Badge tone="green">Mengerjakan</Badge>
-                <button
-                  onClick={() => loadGroups(u)}
-                  className="rounded-md border border-gold/40 px-2.5 py-1 text-xs text-gold transition hover:bg-gold/10"
-                >
-                  Grup
-                </button>
-                <button
-                  onClick={() => deleteUser(u.id, u.username)}
-                  disabled={deletingId === u.id}
-                  className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
-                >
-                  {deletingId === u.id ? "..." : "Hapus"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="status-badge active">Mengerjakan</span>
+                  <button
+                    type="button"
+                    onClick={() => loadGroups(u)}
+                    className="outline-button !min-h-[34px] !px-3 text-xs"
+                  >
+                    Grup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteUser(u.id, u.username)}
+                    disabled={deletingId === u.id}
+                    className="reject-button !min-h-[34px] !px-3 text-xs"
+                  >
+                    {deletingId === u.id ? "..." : "Hapus"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -323,46 +407,55 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
       </div>
 
       {/* Sudah Selesai */}
-      <div className="mt-6">
-        <h3 className="mb-3 text-sm font-semibold text-zinc-300">
-          Sudah Selesai ({sudahSelesai.length})
-        </h3>
+      <div className="mt-6 border-t border-[var(--border)] pt-6">
+        <div className="card-heading !pb-3">
+          <div>
+            <span className="section-kicker">SELESAI</span>
+            <h3>Sudah Selesai ({sudahSelesai.length})</h3>
+          </div>
+        </div>
         {sudahSelesai.length === 0 ? (
-          <p className="text-xs text-zinc-500">Belum ada yang selesai.</p>
+          <p className="py-4 text-xs text-[var(--muted)]">Belum ada yang selesai.</p>
         ) : (
-          <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+          <div className="case-list !mt-2">
             {sudahSelesai.map((u) => (
               <div
                 key={u.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3"
+                className="case-card flex flex-wrap items-center justify-between gap-3 !py-3"
               >
-                <img
-                  src={u.avatarUrl ?? "/shield.svg"}
-                  alt={u.displayName}
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 rounded-full border border-gold/40 object-cover"
-                />
-                <div className="flex-1 min-w-[200px]">
-                  <p className="text-sm font-medium text-zinc-200">{u.displayName}</p>
-                  <p className="text-xs text-zinc-400">
-                    @{u.username} · {u.policeGroupRank ?? "-"}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <img
+                    src={u.avatarUrl ?? "/shield.svg"}
+                    alt={u.displayName}
+                    width={34}
+                    height={34}
+                    className="h-8.5 w-8.5 rounded-full border border-[var(--border-strong)] object-cover"
+                  />
+                  <div>
+                    <strong className="text-sm font-semibold text-[var(--text)]">{u.displayName}</strong>
+                    <p className="text-xs text-[var(--muted)]">
+                      @{u.username} · {u.policeGroupRank ?? "-"}
+                    </p>
+                  </div>
                 </div>
-                <Badge tone="neutral">Selesai</Badge>
-                <button
-                  onClick={() => loadGroups(u)}
-                  className="rounded-md border border-gold/40 px-2.5 py-1 text-xs text-gold transition hover:bg-gold/10"
-                >
-                  Grup
-                </button>
-                <button
-                  onClick={() => deleteUser(u.id, u.username)}
-                  disabled={deletingId === u.id}
-                  className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
-                >
-                  {deletingId === u.id ? "..." : "Hapus"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className="status-badge">Selesai</span>
+                  <button
+                    type="button"
+                    onClick={() => loadGroups(u)}
+                    className="outline-button !min-h-[34px] !px-3 text-xs"
+                  >
+                    Grup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteUser(u.id, u.username)}
+                    disabled={deletingId === u.id}
+                    className="reject-button !min-h-[34px] !px-3 text-xs"
+                  >
+                    {deletingId === u.id ? "..." : "Hapus"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -370,57 +463,76 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
       </div>
 
       {/* Sudah Absen, Belum Mulai */}
-      <div className="mt-6">
-        <h3 className="mb-3 text-sm font-semibold text-zinc-300">
-          Sudah Absen, Belum Mulai ({sudahAbsen.length})
-        </h3>
+      <div className="mt-6 border-t border-[var(--border)] pt-6">
+        <div className="card-heading !pb-3">
+          <div>
+            <span className="section-kicker">KEHADIRAN</span>
+            <h3>Sudah Absen, Belum Mulai ({sudahAbsen.length})</h3>
+          </div>
+        </div>
         {sudahAbsen.length === 0 ? (
-          <p className="text-xs text-zinc-500">Tidak ada.</p>
+          <p className="py-4 text-xs text-[var(--muted)]">Tidak ada.</p>
         ) : (
-          <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+          <div className="case-list !mt-2">
             {sudahAbsen.map((u) => (
               <div
                 key={u.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3"
+                className="case-card flex flex-wrap items-center justify-between gap-3 !py-3"
               >
-                <img
-                  src={u.avatarUrl ?? "/shield.svg"}
-                  alt={u.displayName}
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 rounded-full border border-gold/40 object-cover"
-                />
-                <div className="flex-1 min-w-[200px]">
-                  <p className="text-sm font-medium text-zinc-200">{u.displayName}</p>
-                  <p className="text-xs text-zinc-400">
-                    @{u.username} · {u.policeGroupRank ?? "-"}
-                    {u.discordUsername && <> · Discord: {u.discordUsername}</>}
-                  </p>
-                  {u.attendance?.motivationStatus && (
-                    <p className="mt-1 text-[11px] leading-5 text-zinc-500">
-                      Motivasi: {u.attendance.motivationStatus} · percobaan {u.attendance.motivationAttemptCount}/2
+                <div className="flex items-center gap-3">
+                  <img
+                    src={u.avatarUrl ?? "/shield.svg"}
+                    alt={u.displayName}
+                    width={34}
+                    height={34}
+                    className="h-8.5 w-8.5 rounded-full border border-[var(--border-strong)] object-cover"
+                  />
+                  <div>
+                    <strong className="text-sm font-semibold text-[var(--text)]">{u.displayName}</strong>
+                    <p className="text-xs text-[var(--muted)]">
+                      @{u.username} · {u.policeGroupRank ?? "-"}
+                      {u.discordUsername && <> · Discord: {u.discordUsername}</>}
                     </p>
+                    {u.attendance?.motivationStatus && (
+                      <p className="mt-1 text-[11px] text-[var(--muted-2)]">
+                        Motivasi: {u.attendance.motivationStatus} · percobaan {u.attendance.motivationAttemptCount}/2
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="status-badge pending">Absen</span>
+                  {u.attendance && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOverrideModal({
+                          user: u,
+                          saving: false,
+                          customReason: u.attendance?.motivationReason || "",
+                        })
+                      }
+                      className="outline-button !min-h-[34px] !px-3 text-xs border-[#d4af37]/40 text-[#f5d77f] hover:bg-[#d4af37]/10"
+                    >
+                      Tinjau Motivasi
+                    </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => loadGroups(u)}
+                    className="outline-button !min-h-[34px] !px-3 text-xs"
+                  >
+                    Grup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteUser(u.id, u.username)}
+                    disabled={deletingId === u.id}
+                    className="reject-button !min-h-[34px] !px-3 text-xs"
+                  >
+                    {deletingId === u.id ? "..." : "Hapus"}
+                  </button>
                 </div>
-                <div className="min-w-[220px] text-xs text-zinc-400">
-                  {u.attendance?.motivationStatus ? `Motivasi ${u.attendance.motivationStatus} · percobaan ${u.attendance.motivationAttemptCount}/2` : "Motivasi belum tercatat"}
-                  {u.attendance?.motivationReason ? <div className="mt-1 text-zinc-500">{u.attendance.motivationReason}</div> : null}
-                  {u.attendance?.motivation ? <div className="mt-1 line-clamp-3 text-zinc-500">{u.attendance.motivation}</div> : null}
-                </div>
-                <Badge tone="gold">Absen</Badge>
-                <button
-                  onClick={() => loadGroups(u)}
-                  className="rounded-md border border-gold/40 px-2.5 py-1 text-xs text-gold transition hover:bg-gold/10"
-                >
-                  Grup
-                </button>
-                <button
-                  onClick={() => deleteUser(u.id, u.username)}
-                  disabled={deletingId === u.id}
-                  className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
-                >
-                  {deletingId === u.id ? "..." : "Hapus"}
-                </button>
               </div>
             ))}
           </div>
@@ -434,28 +546,29 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
           onClick={() => setGroupModal(null)}
         >
           <div
-            className="w-full max-w-md overflow-hidden rounded-xl border border-gold/30 bg-[#12151c] shadow-2xl"
+            className="w-full max-w-md overflow-hidden rounded-[3px] border border-[var(--border)] bg-[var(--surface)] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
               <div className="flex items-center gap-3">
                 <img
                   src={groupModal.user.avatarUrl ?? "/shield.svg"}
                   alt={groupModal.user.displayName}
                   width={36}
                   height={36}
-                  className="h-9 w-9 rounded-full border border-gold/40 object-cover"
+                  className="h-9 w-9 rounded-full border border-[var(--border-strong)] object-cover"
                 />
                 <div>
-                  <p className="text-sm font-semibold text-zinc-100">
+                  <p className="text-sm font-semibold text-[var(--text)]">
                     {groupModal.user.displayName}
                   </p>
-                  <p className="text-xs text-zinc-400">@{groupModal.user.username}</p>
+                  <p className="text-xs text-[var(--muted)]">@{groupModal.user.username}</p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setGroupModal(null)}
-                className="rounded p-1 text-zinc-400 transition hover:text-zinc-100"
+                className="rounded p-1 text-[var(--muted)] transition hover:text-[var(--text)]"
                 aria-label="Tutup"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -467,36 +580,36 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
             <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
               {groupModal.loading ? (
                 <div className="space-y-2">
-                  <Skeleton className="h-10 w-full rounded-lg" />
-                  <Skeleton className="h-10 w-full rounded-lg" />
-                  <Skeleton className="h-10 w-full rounded-lg" />
+                  <Skeleton className="h-10 w-full rounded" />
+                  <Skeleton className="h-10 w-full rounded" />
+                  <Skeleton className="h-10 w-full rounded" />
                 </div>
               ) : (
                 <div className="space-y-5">
                   {/* Grup Roblox */}
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    <span className="section-kicker mb-2 block">
                       Grup Roblox ({groupModal.groups.length})
-                    </p>
+                    </span>
                     {groupModal.groups.length === 0 ? (
-                      <p className="text-sm text-zinc-500">Tidak ada grup Roblox.</p>
+                      <p className="text-sm text-[var(--muted)]">Tidak ada grup Roblox.</p>
                     ) : (
                       <div className="space-y-2">
                         {groupModal.groups.map((g) => (
                           <div
                             key={g.groupId}
-                            className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5"
+                            className="flex items-center justify-between gap-2 rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5"
                           >
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-zinc-200">
+                              <p className="truncate text-sm font-medium text-[var(--text)]">
                                 {g.groupName}
                               </p>
-                              <p className="text-xs text-zinc-500">
+                              <p className="text-xs text-[var(--muted)]">
                                 {g.roleName} · Rank {g.roleRank}
                               </p>
                             </div>
                             {g.isPrimary && (
-                              <span className="shrink-0 rounded bg-gold/20 px-1.5 py-0.5 text-[10px] font-semibold text-gold">
+                              <span className="status-badge pending shrink-0 text-[10px]">
                                 PRIMARY
                               </span>
                             )}
@@ -508,19 +621,19 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
 
                   {/* Server Discord */}
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    <span className="section-kicker mb-2 block">
                       Server Discord ({groupModal.discordGuilds.length})
-                    </p>
+                    </span>
                     {groupModal.discordError ? (
                       <p className="text-sm text-yellow-300/80">{groupModal.discordError}</p>
                     ) : groupModal.discordGuilds.length === 0 ? (
-                      <p className="text-sm text-zinc-500">Tidak ada server Discord bersama.</p>
+                      <p className="text-sm text-[var(--muted)]">Tidak ada server Discord bersama.</p>
                     ) : (
                       <div className="space-y-2">
                         {groupModal.discordGuilds.map((g) => (
                           <div
                             key={g.guildId}
-                            className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5"
+                            className="flex items-center justify-between gap-2 rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5"
                           >
                             <div className="flex min-w-0 items-center gap-2.5">
                               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5865F2] text-white">
@@ -529,18 +642,18 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
                                 </svg>
                               </div>
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-zinc-200">
+                                <p className="truncate text-sm font-medium text-[var(--text)]">
                                   {g.guildName}
                                 </p>
                                 {g.memberCount != null && (
-                                  <p className="text-xs text-zinc-500">
+                                  <p className="text-xs text-[var(--muted)]">
                                     {g.memberCount.toLocaleString("id-ID")} anggota
                                   </p>
                                 )}
                               </div>
                             </div>
                             {g.isPrimary && (
-                              <span className="shrink-0 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                              <span className="status-badge active shrink-0 text-[10px]">
                                 UTAMA
                               </span>
                             )}
@@ -555,6 +668,136 @@ export function CasisManagement({ headers, onDeleted }: CasisManagementProps) {
           </div>
         </div>
       )}
-    </Card>
+
+      {/* Modal Tinjau & Override Motivasi Casis */}
+      {overrideModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setOverrideModal(null)}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-[3px] border border-[var(--border)] bg-[var(--surface)] shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
+              <div>
+                <span className="section-kicker">EVALUASI INSTRUKTUR</span>
+                <h3 className="font-serif text-lg text-[var(--text)]">Tinjau & Override Motivasi</h3>
+                <p className="text-xs text-[var(--muted)]">
+                  Casis: <strong className="text-[var(--text)]">{overrideModal.user.displayName}</strong> (@{overrideModal.user.username})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOverrideModal(null)}
+                className="text-lg text-[var(--muted)] hover:text-[var(--text)]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  Teks Motivasi Casis:
+                </label>
+                <div className="mt-1.5 p-3 rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] text-xs text-[var(--text)] leading-relaxed italic max-h-40 overflow-y-auto">
+                  {overrideModal.user.attendance?.motivation || "(Casis belum mengisi motivasi)"}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-2.5 rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)]">
+                  <span className="text-[var(--muted)] block">Status Motivasi:</span>
+                  <strong className="text-sm">
+                    {overrideModal.user.attendance?.motivationStatus || "REVIEW"}
+                  </strong>
+                </div>
+                <div className="p-2.5 rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)]">
+                  <span className="text-[var(--muted)] block">Kelayakan Tahap Akademik:</span>
+                  <strong
+                    className={`text-sm ${
+                      overrideModal.user.attendance?.roleEligible
+                        ? "text-[#68b478]"
+                        : "text-[#d87575]"
+                    }`}
+                  >
+                    {overrideModal.user.attendance?.roleEligible ? "Lolos (Aktif)" : "Belum Lolos"}
+                  </strong>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  Catatan / Alasan Instruktur:
+                </label>
+                <input
+                  type="text"
+                  value={overrideModal.customReason}
+                  onChange={(e) =>
+                    setOverrideModal((prev) =>
+                      prev ? { ...prev, customReason: e.target.value } : null
+                    )
+                  }
+                  placeholder="Catatan persetujuan / revisi untuk casis..."
+                  className="mt-1 w-full rounded-[3px] border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--text)]"
+                />
+              </div>
+
+              <div className="pt-2 border-t border-[var(--border)] flex flex-wrap gap-2 justify-end">
+                <button
+                  type="button"
+                  disabled={overrideModal.saving}
+                  onClick={() =>
+                    overrideModal.user.attendance &&
+                    overrideMotivation(
+                      overrideModal.user.attendance.id,
+                      "APPROVED",
+                      true,
+                      overrideModal.customReason || "Disetujui instruktur Pusdik Reserse."
+                    )
+                  }
+                  className="primary-button !min-h-[38px] !px-4 text-xs font-semibold !bg-[#68b478] hover:!bg-[#58a468] !text-black"
+                >
+                  {overrideModal.saving ? "Menyimpan..." : "✓ Setujui (Lolos Akademik)"}
+                </button>
+                <button
+                  type="button"
+                  disabled={overrideModal.saving}
+                  onClick={() =>
+                    overrideModal.user.attendance &&
+                    overrideMotivation(
+                      overrideModal.user.attendance.id,
+                      "REVIEW",
+                      false,
+                      overrideModal.customReason || "Perlu revisi motivasi lebih terstruktur."
+                    )
+                  }
+                  className="outline-button !min-h-[38px] !px-3 text-xs font-semibold border-amber-500/50 text-amber-300"
+                >
+                  ⚡ Minta Revisi
+                </button>
+                <button
+                  type="button"
+                  disabled={overrideModal.saving}
+                  onClick={() =>
+                    overrideModal.user.attendance &&
+                    overrideMotivation(
+                      overrideModal.user.attendance.id,
+                      "REJECTED",
+                      false,
+                      overrideModal.customReason || "Motivasi tidak memenuhi standar Pusdik Reserse."
+                    )
+                  }
+                  className="reject-button !min-h-[38px] !px-3 text-xs font-semibold"
+                >
+                  ✕ Tolak Motivasi
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </article>
   );
 }

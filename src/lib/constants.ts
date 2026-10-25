@@ -43,8 +43,8 @@ function buildConfig() {
     examDurationMinutes: getEnvOrRuntime("examDurationMinutes", Number(process.env.EXAM_DURATION_MINUTES ?? 45)),
     requiredGroupId: getEnvOrRuntime("requiredGroupId", Number(process.env.REQUIRED_GROUP_ID ?? 11902409)),
     requiredGroupName: getEnvOrRuntime("requiredGroupName", process.env.REQUIRED_GROUP_NAME ?? "[RI] Republic Indonesia"),
-    policeGroupId: getEnvOrRuntime("policeGroupId", Number(process.env.POLICE_GROUP_ID ?? 17166238)),
-    policeGroupName: getEnvOrRuntime("policeGroupName", process.env.POLICE_GROUP_NAME ?? "Kepolisian"),
+    policeGroupId: getEnvOrRuntime("policeGroupId", Number(process.env.POLICE_GROUP_ID ?? 14460225)),
+    policeGroupName: getEnvOrRuntime("policeGroupName", process.env.POLICE_GROUP_NAME ?? "POLRI | Kepolisian Republik Indonesia"),
     minPoliceRank: getEnvOrRuntime("minPoliceRank", Number(process.env.MIN_POLICE_RANK ?? 224)),
     minPoliceRankName: process.env.MIN_POLICE_RANK_NAME ?? "Bhayangkara Satu",
     bannedGroupIds: getEnvOrRuntime("bannedGroupIds", (process.env.BANNED_GROUP_IDS ?? "367050757,34766643")
@@ -82,22 +82,23 @@ export const CONFIG = buildConfig();
 export const REDIRECT_BLOCKED_MESSAGE =
   "Mohon maaf, Anda tidak dapat mengakses soal ujian rekrutmen Bareskrim Polri karena terdaftar sebagai anggota matra lain (AD/AL).";
 
-// Fallback HANYA untuk pengembangan lokal (dev/test).
-// Di production, rahasia WAJIB berasal dari environment variable.
-function isProduction(): boolean {
-  return process.env.NODE_ENV === "production";
-}
-
-const JWT_SECRET_FALLBACK =
-  "RahasiaBareskrimRecruitment2026-9f8a7s6d5f4g3h2j1k0l";
-
+// TASK 03L.2B.2 — FAIL-CLOSED di SEMUA environment.
+// Tidak ada hardcoded fallback secret JWT: jangan pernah menerbitkan atau
+// memverifikasi JWT dengan default secret yang diketahui publik.
+// Konsumen: auth.ts (sesi siswa), admin-auth.ts, middleware.ts (admin).
 export function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
-  if (secret && secret.length >= 32) return secret;
-  if (isProduction()) {
-    throw new Error("JWT_SECRET wajib diisi (min. 32 karakter) di environment production.");
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "JWT_SECRET tidak valid (wajib diisi minimal 32 karakter di semua environment). " +
+        "Hardcoded fallback sudah dihapus; set JWT_SECRET di environment."
+    );
   }
-  return JWT_SECRET_FALLBACK;
+  return secret;
+}
+
+function isProduction(): boolean {
+  return process.env.NODE_ENV === "production";
 }
 
 const ADMIN_KEY_FALLBACK = "AdminBareskrim2026";

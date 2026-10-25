@@ -77,15 +77,31 @@ export function CountdownTimer({
         </p>
       )}
       <div
-        className={`rounded-lg border px-4 py-2 font-mono text-lg font-bold tabular-nums ${
-          danger
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          padding: "6px 14px",
+          fontFamily: 'monospace, "Inter", sans-serif',
+          fontSize: "16px",
+          fontWeight: 700,
+          letterSpacing: "0.06em",
+          border: danger
             ? critical
-              ? "border-red-500/60 bg-red-500/20 text-red-400 animate-pulse"
-              : "border-red-500/50 bg-red-500/10 text-red-400"
-            : "border-gold/40 bg-gold/10 text-gold"
-        }`}
+              ? "1px solid rgba(216, 117, 117, 0.8)"
+              : "1px solid rgba(216, 117, 117, 0.5)"
+            : "1px solid var(--casis-border)",
+          background: danger
+            ? critical
+              ? "rgba(37, 19, 19, 0.9)"
+              : "rgba(37, 19, 19, 0.6)"
+            : "var(--casis-surface)",
+          color: danger ? "#f08a8a" : "var(--casis-gold)",
+        }}
       >
-        ⏱ {mm}:{ss}
+        <span style={{ fontSize: "12px", opacity: 0.7 }}>⏱</span>
+        <span>{mm}:{ss}</span>
       </div>
     </div>
   );

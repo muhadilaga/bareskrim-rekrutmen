@@ -67,13 +67,10 @@ export interface ResultPayload {
   kkm?: number;
   submittedAt: string;
   answersJson: ResultDetail[];
+  // TASK 03L.2E.4.4 — hasil individual hanya dari sesi terverifikasi.
+  // Hanya field yang benar-benar dipakai ResultCard; tanpa PII / ID internal.
   attempt: {
-    id: string;
     user: {
-      username: string;
-      displayName: string;
-      robloxId: number;
-      avatarUrl: string | null;
       policeGroupRank: string | null;
     };
     period: { name: string };

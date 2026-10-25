@@ -1,4 +1,16 @@
 -- ============================================================
+-- [LEGACY — DOKUMENTASI SAJA, JANGAN DIJALANKAN DI V2] (TASK 03G)
+-- File ini TIDAK dieksekusi oleh aplikasi V2 (src/lib/init-schema.ts
+-- kini hanya verifikasi read-only; initSchema() dinonaktifkan).
+-- Prisma Migrate adalah penulis skema tunggal V2:
+--   prisma/migrations/20261002000000_init_v2_baseline/migration.sql
+-- Alasan penghentian penggunaan: dua jalur DDL (legacy idempoten +
+-- Prisma Migrate) menyebabkan drift & konflik skema —
+-- docs/v2/11-PRISMA-MIGRATION-STRATEGY.md bagian 2 & 3.
+-- File dipertahankan sebagai referensi dokumentasi inisialisasi V1.
+-- ============================================================
+
+-- ============================================================
 -- BARESKRIM REKRUTMEN - init.sql
 -- Jalankan file ini SEKALI di PostgreSQL (mis. Supabase -> SQL Editor -> New query -> Run).
 -- Bisa juga dilakukan otomatis lewat halaman /admin -> tombol "Initialize Database".

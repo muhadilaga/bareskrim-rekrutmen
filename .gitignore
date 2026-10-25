@@ -48,3 +48,5 @@ netlify-env.txt
 .vercel
 .netlify
 setup-vercel-env.ps1
+references/
+docs/v2/visual-baseline/

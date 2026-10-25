@@ -20,6 +20,7 @@ function adminHeaders() {
   return {
     Authorization: `Bot ${CONFIG.discordBotToken}`,
     "Content-Type": "application/json",
+    "User-Agent": "DiscordBot (https://rekrutmen-bareskrim.com, v10)",
   };
 }
 

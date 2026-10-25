@@ -2,6 +2,8 @@
 // Roblox API Client (public endpoints, tanpa auth token)
 // ============================================================
 
+import { CONFIG } from "./constants";
+
 export interface RobloxUserInfo {
   id: number;
   name: string;
@@ -193,3 +195,45 @@ const groupCache = new Map<number, { at: number; value: RobloxGroupRole[] }>();
 export function profileUrl(userId: number): string {
   return `https://www.roblox.com/users/${userId}/profile`;
 }
+
+export async function getRobloxUserSummary(
+  username: string,
+  targetGroupId = 14460225
+): Promise<{
+  id: number;
+  name: string;
+  displayName: string;
+  avatarUrl: string | null;
+  policeGroupRank: string;
+} | null> {
+  const clean = username.trim();
+  if (!clean) return null;
+  try {
+    const user = await resolveUserByUsername(clean);
+    if (!user) return null;
+    const [avatarUrl, groups] = await Promise.all([
+      getAvatarHeadshot(user.id).catch(() => null),
+      getUserGroups(user.id).catch(() => []),
+    ]);
+    // Pangkat WAJIB diambil strictly dari grup "POLRI | Kepolisian Republik Indonesia" (Group ID: 14460225)
+    const polGroup =
+      groups.find((g) => g.groupId === 14460225) ||
+      groups.find((g) => g.groupId === targetGroupId) ||
+      groups.find(
+        (g) =>
+          g.groupName.trim() === "POLRI | Kepolisian Republik Indonesia" ||
+          g.groupName.toLowerCase().includes("kepolisian republik indonesia")
+      );
+    const policeGroupRank = polGroup?.roleName?.trim() || "CASIS";
+    return {
+      id: user.id,
+      name: user.name,
+      displayName: user.displayName || user.name,
+      avatarUrl,
+      policeGroupRank,
+    };
+  } catch {
+    return null;
+  }
+}
+

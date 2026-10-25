@@ -8,8 +8,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Prisma Migrate & schema engine memakai koneksi langsung / session pooler,
+  // bukan transaction pooler (Supabase memisahkan dua jalur ini).
+  directUrl = env("DIRECT_URL")
 }
 
 enum QuestionType {
@@ -25,6 +28,17 @@ enum AttemptStatus {
 enum BlacklistCategory {
   POLRI
   PENDIDIKAN
+}
+
+enum ApplicationStatus {
+  MENUNGGU_VERIFIKASI
+  DITERIMA
+  DITOLAK
+}
+
+enum Gender {
+  L
+  P
 }
 
 enum VerdictStatus {
@@ -57,6 +71,7 @@ model User {
 
   attempts   ExamAttempt[]
   attendances Attendance[]
+  applications Application[]
 
   @@index([username])
   @@index([deletedAt])
@@ -67,6 +82,8 @@ model User {
 // ------------------------------------------------------------
 model ExamPeriod {
   id          String   @id @default(cuid())
+  recruitmentPeriodId String?
+  recruitmentPeriod   RecruitmentPeriod? @relation(fields: [recruitmentPeriodId], references: [id], onDelete: SetNull)
   name        String
   description String?
   isActive    Boolean  @default(false)
@@ -88,6 +105,7 @@ model ExamPeriod {
 
   @@index([isActive])
   @@index([deletedAt])
+  @@index([recruitmentPeriodId])
 }
 
 // ------------------------------------------------------------
@@ -296,3 +314,105 @@ model PendingDiscordReport {
   @@index([createdAt])
   @@index([deletedAt])
 }
+
+// ------------------------------------------------------------
+// Periode Pendaftaran (terpisah dari ExamPeriod; tidak mengubah
+// sistem ujian existing). Tiap pendaftaran melekat pada 1 periode.
+// ------------------------------------------------------------
+model RecruitmentPeriod {
+  id         String    @id @default(cuid())
+  code       String    @unique // prefix registrasi, mis. "XLI-02"
+  name       String    // mis. "Angkatan XLI Gelombang 02"
+  openedAt   DateTime
+  closedAt   DateTime
+  isActive   Boolean   @default(false) // gerbang on/off admin (kompatibel gaya ExamPeriod)
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  applications Application[]
+  examPeriods  ExamPeriod[]
+
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+// ------------------------------------------------------------
+// Pendaftaran Calon Siswa (Pusdik Reserse)
+// CATATAN KEAMANAN:
+// - accessTokenHash = SHA-256(raw token). Raw token TIDAK PERNAH
+//   disimpan di DB dan tidak pernah dicetak ke log.
+// - robloxUsername adalah input teks BELUM TERVERIFIKASI sampai
+//   proses verifikasi Roblox/Student Dashboard selesai.
+// - Satu pendaftaran per identitas Roblox per periode dijamin oleh
+//   @@unique([recruitmentPeriodId, robloxUsernameKey]) di tingkat
+//   database (race-safe, menangani concurrent submission).
+// ------------------------------------------------------------
+model Application {
+  id                   String            @id @default(cuid())
+  recruitmentPeriodId  String
+  registrationId       String            @unique // Format: XLI-02-K8M2N4 (6 char base32, contoh)
+  accessTokenHash      String            @unique // SHA-256 hash dari raw access token
+  fullName             String
+  robloxUsername       String            // tampilan asli (belum diverifikasi)
+  robloxUsernameKey    String            // lowercase normalisasi utk uniqueness
+  discordId            String
+  birthDate            DateTime
+  gender               Gender
+  origin               String
+  experience           String            @db.Text
+  motivation           String            @db.Text
+  agreementAcceptedAt  DateTime          @default(now())
+  status               ApplicationStatus @default(MENUNGGU_VERIFIKASI)
+  rejectionReason      String?           @db.Text
+  verifiedAt           DateTime?
+  verifiedBy           String?
+
+  userId               String?
+  user                 User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  recruitmentPeriod    RecruitmentPeriod @relation(fields: [recruitmentPeriodId], references: [id])
+
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  deletedAt            DateTime?
+
+  @@unique([recruitmentPeriodId, robloxUsernameKey])
+  @@index([registrationId])
+  @@index([robloxUsername])
+  @@index([discordId])
+  @@index([status])
+  @@index([recruitmentPeriodId])
+  @@index([deletedAt])
+}
+
+// ------------------------------------------------------------
+// Pengaturan runtime (key-value JSON) — disimpan lewat raw SQL
+// di src/lib/runtime-settings.ts (INSERT ... ON CONFLICT).
+// Struktur mengikuti kontrak SQL existing (TABLE_SQL lama):
+//   "key" TEXT NOT NULL (PK), "value" JSONB NOT NULL,
+//   "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP.
+// Nama tabel/kolom identik tanpa @map (Prisma memetakan langsung).
+// ------------------------------------------------------------
+model RuntimeSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// ------------------------------------------------------------
+// Temporary OAuth State Storage (Server-Side Multi-Instance PKCE & Replay Guard)
+// ------------------------------------------------------------
+model OAuthState {
+  id           String    @id @default(cuid())
+  stateId      String    @unique
+  state        String    @unique
+  codeVerifier String
+  nonce        String
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([expiresAt])
+}
+

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireOwnedHistoricalResource } from "@/lib/candidate-guard";
+import { candidateGuardErrorResponse } from "@/lib/guard-response";
 
 export async function GET(req: Request) {
   const user = await getSessionUser(req);
@@ -13,6 +15,17 @@ export async function GET(req: Request) {
 
   if (!resultId) {
     return NextResponse.json({ ok: false, message: "resultId wajib diisi" }, { status: 400 });
+  }
+
+  // TASK 03L.2E.4.2 — Historical read: ownership-only guard. TIDAK memakai
+  // current eligibility (status Application saat ini TIDAK relevan untuk hasil
+  // historis). Candidate Guard memastikan ExamResult milik trusted user ini.
+  try {
+    await requireOwnedHistoricalResource(prisma, user, { kind: "examResult", id: resultId });
+  } catch (err) {
+    const guardResponse = candidateGuardErrorResponse(err);
+    if (guardResponse) return guardResponse;
+    throw err;
   }
 
   try {

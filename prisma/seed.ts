@@ -261,49 +261,67 @@ const essayBank = [
 async function main() {
   console.log("Seeding bank soal Bareskrim...");
 
-  await prisma.examResult.deleteMany({});
-  await prisma.examAttempt.deleteMany({});
-  await prisma.question.deleteMany({});
-  await prisma.examPeriod.deleteMany({});
-
+  let addedMcq = 0;
   for (const q of mcqBank) {
-    await prisma.question.create({
-      data: {
-        type: QuestionType.MCQ,
-        prompt: q.prompt,
-        options: q.options,
-        correctKey: q.correctKey,
-        points: q.points,
-      },
+    const existing = await prisma.question.findFirst({
+      where: { prompt: q.prompt, deletedAt: null },
     });
+    if (!existing) {
+      await prisma.question.create({
+        data: {
+          type: QuestionType.MCQ,
+          prompt: q.prompt,
+          options: q.options,
+          correctKey: q.correctKey,
+          points: q.points,
+        },
+      });
+      addedMcq++;
+    }
   }
 
+  let addedEssay = 0;
   for (const q of essayBank) {
-    await prisma.question.create({
-      data: {
-        type: QuestionType.ESSAY,
-        prompt: q.prompt,
-        keywords: q.keywords,
-        points: q.points,
-      },
+    const existing = await prisma.question.findFirst({
+      where: { prompt: q.prompt, deletedAt: null },
     });
+    if (!existing) {
+      await prisma.question.create({
+        data: {
+          type: QuestionType.ESSAY,
+          prompt: q.prompt,
+          keywords: q.keywords,
+          points: q.points,
+        },
+      });
+      addedEssay++;
+    }
   }
 
-  const seed = Math.floor(Math.random() * 2_000_000_000) + 1;
-  await prisma.examPeriod.create({
-    data: {
-      name: "Rekrutmen Gelombang 1",
-      description: "Periode rekrutmen Bareskrim Polri - dibuka",
-      isActive: true,
-      seed,
-    },
+  const existingPeriod = await prisma.examPeriod.findFirst({
+    where: { isActive: true, deletedAt: null },
   });
 
-  const mcqCount = await prisma.question.count({ where: { type: "MCQ" } });
-  const essayCount = await prisma.question.count({ where: { type: "ESSAY" } });
+  if (!existingPeriod) {
+    const seed = Math.floor(Math.random() * 2_000_000_000) + 1;
+    await prisma.examPeriod.create({
+      data: {
+        name: "Rekrutmen Gelombang 1",
+        description: "Periode rekrutmen Bareskrim Polri - dibuka",
+        isActive: true,
+        seed,
+      },
+    });
+    console.log("Periode rekrutmen baru dibuat dengan seed:", seed);
+  } else {
+    console.log(`Periode aktif dipertahankan: ${existingPeriod.name}`);
+  }
 
-  console.log(`Selesai. Bank soal: ${mcqCount} MCQ, ${essayCount} Essay.`);
-  console.log("Periode rekrutmen aktif dibuat dengan seed:", seed);
+  const mcqCount = await prisma.question.count({ where: { type: "MCQ", deletedAt: null } });
+  const essayCount = await prisma.question.count({ where: { type: "ESSAY", deletedAt: null } });
+
+  console.log(`Selesai. Ditambahkan: ${addedMcq} MCQ, ${addedEssay} Essay.`);
+  console.log(`Total bank soal aktif: ${mcqCount} MCQ, ${essayCount} Essay.`);
 }
 
 main()

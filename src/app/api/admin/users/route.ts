@@ -215,3 +215,53 @@ export async function DELETE(req: Request) {
     );
   }
 }
+
+// PATCH: Override status motivasi / kelayakan akademik casis oleh instruktur
+export async function PATCH(req: Request) {
+  try {
+    const adminKey = req.headers.get("x-admin-key");
+    if (!adminKey || adminKey !== getAdminKey()) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { attendanceId, motivationStatus, roleEligible, motivationReason } = body;
+
+    if (!attendanceId) {
+      return NextResponse.json(
+        { ok: false, message: "attendanceId wajib diisi" },
+        { status: 400 }
+      );
+    }
+
+    const updated = await prisma.attendance.update({
+      where: { id: attendanceId },
+      data: {
+        motivationStatus: typeof motivationStatus === "string" ? motivationStatus : undefined,
+        roleEligible: typeof roleEligible === "boolean" ? roleEligible : undefined,
+        motivationReason: typeof motivationReason === "string" ? motivationReason : undefined,
+      },
+      include: {
+        user: { select: { username: true } },
+      },
+    });
+
+    await logAdminAction({
+      action: "OVERRIDE_MOTIVASI_CASIS",
+      target: updated.user?.username ?? attendanceId,
+      detail: { motivationStatus, roleEligible, motivationReason },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      message: "Status motivasi dan kelayakan akademik casis berhasil diperbarui.",
+      attendance: updated,
+    });
+  } catch (error) {
+    console.error("Admin patch casis error:", error);
+    return NextResponse.json(
+      { ok: false, message: "Gagal memperbarui status casis." },
+      { status: 500 }
+    );
+  }
+}

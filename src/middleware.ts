@@ -8,7 +8,34 @@ const PROTECTED_PREFIXES = [
   "/api/admin/",
   "/api/attendance/list",
   "/api/cron/discord-retry",
+  // TASK 03L.2E.4.10B-SEC — `auto-submit` menulis `ExamResult` untuk semua
+  // attempt kedaluwarsa dan sebelumnya TIDAK ada di daftar ini, sehingga tidak
+  // punya satu pun gerbang. Entry ini tidak melemahkan endpoint: gerbang
+  // route-level `isAdmin(req)` juga ada di route tersebut, dan middleware
+  // ikut menolak pemanggilan tanpa key.
+  "/api/cron/auto-submit",
 ];
+
+// TASK 03L.2E.4.10B-SEC-R2 — KEY-ONLY: daftar TERPISAH untuk path yang
+// memanggil database dari scheduler non-interaktif.
+//
+// JANGAN TERTUKAR DENGAN EXEMPT_PATHS — keduanya berkebalikan:
+//   EXEMPT_PATHS → path DILOLWARKAN tanpa cek apa pun (tanpa proteksi).
+//   KEY_ONLY_*   → path tetap WAJIB lolos `x-admin-key`; hanya cookie sesi
+//                  admin interaktif yang dilewati.
+//
+// Alasan: endpoint cron dipanggil scheduler yang wajar membawa header key
+// tetapi TIDAK membawa cookie `brk_admin_verified` (cookie itu bukti interaksi
+// manusia di browser). Tanpa daftar ini, middleware menolak scheduler di
+// lapisan cookie sehingga gate route-level tidak pernah tereksekusi.
+//
+// DAFTAR INI SENGAJA TIDAK MEMAKAI WILDCARD. Hanya path yang disebut eksplisit
+// yang boleh melewati pemeriksaan cookie. Route cron lain — termasuk
+// `/api/cron/discord-retry` — tetap memerlukan cookie + JWT seperti sebelumnya.
+const KEY_ONLY_PREFIXES = [
+  "/api/cron/auto-submit",
+];
+
 const EXEMPT_PATHS = new Set([
   "/api/admin/auth/verify-staff",
   "/api/admin/auth/session",
@@ -17,6 +44,26 @@ const EXEMPT_PATHS = new Set([
 
 function isProtected(pathname: string) {
   return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+// TASK 03L.2E.4.10B-SEC-R3 — Batas segmen, bukan prefix mentah.
+//
+// Versi sebelumnya memakai `pathname.startsWith(prefix)` polos, yang membuat
+// path saudara seperti `/api/cron/auto-submit-admin`, `/api/cron/auto-submitX`,
+// atau `/api/cron/auto-submitted` ikut melewati pemeriksaan cookie. Route seperti
+// itu tidak ada sekarang, tetapi akan otomatis mewarisi pengecualian bila
+// ditambahkan di masa depan. Pola persis di bawah menutup celah itu.
+//
+// POLICY TRAILING SLASH (berdasarkan implementasi, bukan asumsi runtime):
+// `/api/cron/auto-submit/` diawali `/api/cron/auto-submit/` sehingga DIANGGAP
+// sub-path sah. Fungsi ini murni — ia tidak tahu apa pun soal normalisasi
+// request. Bila runtime Next.js ternyata menormalkan trailing slash sehingga
+// pathname menjadi sama persis, hasilnya tetap sama: diizinkan. Catatan: tes
+// unit TIDAK membuktikan bagaimana runtime menormalkan path.
+function isKeyOnly(pathname: string) {
+  return KEY_ONLY_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
 }
 
 function isExempt(pathname: string) {
@@ -36,6 +83,13 @@ export async function middleware(req: NextRequest) {
   const adminKey = req.headers.get("x-admin-key");
   if (!adminKey || adminKey !== getAdminKey()) {
     return NextResponse.json({ ok: false, message: "Kunci admin salah." }, { status: 401 });
+  }
+
+  // TASK 03L.2E.4.10B-SEC-R2 — SETELAH key valid. Path yang terdaftar eksplisit
+  // di KEY_ONLY_PREFIXES boleh lanjut tanpa cookie/JWT, karena pemanggilnya
+  // scheduler dan bukan browser. Gate `x-admin-key` TIDAK dilewati.
+  if (isKeyOnly(pathname)) {
+    return NextResponse.next();
   }
 
   const token = req.cookies.get(ADMIN_COOKIE)?.value;

@@ -60,6 +60,9 @@ export function clientIp(req: Request): string {
   return "unknown";
 }
 
+// 5 submit pendaftaran per menit per IP
+export const publicLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
+
 // 10 permintaan verifikasi per menit per IP
 export const verifyLimiter = createRateLimiter({ windowMs: 60_000, max: 10 });
 

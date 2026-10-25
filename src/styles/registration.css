@@ -1,0 +1,1257 @@
+.design-root {
+    --sans: "Inter", Arial, sans-serif;
+    --serif: "DM Serif Display", Georgia, serif;
+    --black: #090909;
+    --black-soft: #101010;
+    --panel: #141414;
+
+    --white: #f1efe9;
+    --muted: #918e88;
+    --muted-dark: #5f5d59;
+
+    --red: #b52227;
+    --red-bright: #cf2d33;
+
+    --gold: #ad9564;
+
+    --green: #6aad78;
+
+    --line: rgba(241, 239, 233, 0.12);
+
+    --serif: "DM Serif Display", Georgia, serif;
+    --sans: "Inter", Arial, sans-serif;
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+.design-root * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+
+.design-root-body {
+    background: var(--black);
+    color: var(--white);
+
+    font-family: var(--sans);
+
+    line-height: 1.6;
+
+    overflow-x: hidden;
+}
+
+.design-root a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button,
+input,
+textarea,
+.design-root select {
+    font: inherit;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.design-root .site-header {
+    min-height: 90px;
+
+    padding: 24px 5vw;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.design-root .brand {
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+}
+
+.design-root .brand img {
+    width: 42px;
+    height: 42px;
+
+    object-fit: contain;
+}
+
+.design-root .brand-copy {
+    display: flex;
+    flex-direction: column;
+
+    line-height: 1.1;
+}
+
+.design-root .brand-copy strong {
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 0.15em;
+}
+
+.design-root .brand-copy span {
+    margin-top: 5px;
+
+    color: var(--muted);
+
+    font-size: 8px;
+
+    letter-spacing: 0.22em;
+}
+
+.design-root .back-link {
+    color: rgba(241, 239, 233, 0.68);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.16em;
+
+    transition: color 0.25s ease;
+}
+
+.design-root .back-link:hover {
+    color: var(--white);
+}
+
+
+/* =========================================================
+   COMMON
+========================================================= */
+
+.design-root .eyebrow {
+    color: var(--gold);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.2em;
+}
+
+h1,
+.design-root h2 {
+    font-family: var(--serif);
+
+    font-weight: 400;
+
+    letter-spacing: -0.04em;
+}
+
+h1 em,
+.design-root h2 em {
+    color: var(--red);
+
+    font-style: normal;
+}
+
+
+/* =========================================================
+   INTRO
+========================================================= */
+
+.design-root .registration-intro {
+    min-height: 410px;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding:
+        80px
+        9vw;
+
+    overflow: hidden;
+
+    border-bottom: 1px solid var(--line);
+
+    background:
+        radial-gradient(
+            circle at 80% 50%,
+            rgba(181, 34, 39, 0.08),
+            transparent 28%
+        );
+}
+
+.design-root .intro-content {
+    position: relative;
+    z-index: 2;
+
+    max-width: 760px;
+}
+
+.design-root .status {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    margin-bottom: 25px;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.design-root .status span {
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: var(--green);
+
+    box-shadow:
+        0 0 12px rgba(106, 173, 120, 0.5);
+}
+
+.design-root .intro-content h1 {
+    margin-top: 14px;
+
+    font-size: clamp(64px, 8vw, 110px);
+
+    line-height: 0.9;
+}
+
+.design-root .intro-meta {
+    margin-top: 25px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    color: rgba(241, 239, 233, 0.62);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.design-root .intro-meta i {
+    width: 40px;
+    height: 1px;
+
+    background: var(--red);
+}
+
+.design-root .intro-description {
+    max-width: 500px;
+
+    margin-top: 25px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    line-height: 1.8;
+}
+
+.design-root .intro-index {
+    position: absolute;
+
+    right: 7vw;
+    bottom: 10px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
+    user-select: none;
+}
+
+.design-root .intro-index span {
+    color: rgba(255, 255, 255, 0.035);
+
+    font-family: var(--serif);
+
+    font-size: 260px;
+
+    line-height: 0.65;
+
+    letter-spacing: -0.09em;
+}
+
+.design-root .intro-index small {
+    margin-top: 25px;
+
+    color: rgba(255, 255, 255, 0.18);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.2em;
+}
+
+
+/* =========================================================
+   FORM SECTION
+========================================================= */
+
+.design-root .form-section {
+    padding: 100px 9vw;
+
+    background: #0d0d0d;
+}
+
+.design-root .form-layout {
+    display: grid;
+
+    grid-template-columns: 260px 1fr;
+
+    gap: 90px;
+
+    max-width: 1250px;
+
+    margin: 0 auto;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.design-root .form-sidebar {
+    align-self: start;
+
+    position: sticky;
+
+    top: 35px;
+}
+
+.design-root .sidebar-title {
+    padding-bottom: 25px;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.design-root .sidebar-title span {
+    display: block;
+
+    color: var(--muted);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.design-root .sidebar-title strong {
+    display: block;
+
+    margin-top: 5px;
+
+    color: var(--white);
+
+    font-family: var(--serif);
+
+    font-size: 44px;
+
+    font-weight: 400;
+
+    line-height: 1;
+}
+
+.design-root .progress {
+    margin-top: 35px;
+}
+
+.design-root .progress-step {
+    display: grid;
+
+    grid-template-columns: 35px 1fr;
+
+    gap: 12px;
+
+    align-items: start;
+
+    opacity: 0.38;
+
+    transition: opacity 0.25s ease;
+}
+
+.progress-step.active,
+.design-root .progress-step.completed {
+    opacity: 1;
+}
+
+.design-root .progress-step > span {
+    color: var(--red);
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.design-root .progress-step strong {
+    display: block;
+
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.design-root .progress-step small {
+    display: block;
+
+    margin-top: 3px;
+
+    color: var(--muted);
+
+    font-size: 9px;
+}
+
+.design-root .progress-line {
+    width: 1px;
+    height: 35px;
+
+    margin-left: 3px;
+
+    background: var(--line);
+
+    transition: background 0.25s ease;
+}
+
+.design-root .progress-line.completed {
+    background: var(--red);
+}
+
+.design-root .sidebar-note {
+    margin-top: 70px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid var(--line);
+}
+
+.design-root .sidebar-note > span {
+    color: var(--gold);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.design-root .sidebar-note p {
+    margin-top: 10px;
+
+    color: var(--muted);
+
+    font-size: 10px;
+
+    line-height: 1.8;
+}
+
+
+/* =========================================================
+   FORM CONTAINER
+========================================================= */
+
+.design-root .form-container {
+    min-width: 0;
+}
+
+.design-root .form-step {
+    display: none;
+}
+
+.design-root .form-step.active {
+    display: block;
+}
+
+.design-root .step-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding-bottom: 18px;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.design-root .step-heading > div {
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+}
+
+.design-root .step-heading > div > span {
+    color: var(--red);
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.design-root .step-heading p {
+    color: var(--muted);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.design-root .step-heading small {
+    color: var(--muted-dark);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.14em;
+}
+
+.design-root .form-step h2 {
+    margin-top: 45px;
+
+    font-size: clamp(48px, 5vw, 70px);
+
+    line-height: 0.95;
+}
+
+.design-root .step-description {
+    max-width: 520px;
+
+    margin-top: 18px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    line-height: 1.8;
+}
+
+
+/* =========================================================
+   FIELDS
+========================================================= */
+
+.design-root .fields {
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 26px 20px;
+
+    margin-top: 50px;
+}
+
+.design-root .field {
+    display: flex;
+    flex-direction: column;
+}
+
+.design-root .field.full {
+    grid-column: 1 / -1;
+}
+
+.design-root .field label {
+    margin-bottom: 9px;
+
+    color: var(--muted);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.field input,
+.field select,
+.design-root .field textarea {
+    width: 100%;
+
+    padding: 14px 15px;
+
+    border: 1px solid rgba(241, 239, 233, 0.13);
+
+    outline: none;
+
+    background: #111;
+
+    color: var(--white);
+
+    font-size: 12px;
+
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+.field input,
+.design-root .field select {
+    height: 50px;
+}
+
+.design-root .field textarea {
+    resize: vertical;
+
+    min-height: 130px;
+
+    line-height: 1.7;
+}
+
+.field input::placeholder,
+.design-root .field textarea::placeholder {
+    color: var(--muted-dark);
+}
+
+.field input:focus,
+.field select:focus,
+.design-root .field textarea:focus {
+    border-color: rgba(181, 34, 39, 0.7);
+
+    background: #151515;
+}
+
+.design-root .field select {
+    appearance: none;
+
+    cursor: pointer;
+}
+
+
+/* =========================================================
+   FORM ACTIONS
+========================================================= */
+
+.design-root .form-actions {
+    margin-top: 55px;
+
+    padding-top: 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-top: 1px solid var(--line);
+}
+
+.design-root .form-actions > span {
+    color: var(--muted-dark);
+
+    font-size: 8px;
+}
+
+.next-button,
+.submit-button,
+.design-root .back-button {
+    min-height: 50px;
+
+    border: none;
+
+    cursor: pointer;
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.16em;
+
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+}
+
+.next-button,
+.design-root .submit-button {
+    padding: 0 22px;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 20px;
+
+    background: var(--red);
+
+    color: white;
+}
+
+.next-button span,
+.design-root .submit-button span {
+    font-size: 15px;
+}
+
+.next-button:hover,
+.design-root .submit-button:hover {
+    transform: translateY(-2px);
+
+    background: var(--red-bright);
+}
+
+.design-root .back-button {
+    padding: 0;
+
+    background: transparent;
+
+    color: var(--muted);
+
+    border-bottom: 1px solid transparent;
+}
+
+.design-root .back-button:hover {
+    color: var(--white);
+
+    border-bottom-color: var(--muted);
+}
+
+
+/* =========================================================
+   REVIEW
+========================================================= */
+
+.design-root .review-box {
+    margin-top: 45px;
+
+    border-top: 1px solid var(--line);
+}
+
+.design-root .review-row {
+    min-height: 65px;
+
+    display: grid;
+
+    grid-template-columns: 120px 1fr;
+
+    align-items: center;
+
+    border-bottom: 1px solid rgba(241, 239, 233, 0.08);
+}
+
+.design-root .review-row span {
+    color: var(--muted);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.16em;
+}
+
+.design-root .review-row strong {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   AGREEMENT
+========================================================= */
+
+.design-root .agreement {
+    margin-top: 35px;
+
+    display: grid;
+
+    grid-template-columns: 20px 1fr;
+
+    gap: 13px;
+
+    cursor: pointer;
+}
+
+.design-root .agreement input {
+    position: absolute;
+
+    opacity: 0;
+
+    pointer-events: none;
+}
+
+.design-root .custom-check {
+    width: 18px;
+    height: 18px;
+
+    margin-top: 2px;
+
+    display: flex;
+
+    border: 1px solid rgba(241, 239, 233, 0.3);
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.design-root .agreement input:checked + .custom-check {
+    background: var(--red);
+
+    border-color: var(--red);
+}
+
+.design-root .agreement input:checked + .custom-check::after {
+    content: "✓";
+
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: white;
+
+    font-size: 10px;
+}
+
+.design-root .agreement p {
+    max-width: 620px;
+
+    color: var(--muted);
+
+    font-size: 10px;
+
+    line-height: 1.7;
+}
+
+
+/* =========================================================
+   SUCCESS
+========================================================= */
+
+.design-root .success-section {
+    min-height: calc(100vh - 90px);
+
+    padding:
+        120px
+        9vw;
+
+    display: none;
+
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    text-align: center;
+
+    background:
+        radial-gradient(
+            circle at center,
+            rgba(181, 34, 39, 0.07),
+            transparent 35%
+        );
+}
+
+.design-root .success-section.visible {
+    display: flex;
+}
+
+.design-root .success-mark {
+    width: 58px;
+    height: 58px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(106, 173, 120, 0.5);
+
+    border-radius: 50%;
+
+    color: var(--green);
+
+    font-size: 22px;
+}
+
+.design-root .success-section .eyebrow {
+    margin-top: 28px;
+}
+
+.design-root .success-section h2 {
+    max-width: 700px;
+
+    margin-top: 15px;
+
+    font-size: clamp(50px, 6vw, 82px);
+}
+
+.design-root .success-description {
+    max-width: 450px;
+
+    margin-top: 20px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    line-height: 1.8;
+}
+
+.design-root .registration-number {
+    margin-top: 40px;
+
+    padding: 22px 45px;
+
+    border: 1px solid var(--line);
+
+    background: #101010;
+}
+
+.design-root .registration-number span {
+    display: block;
+
+    color: var(--muted);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.design-root .registration-number strong {
+    display: block;
+
+    margin-top: 7px;
+
+    color: var(--white);
+
+    font-size: 20px;
+
+    letter-spacing: 0.12em;
+}
+
+.design-root .access-token-number {
+    margin-top: 12px;
+}
+
+.design-root .credential-note {
+    max-width: 390px;
+    margin-top: 18px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+.design-root .success-status {
+    margin-top: 20px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    color: var(--muted);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.15em;
+}
+
+.design-root .success-status span {
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: var(--gold);
+}
+
+.design-root .success-actions {
+    margin-top: 40px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+.secondary-button,
+.design-root .primary-button {
+    min-height: 48px;
+
+    padding: 0 18px;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 15px;
+
+    border: 1px solid var(--line);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.13em;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease;
+}
+
+.design-root .secondary-button {
+    background: transparent;
+
+    color: var(--muted);
+}
+
+.design-root .primary-button {
+    border-color: var(--white);
+
+    background: var(--white);
+
+    color: var(--black);
+}
+
+.secondary-button:hover,
+.design-root .primary-button:hover {
+    transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+.design-root .form-layout {
+        grid-template-columns: 1fr;
+
+        gap: 60px;
+    }
+
+.design-root .form-sidebar {
+        position: static;
+    }
+
+.design-root .progress {
+        display: grid;
+
+        grid-template-columns:
+            1fr 35px 1fr 35px 1fr;
+
+        align-items: start;
+    }
+
+.design-root .progress-step {
+        grid-template-columns: 25px 1fr;
+    }
+
+.design-root .progress-line {
+        width: auto;
+        height: 1px;
+
+        margin: 5px 10px 0;
+
+        background: var(--line);
+    }
+
+.design-root .sidebar-note {
+        display: none;
+    }
+
+.design-root .intro-index {
+        right: 2vw;
+    }
+
+.design-root .intro-index span {
+        font-size: 190px;
+    }
+}
+
+
+@media (max-width: 600px) {
+
+    .site-header {
+        min-height: 75px;
+
+        padding: 18px 6vw;
+    }
+
+    .brand-copy {
+        display: none;
+    }
+
+    .registration-intro {
+        min-height: 430px;
+
+        padding:
+            65px
+            6vw;
+    }
+
+    .intro-content h1 {
+        font-size: 17vw;
+    }
+
+    .intro-index {
+        display: none;
+    }
+
+    .form-section {
+        padding:
+            70px
+            6vw;
+    }
+
+    .progress {
+        grid-template-columns:
+            1fr 20px 1fr 20px 1fr;
+    }
+
+    .progress-step {
+        display: block;
+    }
+
+    .progress-step > span {
+        display: block;
+
+        margin-bottom: 6px;
+    }
+
+    .progress-step small {
+        display: none;
+    }
+
+    .fields {
+        grid-template-columns: 1fr;
+    }
+
+    .field.full {
+        grid-column: auto;
+    }
+
+    .form-actions {
+        align-items: flex-start;
+
+        gap: 20px;
+
+        flex-direction: column;
+    }
+
+    .next-button,
+    .submit-button {
+        width: 100%;
+
+        justify-content: center;
+    }
+
+    .review-row {
+        grid-template-columns: 90px 1fr;
+
+        gap: 15px;
+    }
+
+    .success-section {
+        padding:
+            90px
+            6vw;
+    }
+
+    .success-actions {
+        width: 100%;
+
+        flex-direction: column;
+    }
+
+    .secondary-button,
+    .primary-button {
+        width: 100%;
+
+        justify-content: center;
+    }
+}
+
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+
+    .site-header,
+    .success-actions {
+        display: none !important;
+    }
+
+    .design-root-body {
+        background: white;
+
+        color: black;
+    }
+
+    .success-section {
+        min-height: 100vh;
+
+        display: flex !important;
+
+        background: white;
+    }
+
+    .success-section h2 em {
+        color: black;
+    }
+
+    .registration-number {
+        border-color: #ccc;
+
+        background: white;
+    }
+
+    .registration-number strong {
+        color: black;
+    }
+
+}
+
+/* =========================================================
+   TYPOGRAPHY POLISH
+========================================================= */
+
+.brand-copy strong { font-size: 11px; letter-spacing: .09em; }
+.brand-copy span,
+.back-link,
+.eyebrow,
+.status,
+.intro-meta,
+.sidebar-title span,
+.sidebar-note > span,
+.step-heading p,
+.step-heading small,
+.field label,
+.review-row span,
+.registration-number span,
+.success-status,
+.footer-brand span,
+.footer > span { font-size: 11px; letter-spacing: .08em; line-height: 1.3; }
+
+.intro-description,
+.step-description,
+.sidebar-note p,
+.agreement p,
+.success-description,
+.credential-note { font-size: 14px; line-height: 1.65; }
+
+.progress-step strong,
+.progress-step small,
+.form-actions > span,
+.review-row strong { font-size: 12px; line-height: 1.4; }
+
+.field input,
+.field select,
+.field textarea { font-size: 15px; line-height: 1.6; }
+
+.next-button,
+.submit-button,
+.back-button,
+.secondary-button,
+.primary-button { font-size: 13px; letter-spacing: .07em; }

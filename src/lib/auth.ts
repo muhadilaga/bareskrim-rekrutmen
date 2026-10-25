@@ -16,17 +16,59 @@ function getSecret(): Uint8Array {
 export interface SessionPayload extends JWTPayload {
   userId: string;
   robloxId: number;
+  // Klaim trust v2 — HANYA diterbitkan setelah verifikasi Roblox OIDC.
+  // JWT tanpa klaim ini (legacy) DITOLAK oleh seluruh pembaca sesi.
+  authVersion?: number;
+  authMethod?: string;
+  isOwnershipVerified?: boolean;
 }
 
-export async function signSession(payload: SessionPayload): Promise<string> {
-  return new SignJWT({ userId: payload.userId, robloxId: payload.robloxId })
+/** Predikat trusted: authVersion=2 + (ROBLOX_OIDC atau CASIS_PORTAL) + ownership verified. */
+export function isTrustedSession(payload: SessionPayload | null | undefined): boolean {
+  return (
+    !!payload &&
+    payload.authVersion === 2 &&
+    (payload.authMethod === "ROBLOX_OIDC" || payload.authMethod === "CASIS_PORTAL") &&
+    payload.isOwnershipVerified === true
+  );
+}
+
+// CATATAN (TASK 03L.2B.1): penandatangan legacy (signSession) dan penerbit
+// cookie legacy (createSessionCookie) DIHAPUS dari modul ini. Jalur penerbitan
+// sesi resmi adalah signTrustedSession (OAuth) dan signCasisPortalSession (Portal Casis).
+
+/** Sesi TRUSTED v2 — HANYA dipanggil setelah verifikasi Roblox OIDC sukses. */
+export async function signTrustedSession(payload: { userId: string; robloxId: number }): Promise<string> {
+  return new SignJWT({
+    userId: payload.userId,
+    robloxId: payload.robloxId,
+    authVersion: 2,
+    authMethod: "ROBLOX_OIDC",
+    isOwnershipVerified: true,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("2h")
     .sign(getSecret());
 }
 
-export async function verifySessionToken(token: string): Promise<SessionPayload | null> {
+/** Sesi Portal Casis v2 — Diterbitkan saat casis absen / verifikasi di portal casis. */
+export async function signCasisPortalSession(payload: { userId: string; robloxId?: number }): Promise<string> {
+  return new SignJWT({
+    userId: payload.userId,
+    robloxId: payload.robloxId ?? 0,
+    authVersion: 2,
+    authMethod: "CASIS_PORTAL",
+    isOwnershipVerified: true,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("24h")
+    .sign(getSecret());
+}
+
+// Verifikasi payload JWT — INTERNAL ONLY (bukan jalur otorisasi).
+async function verifyTokenPayload(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (typeof payload.userId !== "string") return null;
@@ -36,8 +78,15 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
   }
 }
 
-export async function createSessionCookie(userId: string, robloxId: number): Promise<void> {
-  const token = await signSession({ userId, robloxId });
+/** Verifikasi + syaratkan klaim trusted v2. Legacy JWT -> null. */
+export async function verifyTrustedSessionToken(token: string): Promise<SessionPayload | null> {
+  const payload = await verifyTokenPayload(token);
+  return isTrustedSession(payload) ? payload : null;
+}
+
+/** Cookie sesi TRUSTED — hanya untuk hasil verifikasi Roblox OIDC. */
+export async function createTrustedSessionCookie(userId: string, robloxId: number): Promise<void> {
+  const token = await signTrustedSession({ userId, robloxId });
   cookies().set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -60,6 +109,9 @@ function parseTokenFromHeader(cookieHeader: string | null): string | null {
 }
 
 // Ambil user dari cookie. Menerima optional raw Request untuk fallback.
+// FAIL-CLOSED (TASK 03L.2B.1): HANYA sesi trusted v2 (hasil Roblox OIDC)
+// yang diterima. Tidak ada opsi untuk melonggarkan kontrak ini — JWT legacy
+// tanpa klaim trusted otomatis menghasilkan null.
 export async function getSessionUser(req?: Request) {
   // 1) Coba via next/headers cookies() (server component / navigation)
   let token: string | null = cookies().get(COOKIE_NAME)?.value ?? null;
@@ -70,10 +122,11 @@ export async function getSessionUser(req?: Request) {
   }
 
   if (!token) {
-    console.log(`[Auth] No session token found. cookies()=${!!cookies().get(COOKIE_NAME)?.value}, hasReq=${!!req}, reqCookieHeader=${req?.headers.get("cookie")?.substring(0, 80) ?? "null"}`);
+    // Catatan keamanan: JANGAN mencetak isi cookie/token ke log.
+    console.log(`[Auth] No session token found. hasReq=${!!req}`);
     return null;
   }
-  const payload = await verifySessionToken(token);
+  const payload = await verifyTrustedSessionToken(token);
   if (!payload) return null;
   return prisma.user.findUnique({ where: { id: payload.userId } });
 }

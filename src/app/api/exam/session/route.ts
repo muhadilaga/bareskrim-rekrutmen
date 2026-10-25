@@ -29,9 +29,11 @@ export async function GET(req: Request) {
     const status =
       result.code === "ALREADY_SUBMITTED"
         ? 409
-        : result.code === "NO_ATTENDANCE" || result.code === "NO_ROLE"
+        : result.code === "NO_ATTENDANCE" || result.code === "NO_ROLE" || result.code === "NOT_ELIGIBLE"
           ? 403
-          : 400;
+          : result.code === "GUARD_UNAVAILABLE"
+            ? 503
+            : 400;
     return NextResponse.json(
       { ok: false, code: result.code, message: result.message },
       { status }

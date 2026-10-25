@@ -1,10 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 import { ToastProvider } from "@/components/ui/Toast";
-import { MobileCTA } from "@/components/ui/MobileCTA";
-import { BackToTop } from "@/components/ui/BackToTop";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 export const metadata: Metadata = {
@@ -36,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
         <script
@@ -65,13 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="flex min-h-screen flex-col">
         <ToastProvider>
-          <Navbar />
-          <main className="flex-1 pb-16 md:pb-0">
-            <ErrorBoundary>{children}</ErrorBoundary>
-          </main>
-          <Footer />
-          <MobileCTA />
-          <BackToTop />
+          <ErrorBoundary>{children}</ErrorBoundary>
         </ToastProvider>
       </body>
     </html>

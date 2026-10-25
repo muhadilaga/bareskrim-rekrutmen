@@ -1,9 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToastContext } from "@/components/ui/Toast";
 
@@ -211,22 +208,30 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
 
   return (
     <>
-      <Card strong className="p-6">
-        <h2 className="font-display text-lg font-bold gold-text">Rekap Nilai Casis</h2>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative">
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari nama / username..."
-              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold/60 sm:w-52"
-            />
+      <article className="panel-card !p-6 sm:!p-8">
+        {/* Panel Heading Prototype */}
+        <div className="panel-heading !pb-4">
+          <div>
+            <span className="section-kicker">RESULTS</span>
+            <h2 className="font-serif">Rekap Nilai Casis</h2>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Rekapitulasi perolehan nilai ujian seleksi akademik casis Pusdik Reserse.
+            </p>
           </div>
+          <span className="panel-count">{filteredRows.length} peserta</span>
+        </div>
+
+        {/* Toolbar Pencarian & Filter */}
+        <div className="case-toolbar !mt-4">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nama atau username..."
+          />
           <select
             value={periodId}
             onChange={(e) => setPeriodId(e.target.value)}
-            className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
           >
             <option value="">Semua Periode</option>
             {periods.map((p) => (
@@ -235,110 +240,124 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
               </option>
             ))}
           </select>
-          <Button
-            variant="gold"
+          <button
+            type="button"
             onClick={() => {
               const pName = periodId ? periods.find((p) => p.id === periodId)?.name : undefined;
               downloadCsv(filteredRows, pName);
             }}
             disabled={busy || filteredRows.length === 0}
-            className="shrink-0"
+            className="primary-button !mt-0 !w-auto !min-h-[44px] px-5 text-xs font-semibold shrink-0"
           >
             Unduh CSV
-          </Button>
+          </button>
         </div>
 
-        {msg && (
-          <p className={`mt-3 text-sm ${msg.ok ? "text-emerald-400" : "text-red-400"}`}>{msg.text}</p>
+        {Boolean(msg?.text) && (
+          <div
+            className={`mt-4 rounded-[3px] border px-4 py-2.5 text-xs ${
+              msg!.ok
+                ? "border-[#68b478]/40 bg-[var(--surface-2)] text-[#68b478]"
+                : "border-[#d87575]/40 bg-[#1e1313] text-[#d87575]"
+            }`}
+          >
+            {msg!.text}
+          </div>
         )}
 
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 overflow-x-auto border-t border-[var(--border)] pt-2">
           <table className="w-full min-w-[800px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-zinc-500">
-                <th className="px-3 py-2">Nama</th>
-                <th className="px-3 py-2">Username</th>
-                <th className="px-3 py-2">Pangkat</th>
-                <th className="px-3 py-2">Pilihan Ganda</th>
-                <th className="px-3 py-2">Essay</th>
-                <th className="px-3 py-2">Total</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Detail Jawaban</th>
-                <th className="px-3 py-2">Discord</th>
-                <th className="px-3 py-2">Tanggal</th>
-                <th className="px-3 py-2">Aksi</th>
+              <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wider text-[var(--muted)]">
+                <th className="px-3 py-3">Nama</th>
+                <th className="px-3 py-3">Username</th>
+                <th className="px-3 py-3">Pangkat</th>
+                <th className="px-3 py-3">Pilihan Ganda</th>
+                <th className="px-3 py-3">Essay</th>
+                <th className="px-3 py-3">Total</th>
+                <th className="px-3 py-3">Status</th>
+                <th className="px-3 py-3">Detail Jawaban</th>
+                <th className="px-3 py-3">Discord</th>
+                <th className="px-3 py-3">Tanggal</th>
+                <th className="px-3 py-3">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-3 py-6 text-center text-sm text-zinc-500">
+                  <td colSpan={11} className="px-3 py-10 text-center text-sm text-[var(--muted)]">
                     {busy ? (
                       <div className="flex items-center justify-center gap-2">
                         <Skeleton className="h-4 w-4 rounded-full" />
                         <span>Memuat data...</span>
                       </div>
-                    ) : "Belum ada hasil ujian. Minta casis menyelesaikan ujian atau cek apakah periode dan akses ujian sudah dibuka."}
+                    ) : (
+                      "Belum ada hasil ujian. Minta casis menyelesaikan ujian atau cek apakah periode dan akses ujian sudah dibuka."
+                    )}
                   </td>
                 </tr>
               ) : (
                 pagedRows.map((r) => (
-                  <tr key={r.id} className="border-b border-white/5 hover:bg-white/5">
-                    <td className="px-3 py-2 font-medium text-zinc-100">{r.displayName}</td>
-                    <td className="px-3 py-2">
+                  <tr key={r.id} className="border-b border-[var(--border)] hover:bg-[var(--surface-2)] transition">
+                    <td className="px-3 py-3 font-medium text-[var(--text)]">{r.displayName}</td>
+                    <td className="px-3 py-3">
                       <a
                         href={r.profileUrl ?? "#"}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-gold hover:underline"
+                        className="text-[#68b478] hover:underline"
                       >
                         @{r.username}
                       </a>
                     </td>
-                    <td className="px-3 py-2 text-zinc-300">{r.policeGroupRank ?? "-"}</td>
-                    <td className="px-3 py-2 text-zinc-300">{r.mcqScore}</td>
-                    <td className="px-3 py-2 text-zinc-300">{r.essayScore}</td>
-                    <td className="px-3 py-2 font-semibold text-zinc-100">
+                    <td className="px-3 py-3 text-[var(--muted)]">{r.policeGroupRank ?? "-"}</td>
+                    <td className="px-3 py-3 text-[var(--text)]">{r.mcqScore}</td>
+                    <td className="px-3 py-3 text-[var(--text)]">{r.essayScore}</td>
+                    <td className="px-3 py-3 font-semibold text-[var(--text)]">
                       {r.score}/{r.maxScore}
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={r.passed ? "green" : "neutral"}>{r.status}</Badge>
+                    <td className="px-3 py-3">
+                      <span className={`status-badge ${r.passed ? "active" : "rejected"}`}>
+                        {r.status}
+                      </span>
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-3">
                       {Array.isArray(r.answersJson) && r.answersJson.length > 0 && (
                         <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedRow(r);
                           }}
-                          className="rounded-md border border-gold/40 px-2 py-1 text-xs text-gold transition hover:bg-gold/10"
+                          className="outline-button !min-h-[30px] !px-2.5 text-xs"
                         >
                           Detail Jawaban
                         </button>
                       )}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-3">
                       {r.discordMessageId ? (
-                        <Badge tone="gold" title="Laporan Discord tersimpan, akan ikut terhapus">
-                          🐦 Terkirim
-                        </Badge>
+                        <span className="status-badge active text-[10px]" title="Laporan Discord tersimpan">
+                          Terkirim
+                        </span>
                       ) : (
                         <span
-                          className="text-xs text-zinc-600"
-                          title="Tanpa ID laporan Discord (rekap lama / kirim gagal)"
+                          className="text-xs text-[var(--muted-2)]"
+                          title="Tanpa ID laporan Discord"
                         >
                           -
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-xs text-zinc-500">
+                    <td className="px-3 py-3 text-xs text-[var(--muted)]">
                       {new Date(r.submittedAt).toLocaleString("id-ID")}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-3">
                       <button
+                        type="button"
                         onClick={() => deleteRow(r.id)}
                         disabled={deletingId === r.id}
-                        className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+                        className="reject-button !min-h-[30px] !px-2.5 text-xs"
                       >
                         {deletingId === r.id ? "..." : "Hapus"}
                       </button>
@@ -351,56 +370,60 @@ export function CandidatesTab({ headers }: CandidatesTabProps) {
         </div>
 
         {filteredRows.length > pageSize && (
-          <div className="mt-4 flex items-center justify-between text-sm">
-            <p className="text-xs text-zinc-500">
+          <div className="mt-4 flex items-center justify-between text-sm border-t border-[var(--border)] pt-4">
+            <p className="text-xs text-[var(--muted)]">
               Menampilkan {(page - 1) * pageSize + 1}–
               {Math.min(page * pageSize, filteredRows.length)} dari {filteredRows.length} data
             </p>
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-white/5 disabled:opacity-40"
+                className="outline-button !min-h-[34px] px-3 text-xs disabled:opacity-40"
               >
                 ← Sebelumnya
               </button>
-              <span className="font-mono text-xs text-zinc-400">
+              <span className="font-mono text-xs text-[var(--muted)]">
                 {page}/{totalPages}
               </span>
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-zinc-300 transition hover:bg-white/5 disabled:opacity-40"
+                className="outline-button !min-h-[34px] px-3 text-xs disabled:opacity-40"
               >
                 Berikutnya →
               </button>
             </div>
           </div>
         )}
-      </Card>
+      </article>
 
       {selectedRow && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-4xl max-h-[80vh] overflow-auto rounded-xl border border-white/15 bg-[#111] p-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="font-display text-lg font-bold gold-text">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-4xl max-h-[80vh] overflow-auto rounded-[3px] border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+              <h3 className="font-serif text-lg font-normal text-[var(--text)]">
                 Detail Jawaban — {selectedRow.displayName}
               </h3>
               <button
+                type="button"
                 onClick={() => setSelectedRow(null)}
-                className="text-zinc-400 hover:text-white"
+                className="text-[var(--muted)] hover:text-[var(--text)]"
                 aria-label="Tutup"
               >
                 ✕
               </button>
             </div>
-            <pre className="mt-4 max-h-[60vh] overflow-auto whitespace-pre-wrap font-mono text-xs text-zinc-300">
+            <pre className="mt-4 max-h-[60vh] overflow-auto whitespace-pre-wrap font-mono text-xs text-[var(--text)] bg-[var(--surface-2)] p-4 rounded-[3px] border border-[var(--border)]">
               {JSON.stringify(selectedRow.answersJson, null, 2)}
             </pre>
             <div className="mt-4 text-right">
               <button
+                type="button"
                 onClick={() => setSelectedRow(null)}
-                className="rounded-lg border border-white/15 px-4 py-2 text-sm text-zinc-300 transition hover:bg-white/5"
+                className="outline-button !min-h-[38px] px-4 text-xs font-semibold"
               >
                 Tutup
               </button>

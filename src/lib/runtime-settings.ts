@@ -4,21 +4,32 @@ import { getSettings } from "@/lib/constants";
 type EffectiveSettings = ReturnType<typeof getSettings>;
 type PersistedSettings = Partial<EffectiveSettings>;
 
-const TABLE_SQL = `
-CREATE TABLE IF NOT EXISTS "RuntimeSetting" (
-  "key" TEXT NOT NULL,
-  "value" JSONB NOT NULL,
-  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "RuntimeSetting_pkey" PRIMARY KEY ("key")
-);
-`;
-
-async function ensureTable() {
-  await prisma.$executeRawUnsafe(TABLE_SQL);
+// ============================================================
+// TASK 03G + 03G.1 — Legacy Schema Guard.
+// Model RuntimeSetting kini tercakup di prisma/schema.prisma
+// dan initial migration (TASK 03G.1). Prisma Migrate = penulis
+// skema tunggal V2, jadi modul ini TIDAK menjalankan DDL otomatis.
+// Bila tabel belum ada (DB belum di-migrate) → error jelas,
+// bukan fallback diam-diam.
+// ============================================================
+async function assertRuntimeSettingTable(): Promise<void> {
+  const rows = await prisma.$queryRawUnsafe<Array<{ present: boolean }>>(
+    `SELECT EXISTS (
+       SELECT 1 FROM information_schema.tables
+       WHERE table_schema = 'public' AND table_name = 'RuntimeSetting'
+     ) AS present`
+  );
+  if (rows[0]?.present !== true) {
+    throw new Error(
+      "RUNTIME_SETTING_TABLE_MISSING: tabel \"RuntimeSetting\" belum ada di database. " +
+        "Tambahkan model RuntimeSetting ke prisma/schema.prisma dan jalankan Prisma Migrate " +
+        "(docs/v2/11-PRISMA-MIGRATION-STRATEGY.md). DDL otomatis dinonaktifkan (TASK 03G)."
+    );
+  }
 }
 
 export async function getPersistedSettings(): Promise<PersistedSettings> {
-  await ensureTable();
+  await assertRuntimeSettingTable();
   const rows = (await prisma.$queryRawUnsafe(
     `SELECT "key", "value" FROM "RuntimeSetting"`
   )) as Array<{ key: string; value: unknown }>;
@@ -34,7 +45,7 @@ export async function getEffectiveSettings(): Promise<EffectiveSettings> {
 }
 
 export async function saveSettings(updates: Record<string, unknown>) {
-  await ensureTable();
+  await assertRuntimeSettingTable();
   for (const [key, value] of Object.entries(updates)) {
     if (value === undefined) continue;
     await prisma.$executeRawUnsafe(

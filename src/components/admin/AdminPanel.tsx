@@ -1,9 +1,8 @@
 "use client";
 
+import React from "react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useToastContext } from "@/components/ui/Toast";
 
@@ -11,6 +10,9 @@ const CandidatesTab = dynamic(() => import("@/components/admin/CandidatesTab").t
 const BlacklistTab = dynamic(() => import("@/components/admin/BlacklistTab").then((mod) => mod.BlacklistTab), { ssr: false });
 const CasisManagement = dynamic(() => import("@/components/admin/CasisManagement").then((mod) => mod.CasisManagement), { ssr: false });
 const DiscordMessagesTab = dynamic(() => import("@/components/admin/DiscordMessagesTab").then((mod) => mod.DiscordMessagesTab), { ssr: false });
+// TASK 03L.2E.4.1D — tab kelola pendaftaran (approval/rejection).
+const ApplicationsTab = dynamic(() => import("@/components/admin/ApplicationsTab").then((mod) => mod.ApplicationsTab), { ssr: false });
+const ContentSettingsTab = dynamic(() => import("@/components/admin/ContentSettingsTab").then((mod) => mod.ContentSettingsTab), { ssr: false });
 
 interface Stats {
   totalUsers: number;
@@ -58,6 +60,7 @@ interface VerifiedAdmin {
   discordUserId: string;
   discordUsername: string;
   staffRoleId?: string;
+  staffRoleName?: string;
 }
 
 function formatDiagnosticName(name: string): string {
@@ -71,6 +74,8 @@ interface PeriodItem {
   id: string;
   name: string;
   description: string | null;
+  recruitmentPeriodId?: string | null;
+  recruitmentPeriod?: { id: string; code: string; name: string; deletedAt?: string | Date | null } | null;
   isActive: boolean;
   isAttendanceOpen: boolean;
   isExamOpen: boolean;
@@ -123,7 +128,7 @@ export function AdminPanel() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [dbReady, setDbReady] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"periode" | "bank" | "rekap" | "casis" | "data" | "log" | "discord" | "settings">("periode");
+  const [tab, setTab] = useState<"periode" | "bank" | "rekap" | "casis" | "data" | "log" | "discord" | "settings" | "pendaftaran" | "content">("periode");
   const [stats, setStats] = useState<Stats | null>(null);
   const [logs, setLogs] = useState<LogItem[]>([]);
   const [diagnostics, setDiagnostics] = useState<DiagnosticsData | null>(null);
@@ -195,6 +200,9 @@ export function AdminPanel() {
   const [periodName, setPeriodName] = useState("");
   const [periodMcq, setPeriodMcq] = useState("");
   const [periodEssay, setPeriodEssay] = useState("");
+  const [recruitmentPeriods, setRecruitmentPeriods] = useState<Array<{ id: string; code: string; name: string; isActive: boolean }>>([]);
+  const [selectedRecruitmentPeriodId, setSelectedRecruitmentPeriodId] = useState<string>("");
+  const [createAsDraft, setCreateAsDraft] = useState<boolean>(false);
    // form edit periode (tanggal + konfigurasi)
    const [editingDates, setEditingDates] = useState<{
      id: string;
@@ -204,6 +212,7 @@ export function AdminPanel() {
      essayCount: string;
      examStartTime: string;
      examEndTime: string;
+     recruitmentPeriodId: string;
    } | null>(null);
   // form soal
   const [qType, setQType] = useState<"MCQ" | "ESSAY">("MCQ");
@@ -287,7 +296,7 @@ export function AdminPanel() {
     setVerifiedAdmin(null);
     setAuthed(false);
     setAuthStep("key");
-    setMsg({ ok: true, text: "Sesi admin ditutup." });
+    setMsg(null);
   }, []);
 
   const load = useCallback(async () => {
@@ -311,6 +320,9 @@ export function AdminPanel() {
     const qj = await q.json();
     const dj = d && d.ok ? await d.json() : null;
     setPeriods(pj.periods);
+    if (Array.isArray(pj.recruitmentPeriods)) {
+      setRecruitmentPeriods(pj.recruitmentPeriods);
+    }
     setQuestions(qj.questions);
     setDbReady(typeof dj?.initialized === "boolean" ? dj.initialized : true);
     setAuthed(true);
@@ -360,7 +372,14 @@ export function AdminPanel() {
   async function openPeriod() {
     if (!periodName.trim()) return;
     setBusy(true);
-    const body: Record<string, unknown> = { name: periodName.trim() };
+    const isAuto = selectedRecruitmentPeriodId === "auto";
+    const isDraft = (!isAuto && !selectedRecruitmentPeriodId) || selectedRecruitmentPeriodId === "draft" || createAsDraft;
+    const body: Record<string, unknown> = {
+      name: periodName.trim(),
+      autoCreateRecruitment: isAuto,
+      recruitmentPeriodId: isAuto || isDraft ? null : selectedRecruitmentPeriodId,
+      draftMode: isDraft,
+    };
     if (periodMcq.trim()) body.mcqCount = Number(periodMcq.trim());
     if (periodEssay.trim()) body.essayCount = Number(periodEssay.trim());
     const res = await fetch("/api/admin/period", {
@@ -373,6 +392,8 @@ export function AdminPanel() {
     setPeriodName("");
     setPeriodMcq("");
     setPeriodEssay("");
+    setSelectedRecruitmentPeriodId("");
+    setCreateAsDraft(false);
     setBusy(false);
     if (json.ok) await load();
   }
@@ -392,6 +413,9 @@ export function AdminPanel() {
      if (!editingDates) return;
      setBusy(true);
      const body: Record<string, unknown> = { periodId: editingDates.id, action: "edit" };
+     if (editingDates.recruitmentPeriodId !== undefined) {
+       body.recruitmentPeriodId = editingDates.recruitmentPeriodId === "" ? null : editingDates.recruitmentPeriodId;
+     }
      if (editingDates.openedAt) body.openedAt = new Date(editingDates.openedAt).toISOString();
      else body.openedAt = null;
      if (editingDates.closedAt) body.closedAt = new Date(editingDates.closedAt).toISOString();
@@ -446,173 +470,298 @@ export function AdminPanel() {
 
   if (!authed) {
     return (
-      <Card strong className="mx-auto w-full max-w-md p-8 animate-scale-in">
-        <h2 className="font-display text-lg font-bold gold-text">Masuk Admin</h2>
-        <div className="gold-line my-3" />
-        <div className="space-y-4">
-          <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Tahap 1 · Admin Key</label>
-            <div className="relative">
-              <input
-                type={showKey ? "text" : "password"}
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && (authStep === "key" ? setAuthStep("staff") : verifyStaff())}
-                className="w-full rounded-lg border border-white/15 bg-white/5 py-2.5 pl-4 pr-11 text-sm text-zinc-100 outline-none focus:border-gold/60"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey((v) => !v)}
-                aria-label={showKey ? "Sembunyikan kunci" : "Tampilkan kunci"}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-zinc-400 transition hover:text-zinc-200"
-              >
-                {showKey ? "🙈" : "👁️"}
-              </button>
+      <div className="admin-root min-h-screen bg-[#0b0b0b] text-[#eeeae2] flex flex-col justify-between">
+        <header className="system-header">
+          <div className="system-brand">
+            <img src="/design-assets/logo-pusdik.png" alt="Logo Pusdik Reserse" />
+            <div>
+              <strong>BARESKRIM POLRI RBX</strong>
+              <span>PUSDIK RESERSE</span>
             </div>
+          </div>
+          <div className="system-header-right">
+            <span className="system-label">ADMIN PANEL</span>
             <button
+              className="theme-button"
+              id="themeToggle"
               type="button"
-              onClick={() => setAuthStep("staff")}
-              disabled={!key.trim()}
-              className="mt-2 text-xs text-gold/80 underline-offset-2 hover:text-gold hover:underline disabled:opacity-40"
+              aria-label="Toggle theme"
+              onClick={() => {
+                if (typeof document !== "undefined") {
+                  document.body.classList.toggle("light-mode");
+                }
+              }}
             >
-              Lanjut ke verifikasi staff
+              ◐
             </button>
           </div>
+        </header>
 
-          {authStep === "staff" && (
-            <div className="rounded-lg border border-gold/20 bg-gold/5 p-4">
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-300">Tahap 2 · Username Discord Staff Pusdik</label>
-              <input
-                type="text"
-                value={staffDiscordUsername}
-                onChange={(e) => setStaffDiscordUsername(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && verifyStaff()}
-                placeholder="contoh: xed1853"
-                className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-gold/60"
-              />
-              <p className="mt-2 text-xs text-zinc-500">Harus username Discord yang benar-benar memegang role Personel Staff Pusdik.</p>
+        <main className="system-main py-8 px-4 flex items-center justify-center flex-1">
+          <section className="login-view w-full max-w-md mx-auto" id="loginView">
+            <div className="login-card">
+              <div className="system-heading">
+                <div>
+                  <span className="section-kicker">PORTAL ADMINISTRATOR</span>
+                  <h1 className="font-serif">Masuk Admin</h1>
+                </div>
+              </div>
+
+              {authStep === "key" ? (
+                <div className="login-stage active" id="stageOne">
+                  <p className="stage-title">Kunci Akses</p>
+                  <label htmlFor="adminKey">KUNCI ADMIN</label>
+                  <div className="password-input">
+                    <input
+                      type={showKey ? "text" : "password"}
+                      id="adminKey"
+                      value={key}
+                      onChange={(e) => setKey(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (authStep === "key" ? setAuthStep("staff") : verifyStaff())}
+                      placeholder="Masukkan admin key"
+                      autoComplete="off"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowKey((v) => !v)}
+                      aria-label={showKey ? "Sembunyikan kunci" : "Tampilkan kunci"}
+                    >
+                      {showKey ? "🙈" : "👁️"}
+                    </button>
+                  </div>
+                  <p className="input-help">Gunakan admin key yang diberikan kepada staff.</p>
+
+                  {msg && (
+                    <p className={`login-error ${msg.ok ? "!text-[#68b478]" : "!text-[#d87575]"}`}>
+                      {msg.text}
+                    </p>
+                  )}
+
+                  <button
+                    className="primary-button"
+                    id="continueLogin"
+                    type="button"
+                    disabled={!key.trim() || authBusy}
+                    onClick={() => setAuthStep("staff")}
+                  >
+                    Lanjut <span>→</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="login-stage active" id="stageTwo">
+                  <p className="stage-title">Identitas Discord</p>
+                  <label htmlFor="staffName">DISCORD USERNAME</label>
+                  <input
+                    type="text"
+                    id="staffName"
+                    value={staffDiscordUsername}
+                    onChange={(e) => setStaffDiscordUsername(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && verifyStaff()}
+                    autoComplete="off"
+                  />
+                  <p className="input-help">
+                    Harus username Discord yang memegang role Personel Staff Pusdik.
+                  </p>
+
+                  {msg && (
+                    <p className={`login-error ${msg.ok ? "!text-[#68b478]" : "!text-[#d87575]"}`}>
+                      {msg.text}
+                    </p>
+                  )}
+
+                  <button
+                    className="primary-button"
+                    id="finishLogin"
+                    type="button"
+                    disabled={authBusy || !staffDiscordUsername.trim()}
+                    onClick={verifyStaff}
+                  >
+                    {authBusy ? "Memverifikasi..." : "Masuk Panel"} <span>→</span>
+                  </button>
+
+                  <button
+                    className="back-button"
+                    id="backLogin"
+                    type="button"
+                    onClick={() => setAuthStep("key")}
+                  >
+                    ← Kembali
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <Button variant="gold" className="mt-4 w-full" onClick={authStep === "key" ? (() => setAuthStep("staff")) : verifyStaff} disabled={authBusy}>
-          {authBusy ? "Memverifikasi..." : authStep === "key" ? "Lanjut" : "Verifikasi Admin"}
-        </Button>
-        {msg && (
-          <p className={`mt-3 text-sm ${msg.ok ? "text-emerald-400" : "text-red-400"}`}>{msg.text}</p>
-        )}
-      </Card>
+          </section>
+        </main>
+
+        <footer className="system-footer">
+          <div className="footer-brand">
+            <img src="/design-assets/logo-pusdik.png" alt="Logo Pusdik Reserse" />
+            <div>
+              <strong>BARESKRIM POLRI RBX</strong>
+              <span>PUSDIK RESERSE</span>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <span>© 2026 Bareskrim Polri RBX. Hak Cipta Dilindungi.</span>
+          </div>
+        </footer>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {msg && (
-        <div
-          className={`rounded-lg border px-4 py-3 text-sm ${
-            msg.ok
-              ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-              : "border-red-500/40 bg-red-500/10 text-red-300"
-          }`}
-        >
-          {msg.text}
-        </div>
-      )}
-
-      {verifiedAdmin && (
-        <div className="flex flex-col gap-3 rounded-lg border border-gold/20 bg-gold/5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+    <div className="admin-root min-h-screen bg-[#0b0b0b] text-[#eeeae2] flex flex-col justify-between">
+      <header className="system-header">
+        <div className="system-brand">
+          <img src="/design-assets/logo-pusdik.png" alt="Logo Pusdik Reserse" />
           <div>
-            <p className="font-semibold text-gold">Admin terverifikasi dua tahap</p>
-            <p className="text-zinc-400">Discord: {verifiedAdmin.discordUsername} · Role: 1471794305499664426</p>
+            <strong>BARESKRIM POLRI RBX</strong>
+            <span>PUSDIK RESERSE</span>
           </div>
+        </div>
+        <div className="system-header-right">
+          <span className="system-label">ADMIN PANEL</span>
           <button
+            className="theme-button"
+            id="themeToggle"
             type="button"
-            onClick={logoutAdmin}
-            className="text-left text-xs text-red-300 underline-offset-2 hover:text-red-200 hover:underline"
+            aria-label="Toggle theme"
+            onClick={() => {
+              if (typeof document !== "undefined") {
+                document.body.classList.toggle("light-mode");
+              }
+            }}
           >
-            Keluar admin
+            ◐
           </button>
         </div>
-      )}
+      </header>
 
-      {/* Status Database */}
-      {dbReady === false && (
-        <Card strong className="border-red-500/40 p-6">
-          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <main className="system-main p-6 max-w-7xl mx-auto w-full flex-1">
+        <section className="dashboard" id="dashboardView">
+          <div className="dashboard-top">
             <div>
-              <h2 className="font-display text-lg font-bold text-red-300">⚠️ Database Belum Siap</h2>
-              <p className="mt-1 text-sm text-zinc-400">
-                Tabel belum ditemukan. Klik tombol di samping untuk membuat semua tabel secara
-                otomatis (tidak perlu terminal/CLI).                 Pastikan <code className="text-gold">DATABASE_URL</code>{" "}
-                sudah diisi di environment variables Vercel.
-              </p>
+              <span className="section-kicker">ADMINISTRATION / PUSDIK RESERSE</span>
+              <h1 className="font-serif">Admin Panel</h1>
+              <p>Kelola penerimaan, calon siswa, seleksi, dan data administrasi Pusdik Reserse.</p>
             </div>
-            <Button variant="gold" onClick={initDb} disabled={busy} className="shrink-0">
-              {busy ? "Membuat tabel..." : "Initialize Database"}
-            </Button>
-          </div>
-        </Card>
-      )}
 
-      {/* Ringkasan Statistik */}
-      {stats && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { label: "Casis Terdaftar", value: stats.totalUsers, icon: "👥" },
-            { label: "Absensi", value: stats.totalAttendance, icon: "✅" },
-            { label: "Ujian Selesai", value: stats.totalResults, icon: "📝" },
-            { label: "Lulus", value: `${stats.passedResults} (${stats.passRate}%)`, icon: "🎖️" },
-            { label: "Tidak Lulus", value: stats.failedResults, icon: "❌" },
-            { label: "Sedang Mengerjakan", value: stats.inProgress, icon: "⏳" },
-            { label: "Soal PG", value: stats.mcqCount, icon: "📋" },
-            { label: "Soal Essay", value: stats.essayCount, icon: "✍️" },
-          ].map((s) => (
-            <Card key={s.label} strong className="p-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-2xl">{s.icon}</span>
-                <div className="min-w-0">
-                  <p className="truncate text-xs text-zinc-400">{s.label}</p>
-                  <p className="font-display text-xl font-bold gold-text">{s.value}</p>
-                </div>
+            <div className="account-box">
+              <div className="online-dot"></div>
+              <div>
+                <strong id="verifiedStaff">{verifiedAdmin?.discordUsername || "Staff Pusdik"}</strong>
+                <span id="sessionInfo">{verifiedAdmin?.staffRoleName || "Session Aktif"}</span>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              <button id="logoutButton" type="button" onClick={logoutAdmin}>
+                Keluar
+              </button>
+            </div>
+          </div>
 
-      {/* Navigasi tab */}
-      <div className="-mx-1 overflow-x-auto pb-1">
-        <div className="flex min-w-max rounded-lg border border-white/15 bg-white/5">
-        {(
-          [
-            ["periode", "Periode"],
-            ["bank", "Bank Soal"],
-            ["rekap", "Rekap Nilai"],
-            ["casis", "Kelola Casis"],
-            ["data", "Putusan & Blacklist"],
-["discord", "Discord"],
-              ["settings", "Pengaturan"],
-              ["log", "Audit Log"],
-          ] as [typeof tab, string][]
-        ).map(([t, label]) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-semibold transition sm:min-w-[120px] ${
-              tab === t ? "bg-crimson-800 text-gold" : "bg-white/5 text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-        </div>
-      </div>
+          {Boolean(msg?.text) && (
+            <div
+              className={`my-4 rounded-[3px] border px-4 py-3 text-sm ${
+                msg!.ok
+                  ? "border-[#68b478]/40 bg-[var(--surface-2)] text-[#68b478]"
+                  : "border-[#d87575]/40 bg-[#1e1313] text-[#d87575]"
+              }`}
+            >
+              {msg!.text}
+            </div>
+          )}
+
+          {/* Status Database */}
+          {dbReady === false && (
+            <div className="p-4 mb-6 border border-[#d87575]/40 bg-[#1e1313] rounded-[3px]">
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="font-serif text-lg font-normal text-[#d87575]">Database Belum Siap</h2>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Tabel belum ditemukan. Klik tombol di samping untuk membuat semua tabel secara
+                    otomatis. Pastikan DATABASE_URL sudah diatur di environment variables.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={initDb}
+                  disabled={busy}
+                  className="primary-button !min-h-[40px] px-5 text-xs shrink-0"
+                >
+                  {busy ? "Membuat tabel..." : "Initialize Database"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Navigasi Tab Prototype */}
+          <nav className="admin-nav mb-8">
+            {(
+              [
+                ["periode", "Ikhtisar & Periode"],
+                ["pendaftaran", "Calon Siswa"],
+                ["casis", "Seleksi & Casis"],
+                ["data", "Putusan & Blacklist"],
+                ["bank", "Bank Soal"],
+                ["rekap", "Rekap Nilai"],
+                ["discord", "Discord"],
+                ["content", "Konten Web"],
+                ["settings", "Pengaturan"],
+                ["log", "Audit Log"],
+              ] as [typeof tab, string][]
+            ).map(([t, label]) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`admin-tab ${tab === t ? "active" : ""}`}
+              >
+                {label}
+                {t === "bank" && questions.length > 0 ? (
+                  <span className="ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full bg-white/10">
+                    {questions.length}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </nav>
+
+          {/* Ringkasan Statistik Grid */}
+          {stats && tab === "periode" && (
+            <div className="stats-grid mb-8">
+              <article className="stat-card">
+                <span>Total Casis</span>
+                <strong id="totalApplicants">{stats.totalUsers}</strong>
+                <small>terdaftar di sistem</small>
+              </article>
+              <article className="stat-card">
+                <span>Kehadiran Absensi</span>
+                <strong id="pendingApplicants">{stats.totalAttendance}</strong>
+                <small>peserta hadir</small>
+              </article>
+              <article className="stat-card">
+                <span>Ujian Selesai</span>
+                <strong id="verifiedApplicants">{stats.totalResults}</strong>
+                <small>hasil ujian masuk</small>
+              </article>
+              <article className="stat-card">
+                <span>Kelulusan ({stats.passRate}%)</span>
+                <strong id="rejectedApplicants" className="text-[#68b478]">{stats.passedResults} Lulus</strong>
+                <small>{stats.failedResults} tidak lulus</small>
+              </article>
+            </div>
+          )}
 
       {tab === "log" && (
-        <Card strong className="p-4 sm:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="font-display text-lg font-bold gold-text">📋 Audit Log</h2>
-            <div className="flex items-center gap-3">
+        <section className="admin-panel active" data-panel="audit">
+          <div className="panel-heading mb-6">
+            <div>
+              <span className="section-kicker">SYSTEM</span>
+              <h2 className="font-serif text-2xl font-normal">Audit Log</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <button
+                type="button"
                 onClick={async () => {
                   if (!confirm("Retry semua laporan Discord yang gagal?\n\nSistem akan mencoba ulang maksimal 3x per laporan yang masih pending."))
                     return;
@@ -629,22 +778,24 @@ export function AdminPanel() {
                   }
                 }}
                 disabled={busy}
-                className="text-xs text-gold/80 underline-offset-2 hover:text-gold hover:underline disabled:opacity-50"
+                className="outline-button !min-h-[36px] !py-1 text-xs"
               >
                 Retry Discord
               </button>
               <button
+                type="button"
                 onClick={() =>
                   fetch("/api/admin/logs?limit=30", { headers })
                     .then((r) => (r.ok ? r.json() : null))
                     .then((lj) => setLogs(lj?.logs ?? []))
                     .catch(() => {})
                 }
-                className="text-xs text-gold/80 underline-offset-2 hover:underline"
+                className="outline-button !min-h-[36px] !py-1 text-xs"
               >
-                Muat ulang
+                Muat Ulang
               </button>
               <button
+                type="button"
                 onClick={async () => {
                   if (!confirm("Hapus seluruh log audit?\n\nSemua jejak aktivitas admin akan hilang dari panel ini. Tindakan ini tidak dapat dibatalkan."))
                     return;
@@ -661,113 +812,130 @@ export function AdminPanel() {
                   }
                 }}
                 disabled={busy || logs.length === 0}
-                className="text-xs text-red-400/80 underline-offset-2 hover:text-red-300 hover:underline disabled:opacity-50"
+                className="outline-button reject-button !min-h-[36px] !py-1 text-xs"
               >
                 Hapus Semua Log
               </button>
             </div>
           </div>
-          <div className="gold-line my-3" />
-          <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+          <article className="panel-card mb-6">
+            <div className="card-heading">
               <div>
-                <h3 className="font-display text-base font-bold text-zinc-100">Retry Queue Discord</h3>
-                <p className="text-xs text-zinc-400">Pantau antrean laporan Discord yang belum berhasil terkirim.</p>
+                <span className="section-kicker">QUEUE</span>
+                <h3 className="font-serif text-lg font-normal">Retry Queue Discord</h3>
               </div>
               <button
+                type="button"
                 onClick={() =>
                   fetch("/api/admin/discord-retry", { headers })
                     .then((r) => (r.ok ? r.json() : null))
                     .then((rq) => setRetryQueue(rq ? { pending: rq.pending ?? 0, total: rq.total ?? 0, exhausted: rq.exhausted ?? 0, items: rq.items ?? [] } : null))
                     .catch(() => setMsg({ ok: false, text: "Gagal memuat retry queue Discord." }))
                 }
-                className="text-xs text-gold/80 underline-offset-2 hover:text-gold hover:underline"
+                className="outline-button !min-h-[36px] !py-1 text-xs"
               >
-                Muat ulang queue
+                Muat Ulang Queue
               </button>
             </div>
 
             {retryQueue ? (
-              <div className="space-y-3">
+              <div className="space-y-4 mt-4">
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wider text-zinc-500">Pending Aktif</p>
-                    <p className="mt-2 text-xl font-bold text-zinc-100">{retryQueue.pending}</p>
+                  <div className="panel-card !min-h-0 !p-3">
+                    <span className="section-kicker">PENDING AKTIF</span>
+                    <p className="mt-1 font-serif text-2xl font-normal text-[var(--text)]">{retryQueue.pending}</p>
                   </div>
-                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wider text-amber-200/80">Mentok 3x</p>
-                    <p className="mt-2 text-xl font-bold text-amber-200">{retryQueue.exhausted}</p>
+                  <div className="panel-card !min-h-0 !p-3">
+                    <span className="section-kicker">MENTOK 3X</span>
+                    <p className="mt-1 font-serif text-2xl font-normal text-[#d87575]">{retryQueue.exhausted}</p>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wider text-zinc-500">Total Queue</p>
-                    <p className="mt-2 text-xl font-bold text-zinc-100">{retryQueue.total}</p>
+                  <div className="panel-card !min-h-0 !p-3">
+                    <span className="section-kicker">TOTAL QUEUE</span>
+                    <p className="mt-1 font-serif text-2xl font-normal text-[var(--text)]">{retryQueue.total}</p>
                   </div>
                 </div>
 
                 {retryQueue.items.length === 0 ? (
-                  <p className="text-sm text-zinc-500">Tidak ada retry queue aktif. Kalau laporan gagal lagi, entri akan muncul di sini beserta percobaan terakhirnya.</p>
+                  <p className="text-xs text-[var(--muted)]">Tidak ada retry queue aktif. Kalau laporan gagal, entri akan tercatat di sini.</p>
                 ) : (
                   <div className="space-y-2">
                     {retryQueue.items.slice(0, 5).map((item) => (
-                      <div key={item.id} className="rounded-lg border border-white/10 bg-black/20 px-3 py-3 text-xs">
+                      <div key={item.id} className="p-3 border border-[var(--border)] rounded-[3px] bg-[var(--surface-2)] text-xs">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-zinc-100">{item.resultId}</span>
-                          <Badge tone={item.attempts >= 2 ? "gold" : "neutral"}>attempt {item.attempts}</Badge>
-                          <span className="text-zinc-500">{new Date(item.updatedAt).toLocaleString("id-ID")}</span>
+                          <span className="font-medium text-[var(--text)]">{item.resultId}</span>
+                          <span className="status-badge pending">attempt {item.attempts}</span>
+                          <span className="text-[var(--muted)] ml-auto">{new Date(item.updatedAt).toLocaleString("id-ID")}</span>
                         </div>
-                        {item.lastError && <p className="mt-1 text-zinc-400">Error terakhir: {item.lastError}</p>}
+                        {item.lastError && <p className="mt-1 text-[var(--muted)]">Error terakhir: {item.lastError}</p>}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-zinc-500">Retry queue belum dimuat.</p>
+              <p className="text-xs text-[var(--muted)] mt-4">Retry queue belum dimuat.</p>
             )}
-          </div>
+          </article>
 
-          {logs.length === 0 ? (
-            <p className="text-sm text-zinc-500">Belum ada aktivitas admin tercatat. Coba lakukan export, ubah pengaturan, atau lookup blacklist agar jejak audit mulai terisi.</p>
-          ) : (
-            <div className="space-y-2">
-              {logs.map((log) => (
-                <div key={log.id} className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="rounded bg-crimson-800/60 px-2 py-0.5 font-mono text-xs font-bold text-gold">
-                      {log.action}
-                    </span>
-                    {log.target && <span className="text-zinc-200">{log.target}</span>}
-                    <span className="ml-auto font-mono text-xs text-zinc-500">
-                      {new Date(log.createdAt).toLocaleString("id-ID")}
-                    </span>
-                  </div>
-                  {log.detail && Object.keys(log.detail).length > 0 && (
-                    <pre className="mt-2 whitespace-pre-wrap font-mono text-xs text-zinc-400">
-                      {JSON.stringify(log.detail, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              ))}
+          <article className="panel-card">
+            <div className="card-heading mb-4">
+              <div>
+                <span className="section-kicker">RIWAYAT</span>
+                <h3 className="font-serif text-lg font-normal">Aktivitas Terbaru</h3>
+              </div>
+              <span className="panel-count">{logs.length} catatan</span>
             </div>
-          )}
-        </Card>
+
+            {logs.length === 0 ? (
+              <p className="text-xs text-[var(--muted)]">Belum ada aktivitas admin tercatat. Coba lakukan export, ubah pengaturan, atau lookup blacklist agar jejak audit mulai terisi.</p>
+            ) : (
+              <div className="space-y-2">
+                {logs.map((log) => (
+                  <div key={log.id} className="p-3 border border-[var(--border)] rounded-[3px] bg-[var(--surface-2)] text-xs">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="status-badge">
+                        {log.action}
+                      </span>
+                      {log.target && <span className="text-[var(--text)]">{log.target}</span>}
+                      <span className="ml-auto font-mono text-[var(--muted)]">
+                        {new Date(log.createdAt).toLocaleString("id-ID")}
+                      </span>
+                    </div>
+                    {log.detail && Object.keys(log.detail).length > 0 && (
+                      <pre className="mt-2 p-2 border border-[var(--border)] rounded-[3px] bg-[var(--surface)] whitespace-pre-wrap font-mono text-[11px] text-[var(--muted)]">
+                        {JSON.stringify(log.detail, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
+        </section>
       )}
 
       {tab === "settings" && (
-        <Card strong className="p-4 sm:p-6">
-          <h2 className="font-display text-lg font-bold gold-text">⚙️ Pengaturan Sistem</h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            Perubahan pada pengaturan di bawah ini akan mempengaruhi seluruh sistem. Beberapa pengaturan memerlukan restart server.
-          </p>
+        <section className="admin-panel active" data-panel="settings">
+          <div className="panel-heading mb-6">
+            <div>
+              <span className="section-kicker">KONFIGURASI</span>
+              <h2 className="font-serif text-2xl font-normal">Pengaturan Sistem</h2>
+            </div>
+            <p className="text-xs text-[var(--muted)] max-w-xl">
+              Perubahan pada pengaturan di bawah ini akan mempengaruhi seluruh sistem. Beberapa pengaturan memerlukan restart server.
+            </p>
+          </div>
 
-          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-3 sm:p-4">
-            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <article className="panel-card mb-6">
+            <div className="card-heading">
               <div>
-                <h3 className="font-display text-base font-bold text-zinc-100">Diagnostic Panel</h3>
-                <p className="text-xs text-zinc-400">Cek cepat health sistem, Discord, dan konfigurasi production.</p>
+                <span className="section-kicker">SYSTEM HEALTH</span>
+                <h3 className="font-serif text-lg font-normal">Diagnostic Panel</h3>
               </div>
-              <Button
-                variant="ghost"
+              <button
+                type="button"
+                className="outline-button !min-h-[36px] !py-1 text-xs"
                 onClick={() =>
                   fetch("/api/admin/diagnostics", { headers })
                     .then((r) => (r.ok ? r.json() : null))
@@ -776,658 +944,736 @@ export function AdminPanel() {
                 }
               >
                 Refresh Diagnostics
-              </Button>
+              </button>
             </div>
 
             {diagnostics ? (
-              <div className="space-y-3">
-                <div className={`rounded-lg border px-3 py-2 text-sm ${diagnostics.healthy ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-amber-500/40 bg-amber-500/10 text-amber-200"}`}>
+              <div className="space-y-4 mt-4">
+                <div className={`p-3 rounded-[3px] border text-xs ${diagnostics.healthy ? "border-[var(--green)]/30 bg-[var(--surface-2)] text-[var(--green)]" : "border-[var(--gold)]/30 bg-[var(--surface-2)] text-[var(--gold)]"}`}>
                   {diagnostics.healthy ? "Semua check utama sehat." : "Ada check yang perlu perhatian sebelum deploy berikutnya."}
                 </div>
                 <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wider text-zinc-500">Total Check</p>
-                    <p className="mt-2 text-xl font-bold text-zinc-100">{Object.keys(diagnostics.checks).length}</p>
+                  <div className="panel-card !min-h-0 !p-3">
+                    <span className="section-kicker">TOTAL CHECK</span>
+                    <p className="mt-1 font-serif text-2xl font-normal text-[var(--text)]">{Object.keys(diagnostics.checks).length}</p>
                   </div>
-                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wider text-emerald-300/80">Check Sehat</p>
-                    <p className="mt-2 text-xl font-bold text-emerald-300">{Object.values(diagnostics.checks).filter((check) => check.ok).length}</p>
+                  <div className="panel-card !min-h-0 !p-3">
+                    <span className="section-kicker">CHECK SEHAT</span>
+                    <p className="mt-1 font-serif text-2xl font-normal text-[var(--green)]">{Object.values(diagnostics.checks).filter((check) => check.ok).length}</p>
                   </div>
-                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wider text-amber-200/80">Perlu Perhatian</p>
-                    <p className="mt-2 text-xl font-bold text-amber-200">{Object.values(diagnostics.checks).filter((check) => !check.ok).length}</p>
+                  <div className="panel-card !min-h-0 !p-3">
+                    <span className="section-kicker">PERLU PERHATIAN</span>
+                    <p className="mt-1 font-serif text-2xl font-normal text-[var(--gold)]">{Object.values(diagnostics.checks).filter((check) => !check.ok).length}</p>
                   </div>
-                  <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-3">
-                    <p className="text-[11px] uppercase tracking-wider text-zinc-500">Warning</p>
-                    <p className="mt-2 text-xl font-bold text-zinc-100">{diagnostics.warnings.length}</p>
+                  <div className="panel-card !min-h-0 !p-3">
+                    <span className="section-kicker">WARNING</span>
+                    <p className="mt-1 font-serif text-2xl font-normal text-[var(--text)]">{diagnostics.warnings.length}</p>
                   </div>
                 </div>
                 {diagnostics.warnings.length > 0 && (
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                  <div className="notice-box text-xs">
                     {diagnostics.warnings.map((warning) => (
-                      <div key={warning}>- {warning}</div>
+                      <div key={warning}>• {warning}</div>
                     ))}
                   </div>
                 )}
                 <div className="grid gap-3 xl:grid-cols-2">
                   {Object.entries(diagnostics.checks).map(([name, check]) => (
-                    <div key={name} className={`rounded-lg border px-3 py-3 ${check.ok ? "border-emerald-500/25 bg-emerald-500/5" : "border-red-500/25 bg-red-500/5"}`}>
+                    <div key={name} className="p-3 border border-[var(--border)] rounded-[3px] bg-[var(--surface-2)]">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-zinc-100">{formatDiagnosticName(name)}</span>
-                        <Badge tone={check.ok ? "green" : "red"}>{check.ok ? "OK" : "WARN"}</Badge>
+                        <span className="text-xs font-semibold text-[var(--text)]">{formatDiagnosticName(name)}</span>
+                        <span className={`status-badge ${check.ok ? "active" : "pending"}`}>{check.ok ? "OK" : "WARN"}</span>
                       </div>
-                      <p className="mt-1 text-xs leading-5 text-zinc-400">{check.detail}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">{check.detail}</p>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-zinc-500">Diagnostics belum dimuat. Tekan "Refresh Diagnostics" untuk cek database, Discord, role, channel, dan webhook saat ini.</p>
+              <p className="text-xs text-[var(--muted)] mt-4">Diagnostics belum dimuat. Tekan "Refresh Diagnostics" untuk cek status.</p>
             )}
-          </div>
+          </article>
 
-          <SettingsForm headers={headers} />
-        </Card>
+          <article className="panel-card">
+            <SettingsForm headers={headers} />
+          </article>
+        </section>
       )}
 
       {tab === "periode" && (
-        <>
-      {/* Periode */}
-      <Card strong className="p-4 sm:p-6">
-        <h2 className="font-display text-lg font-bold gold-text">🕐 Kelola Periode Rekrutmen</h2>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Button variant="ghost" onClick={downloadBackup} disabled={busy} className="shrink-0">
-              {busy ? "Memproses..." : "Unduh Backup JSON"}
-            </Button>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-            <Button variant="ghost" onClick={() => downloadCsvExport("attendance")} disabled={busy}>Export Attendance CSV</Button>
-            <Button variant="ghost" onClick={() => downloadCsvExport("results")} disabled={busy}>Export Hasil CSV</Button>
-            <Button variant="ghost" onClick={() => downloadCsvExport("blacklist")} disabled={busy}>Export Blacklist CSV</Button>
-            <Button variant="ghost" onClick={() => downloadCsvExport("verdicts")} disabled={busy}>Export Putusan CSV</Button>
-          </div>
-        </div>
-        <div className="mt-1 text-xs text-zinc-500">
-          <p>Membuka periode baru otomatis menutup periode lama dan mengacak ulang bank soal dengan seed baru.</p>
-          <p className="mt-1">Export CSV dibuat untuk operasional admin harian: attendance, hasil, blacklist, dan putusan.</p>
-        </div>
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <input
-            value={periodName}
-            onChange={(e) => setPeriodName(e.target.value)}
-            placeholder="Nama periode, contoh: Rekrutmen Gelombang 2"
-            className="flex-1 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-gold/60"
-          />
-          <Button variant="gold" onClick={openPeriod} disabled={busy}>
-            {busy ? "Proses..." : "Buka Periode Baru"}
-          </Button>
-          <Button variant="ghost" onClick={load} disabled={busy} className="shrink-0">
-            {busy ? "Memuat..." : "Refresh Data"}
-          </Button>
-        </div>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div>
-            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                          Jumlah Soal Pilihan Ganda (kosong = default 15)
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={50}
-              value={periodMcq}
-              onChange={(e) => setPeriodMcq(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
-              placeholder="15"
-              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              Jumlah Soal Essay (kosong = default 5)
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={50}
-              value={periodEssay}
-              onChange={(e) => setPeriodEssay(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
-              placeholder="5"
-              className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-            />
-          </div>
-        </div>
-
-        <div className="mt-5 space-y-3">
-          {periods.map((p) => {
-            const mengerjakan = p.attempts.filter((a) => !a.submittedAt);
-            const selesai = p.attempts.filter((a) => a.submittedAt);
-            const absenOnly = p.attendances.filter(
-              (a) => !p.attempts.some((at) => at.user.id === a.user?.id)
-            );
-            const countsLabel = `Mengerjakan ${mengerjakan.length} • Selesai ${selesai.length} • Absen saja ${absenOnly.length}`;
-
-            return (
-              <div
-                key={p.id}
-                className="rounded-lg border border-white/10 bg-white/5 px-4 py-3"
+        <section className="admin-panel active" data-panel="overview">
+          <div className="panel-heading mb-6">
+            <div>
+              <span className="section-kicker">MANAJEMEN REKRUTMEN</span>
+              <h2 className="font-serif text-2xl font-normal">Kelola Periode Rekrutmen</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="outline-button !min-h-[40px] text-xs"
+                onClick={load}
+                disabled={busy}
               >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-zinc-100">{p.name}</p>
-                    <p className="text-xs text-zinc-400">{countsLabel}</p>
-                    <p className="text-xs text-zinc-400">
-                      Seed: {p.seed} · Dibuka: {p.openedAt ? new Date(p.openedAt).toLocaleString("id-ID") : "belum diatur"}
-                    </p>
-                    <p className="text-xs text-zinc-500">
-                      Absen buka: {p.openedAt ? new Date(p.openedAt).toLocaleString("id-ID") : "belum diatur"}
-                    </p>
-                     <p className="text-xs text-zinc-500">
-                       Soal: {p.mcqCount ?? "15"} Pilihan Ganda · {p.essayCount ?? "5"} Essay
-                     </p>
-                     {p.examStartTime && (
-                       <p className="text-xs text-zinc-500">
-                         Mulai: {new Date(p.examStartTime).toLocaleString("id-ID")}
-                       </p>
-                     )}
-                     {p.examEndTime && (
-                       <p className="text-xs text-zinc-500">
-                         Tutup: {new Date(p.examEndTime).toLocaleString("id-ID")}
-                       </p>
-                     )}
-                     {p.closedAt ? (
-                      <p className="text-xs text-red-400">
-                        Absen tutup: {new Date(p.closedAt).toLocaleString("id-ID")}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-zinc-500">Absen tutup: belum diatur</p>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={p.isActive ? "green" : "neutral"}>
-                      {p.isActive ? "AKTIF" : "DITUTUP"}
-                    </Badge>
-                    {p.isActive && (
-                      <Badge tone={p.isExamOpen ? "green" : "neutral"}>
-                        {p.isExamOpen ? "UJIAN BUKA" : "UJIAN TUTUP"}
-                      </Badge>
-                    )}
-                    {p.isActive && (
-                      <Badge tone={p.isAttendanceOpen ? "green" : "neutral"}>
-                        {p.isAttendanceOpen ? "ABSEN BUKA" : "ABSEN TUTUP"}
-                      </Badge>
-                    )}
-                     <button
-                       onClick={() =>
-                         setEditingDates((cur) =>
-                           cur?.id === p.id
-                             ? null
-                             : {
-                                 id: p.id,
-                                 openedAt: toLocalInputValue(p.openedAt),
-                                 closedAt: toLocalInputValue(p.closedAt),
-                                 mcqCount: p.mcqCount != null ? String(p.mcqCount) : "",
-                                 essayCount: p.essayCount != null ? String(p.essayCount) : "",
-                                 examStartTime: p.examStartTime
-                                   ? toLocalInputValue(p.examStartTime)
-                                   : "",
-                                 examEndTime: p.examEndTime
-                                   ? toLocalInputValue(p.examEndTime)
-                                   : "",
-                               }
-                         )
-                       }
-                      className="rounded-md border border-gold/40 px-3 py-2 text-xs text-gold transition hover:bg-gold/10"
-                    >
-                      {editingDates?.id === p.id ? "Batal" : "Edit Periode"}
-                    </button>
-                    {p.isActive && (
-                      <button
-                        onClick={async () => {
-                          const newExamOpen = !p.isExamOpen;
-                          const res = await fetch("/api/admin/period", {
-                            method: "PATCH",
-                            headers,
-                            body: JSON.stringify({ periodId: p.id, action: "toggleExamOpen", isExamOpen: newExamOpen }),
-                          });
-                          const json = await res.json();
-                          setMsg({ ok: json.ok, text: json.message });
-                          if (json.ok) await load();
-                        }}
-                        className={`rounded-md border px-3 py-2 text-xs transition ${
-                          p.isExamOpen
-                            ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
-                            : "border-white/20 text-zinc-400 hover:bg-white/10"
-                        }`}
-                      >
-                        {p.isExamOpen ? "Buka Ujian ✓" : "Buka Ujian"}
-                      </button>
-                    )}
-                    {p.isActive && (
-                      <button
-                        onClick={async () => {
-                          const newAttendanceOpen = !p.isAttendanceOpen;
-                          const res = await fetch("/api/admin/period", {
-                            method: "PATCH",
-                            headers,
-                            body: JSON.stringify({ periodId: p.id, action: "toggleAttendanceOpen", isAttendanceOpen: newAttendanceOpen }),
-                          });
-                          const json = await res.json();
-                          setMsg({ ok: json.ok, text: json.message });
-                          if (json.ok) await load();
-                        }}
-                        className={`rounded-md border px-3 py-2 text-xs transition ${
-                          p.isAttendanceOpen
-                            ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
-                            : "border-white/20 text-zinc-400 hover:bg-white/10"
-                        }`}
-                      >
-                        {p.isAttendanceOpen ? "Buka Absen ✓" : "Buka Absen"}
-                      </button>
-                    )}
-                    <button
-                      onClick={async () => {
-                        if (!window.confirm(p.isActive ? "Tutup periode ini?\n\nAbsensi dan ujian pada periode ini akan berhenti sampai Anda buka lagi." : "Buka kembali periode ini?\n\nPeriode akan aktif lagi dan bisa dipakai untuk operasional lanjutan."))
-                          return;
-                        const action = p.isActive ? "close" : "reopen";
-                        const res = await fetch("/api/admin/period", {
-                          method: "PATCH",
-                          headers,
-                          body: JSON.stringify({ periodId: p.id, action }),
-                        });
-                        const json = await res.json();
-                        setMsg({ ok: json.ok, text: json.message });
-                        if (json.ok) await load();
-                      }}
-                      className={`rounded-md border px-3 py-2 text-xs transition ${
-                        p.isActive
-                          ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
-                          : "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
-                      }`}
-                    >
-                      {p.isActive ? "Tutup" : "Buka"}
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!confirm("Reset ujian periode ini?\n\nSemua sesi ujian dan hasil pada periode ini akan dihapus. Data absensi tetap ada, dan casis bisa mengerjakan ulang."))
-                          return;
-                        const res = await fetch("/api/admin/period", {
-                          method: "PATCH",
-                          headers,
-                          body: JSON.stringify({ periodId: p.id, action: "reset" }),
-                        });
-                        const json = await res.json();
-                        setMsg({ ok: json.ok, text: json.message });
-                        if (json.ok) {
-                          toast.success(json.message);
-                          await load();
-                        } else {
-                          toast.error(json.message ?? "Gagal mereset.");
-                        }
-                      }}
-                      className="rounded-md border border-orange-500/40 px-3 py-2 text-xs text-orange-400 transition hover:bg-orange-500/10"
-                    >
-                      Reset Ujian
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!confirm(`Hapus periode "${p.name}"?\n\nPastikan backup JSON sudah diunduh. Periode, absensi, attempt, jawaban, dan hasil terkait akan dihapus permanen.`))
-                          return;
-                        const res = await fetch("/api/admin/period", {
-                          method: "PATCH",
-                          headers,
-                          body: JSON.stringify({ periodId: p.id, action: "delete" }),
-                        });
-                        const json = await res.json();
-                        setMsg({ ok: json.ok, text: json.message });
-                        if (json.ok) {
-                          toast.success(json.message);
-                          await load();
-                        } else {
-                          toast.error(json.message ?? "Gagal menghapus periode.");
-                        }
-                      }}
-                      className="rounded-md border border-red-500/40 px-3 py-2 text-xs text-red-400 transition hover:bg-red-500/10"
-                    >
-                      Hapus Periode
-                    </button>
-                  </div>
-                </div>
+                {busy ? "Memuat..." : "Refresh Data"}
+              </button>
+            </div>
+          </div>
 
-                {/* Form edit periode */}
-                {editingDates?.id === p.id && (
-                  <div className="mt-3 rounded-lg border border-gold/20 bg-gold/5 p-4">
-                    <div className="grid gap-3 sm:grid-cols-2">
-                       <div>
-                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                           Tanggal Buka Absen
-                         </label>
-                         <input
-                           type="datetime-local"
-                           value={editingDates.openedAt}
-                           onChange={(e) =>
-                             setEditingDates((cur) =>
-                               cur ? { ...cur, openedAt: e.target.value } : cur
-                             )
-                           }
-                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                         />
-                       </div>
-                       <div>
-                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                           Tanggal Tutup Absen (kosongkan = tanpa tanggal tutup)
-                         </label>
-                         <input
-                           type="datetime-local"
-                           value={editingDates.closedAt}
-                           onChange={(e) =>
-                             setEditingDates((cur) =>
-                               cur ? { ...cur, closedAt: e.target.value } : cur
-                             )
-                           }
-                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                         />
-                       </div>
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              Jumlah Soal Pilihan Ganda (kosong = default 15)
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={50}
-                          value={editingDates.mcqCount}
-                          onChange={(e) =>
-                            setEditingDates((cur) =>
-                              cur
-                                ? {
-                                    ...cur,
-                                    mcqCount: e.target.value.replace(/[^0-9]/g, "").slice(0, 2),
-                                  }
-                                : cur
-                            )
-                          }
-                          placeholder="15"
-                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                        />
+          {/* Ekspor & Cadangan Data */}
+          <article className="panel-card mb-6">
+            <div className="card-heading">
+              <div>
+                <span className="section-kicker">OPERASIONAL</span>
+                <h3 className="font-serif text-lg font-normal">Ekspor & Cadangan Data</h3>
+              </div>
+              <button
+                type="button"
+                className="outline-button !min-h-[38px] text-xs"
+                onClick={downloadBackup}
+                disabled={busy}
+              >
+                {busy ? "Memproses..." : "Unduh Backup JSON"}
+              </button>
+            </div>
+
+            <div className="grid gap-2 grid-cols-2 lg:grid-cols-4 mt-4">
+              <button
+                type="button"
+                className="outline-button !min-h-[42px] text-xs justify-between"
+                onClick={() => downloadCsvExport("attendance")}
+                disabled={busy}
+              >
+                <span>Export Attendance CSV</span>
+                <span className="text-[var(--muted)]">↓</span>
+              </button>
+              <button
+                type="button"
+                className="outline-button !min-h-[42px] text-xs justify-between"
+                onClick={() => downloadCsvExport("results")}
+                disabled={busy}
+              >
+                <span>Export Hasil CSV</span>
+                <span className="text-[var(--muted)]">↓</span>
+              </button>
+              <button
+                type="button"
+                className="outline-button !min-h-[42px] text-xs justify-between"
+                onClick={() => downloadCsvExport("blacklist")}
+                disabled={busy}
+              >
+                <span>Export Blacklist CSV</span>
+                <span className="text-[var(--muted)]">↓</span>
+              </button>
+              <button
+                type="button"
+                className="outline-button !min-h-[42px] text-xs justify-between"
+                onClick={() => downloadCsvExport("verdicts")}
+                disabled={busy}
+              >
+                <span>Export Putusan CSV</span>
+                <span className="text-[var(--muted)]">↓</span>
+              </button>
+            </div>
+
+            <div className="notice-box mt-3 text-xs flex flex-col gap-1">
+              <p>• Membuka periode baru otomatis menutup periode lama dan mengacak ulang bank soal dengan seed baru.</p>
+              <p>• Export CSV dibuat untuk operasional admin harian: attendance, hasil, blacklist, dan putusan.</p>
+            </div>
+          </article>
+
+          {/* Form Buka Periode Baru */}
+          <article className="panel-card mb-6">
+            <div className="card-heading">
+              <div>
+                <span className="section-kicker">KONFIGURASI</span>
+                <h3 className="font-serif text-lg font-normal">Buat Periode Baru</h3>
+              </div>
+              <span className="status-badge">PENERIMAAN</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+              <div className="setting-field !p-3">
+                <label htmlFor="recruitmentPeriodSelect" className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                  Periode Pendaftaran (RecruitmentPeriod)
+                </label>
+                <select
+                  id="recruitmentPeriodSelect"
+                  value={selectedRecruitmentPeriodId}
+                  onChange={(e) => setSelectedRecruitmentPeriodId(e.target.value)}
+                  className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                >
+                  <option value="" className="bg-[#171717] text-[#918d86]">
+                    [Belum Dipetakan / Simpan sbg Draft]
+                  </option>
+                  <option value="auto" className="bg-[#171717] text-[#e0a842] font-semibold">
+                    ⚡ Buat Otomatis Periode Pendaftaran Baru
+                  </option>
+                  {recruitmentPeriods.map((r) => (
+                    <option key={r.id} value={r.id} className="bg-[#171717] text-[#eeeae2]">
+                      {r.code} — {r.name} {r.isActive ? "(Aktif)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="setting-field !p-3">
+                <label htmlFor="mcqCountInput" className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                  Jumlah Soal Pilihan Ganda (kosong = default 15)
+                </label>
+                <input
+                  id="mcqCountInput"
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={periodMcq}
+                  onChange={(e) => setPeriodMcq(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+                  placeholder="15"
+                  className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                />
+              </div>
+
+              <div className="setting-field !p-3">
+                <label htmlFor="essayCountInput" className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                  Jumlah Soal Essay (kosong = default 5)
+                </label>
+                <input
+                  id="essayCountInput"
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={periodEssay}
+                  onChange={(e) => setPeriodEssay(e.target.value.replace(/[^0-9]/g, "").slice(0, 2))}
+                  placeholder="5"
+                  className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <input
+                value={periodName}
+                onChange={(e) => setPeriodName(e.target.value)}
+                placeholder="Nama periode, contoh: Rekrutmen Gelombang 2"
+                className="flex-1 h-12 px-4 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+              />
+              <button
+                type="button"
+                className="primary-button !mt-0 !w-auto !min-h-[48px] px-6 shrink-0 inline-flex items-center justify-center gap-2"
+                onClick={openPeriod}
+                disabled={busy || !periodName.trim()}
+              >
+                Buka Periode Baru
+              </button>
+            </div>
+          </article>
+
+          {/* Riwayat & Daftar Periode */}
+          <div className="space-y-4">
+            <div className="card-heading !border-0 !p-0">
+              <div>
+                <span className="section-kicker">DAFTAR PERIODE</span>
+                <h3 className="font-serif text-lg font-normal">Riwayat & Status Periode</h3>
+              </div>
+              <span className="panel-count">{periods.length} periode</span>
+            </div>
+
+            {periods.map((p) => {
+              const mengerjakan = p.attempts.filter((a) => !a.submittedAt);
+              const selesai = p.attempts.filter((a) => a.submittedAt);
+              const absenOnly = p.attendances.filter(
+                (a) => !p.attempts.some((at) => at.user.id === a.user?.id)
+              );
+              const countsLabel = `Mengerjakan ${mengerjakan.length} • Selesai ${selesai.length} • Absen saja ${absenOnly.length}`;
+
+              return (
+                <article key={p.id} className="panel-card !min-h-0">
+                  <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[var(--border)]">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-serif text-lg font-normal text-[var(--text)]">{p.name}</h4>
+                        {p.recruitmentPeriod ? (
+                          <span className="status-badge active !text-xs">
+                            Terhubung: {p.recruitmentPeriod.code} ({p.recruitmentPeriod.name})
+                          </span>
+                        ) : (
+                          <span className="status-badge pending !text-xs">
+                            Belum Dipetakan (Draft)
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                          Jumlah Soal Essay (kosong = default 5)
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={50}
-                          value={editingDates.essayCount}
-                          onChange={(e) =>
-                            setEditingDates((cur) =>
-                              cur
-                                ? {
-                                    ...cur,
-                                    essayCount: e.target.value.replace(/[^0-9]/g, "").slice(0, 2),
-                                  }
-                                : cur
-                            )
+                      <p className="text-xs text-[var(--muted)] mt-1">{countsLabel}</p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`status-badge ${p.isActive ? "active" : ""}`}>
+                        {p.isActive ? "AKTIF" : "DITUTUP"}
+                      </span>
+                      {p.isActive && (
+                        <span className={`status-badge ${p.isExamOpen ? "active" : ""}`}>
+                          {p.isExamOpen ? "UJIAN BUKA" : "UJIAN TUTUP"}
+                        </span>
+                      )}
+                      {p.isActive && (
+                        <span className={`status-badge ${p.isAttendanceOpen ? "active" : ""}`}>
+                          {p.isAttendanceOpen ? "ABSEN BUKA" : "ABSEN TUTUP"}
+                        </span>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingDates((cur) =>
+                            cur?.id === p.id
+                              ? null
+                              : {
+                                  id: p.id,
+                                  recruitmentPeriodId: p.recruitmentPeriodId ?? "",
+                                  openedAt: toLocalInputValue(p.openedAt),
+                                  closedAt: toLocalInputValue(p.closedAt),
+                                  mcqCount: p.mcqCount != null ? String(p.mcqCount) : "",
+                                  essayCount: p.essayCount != null ? String(p.essayCount) : "",
+                                  examStartTime: p.examStartTime
+                                    ? toLocalInputValue(p.examStartTime)
+                                    : "",
+                                  examEndTime: p.examEndTime
+                                    ? toLocalInputValue(p.examEndTime)
+                                    : "",
+                                }
+                          )
+                        }
+                        className="outline-button !min-h-[36px] !py-1 text-xs"
+                      >
+                        {editingDates?.id === p.id ? "Batal" : "Edit Periode"}
+                      </button>
+
+                      {p.isActive && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const newExamOpen = !p.isExamOpen;
+                            const res = await fetch("/api/admin/period", {
+                              method: "PATCH",
+                              headers,
+                              body: JSON.stringify({ periodId: p.id, action: "toggleExamOpen", isExamOpen: newExamOpen }),
+                            });
+                            const json = await res.json();
+                            setMsg({ ok: json.ok, text: json.message });
+                            if (json.ok) await load();
+                          }}
+                          className={`outline-button !min-h-[36px] !py-1 text-xs ${
+                            p.isExamOpen ? "verify-button" : ""
+                          }`}
+                        >
+                          {p.isExamOpen ? "Buka Ujian ✓" : "Buka Ujian"}
+                        </button>
+                      )}
+
+                      {p.isActive && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const newAttendanceOpen = !p.isAttendanceOpen;
+                            const res = await fetch("/api/admin/period", {
+                              method: "PATCH",
+                              headers,
+                              body: JSON.stringify({ periodId: p.id, action: "toggleAttendanceOpen", isAttendanceOpen: newAttendanceOpen }),
+                            });
+                            const json = await res.json();
+                            setMsg({ ok: json.ok, text: json.message });
+                            if (json.ok) await load();
+                          }}
+                          className={`outline-button !min-h-[36px] !py-1 text-xs ${
+                            p.isAttendanceOpen ? "verify-button" : ""
+                          }`}
+                        >
+                          {p.isAttendanceOpen ? "Buka Absen ✓" : "Buka Absen"}
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!window.confirm(p.isActive ? "Tutup periode ini?\n\nAbsensi dan ujian pada periode ini akan berhenti sampai Anda buka lagi." : "Buka kembali periode ini?\n\nPeriode akan aktif lagi dan bisa dipakai untuk operasional lanjutan."))
+                            return;
+                          const action = p.isActive ? "close" : "reopen";
+                          const res = await fetch("/api/admin/period", {
+                            method: "PATCH",
+                            headers,
+                            body: JSON.stringify({
+                              periodId: p.id,
+                              action,
+                              autoCreateRecruitment: !p.recruitmentPeriodId,
+                            }),
+                          });
+                          const json = await res.json();
+                          setMsg({ ok: json.ok, text: json.message });
+                          if (json.ok) await load();
+                        }}
+                        className={`outline-button !min-h-[36px] !py-1 text-xs ${
+                          p.isActive ? "reject-button" : "verify-button"
+                        }`}
+                      >
+                        {p.isActive ? "Tutup" : "Buka"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm("Reset ujian periode ini?\n\nPERINGATAN: ExamAttempt (sesi ujian) dan ExamResult (hasil ujian) pada periode ini akan dihapus PERMANEN dan tidak dapat dikembalikan.\n\nData Attendance tetap ada dan casis bisa mengerjakan ulang."))
+                            return;
+                          const res = await fetch("/api/admin/period", {
+                            method: "PATCH",
+                            headers,
+                            body: JSON.stringify({ periodId: p.id, action: "reset", confirmReset: true }),
+                          });
+                          const json = await res.json();
+                          setMsg({ ok: json.ok, text: json.message });
+                          if (json.ok) {
+                            toast.success(json.message);
+                            await load();
+                          } else {
+                            toast.error(json.message ?? "Gagal mereset.");
                           }
-                          placeholder="5"
-                          className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                        />
-                      </div>
-                       <div>
-                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                           Waktu Mulai Ujian (kosongkan = tidak diatur)
-                         </label>
-                         <input
-                           type="datetime-local"
-                           value={editingDates.examStartTime}
-                           onChange={(e) =>
-                             setEditingDates((cur) =>
-                               cur
-                                 ? { ...cur, examStartTime: e.target.value }
-                                 : cur
-                             )
-                           }
-                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                         />
-                       </div>
-                       <div>
-                         <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                           Waktu Tutup Ujian (kosongkan = tidak diatur)
-                         </label>
-                         <input
-                           type="datetime-local"
-                           value={editingDates.examEndTime}
-                           onChange={(e) =>
-                             setEditingDates((cur) =>
-                               cur
-                                 ? { ...cur, examEndTime: e.target.value }
-                                 : cur
-                             )
-                           }
-                           className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                         />
-                       </div>
-                     </div>
-                     <div className="mt-3 flex items-center gap-2">
-                      <Button
-                        variant="gold"
-                        onClick={savePeriodDates}
-                        disabled={busy}
-                        className="shrink-0"
+                        }}
+                        className="outline-button reject-button !min-h-[36px] !py-1 text-xs"
                       >
-                        {busy ? "Menyimpan..." : "Simpan Perubahan"}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => setEditingDates(null)}
-                        disabled={busy}
-                        className="shrink-0"
+                        Reset Ujian
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm(`Hapus periode "${p.name}"?\n\nPastikan backup JSON sudah diunduh. Periode, absensi, attempt, jawaban, dan hasil terkait akan dihapus permanen.`))
+                            return;
+                          const res = await fetch("/api/admin/period", {
+                            method: "PATCH",
+                            headers,
+                            body: JSON.stringify({ periodId: p.id, action: "delete" }),
+                          });
+                          const json = await res.json();
+                          setMsg({ ok: json.ok, text: json.message });
+                          if (json.ok) {
+                            toast.success(json.message);
+                            await load();
+                          } else {
+                            toast.error(json.message ?? "Gagal menghapus periode.");
+                          }
+                        }}
+                        className="outline-button reject-button !min-h-[36px] !py-1 text-xs"
                       >
-                        Batal
-                      </Button>
+                        Hapus Periode
+                      </button>
                     </div>
                   </div>
-                )}
 
-                {/* Daftar Peserta */}
-                <div className="mt-3 border-t border-white/5 pt-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                    Peserta ({p._count.attendances} absen · {p._count.attempts} ujian)
-                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 my-3 text-xs">
+                    <div className="data-row">
+                      <span>Seed Acak:</span>
+                      <strong>{p.seed}</strong>
+                    </div>
+                    <div className="data-row">
+                      <span>Konfigurasi Soal:</span>
+                      <strong>{p.mcqCount ?? "15"} PG · {p.essayCount ?? "5"} Essay</strong>
+                    </div>
+                    <div className="data-row">
+                      <span>Jadwal Absen:</span>
+                      <strong>{p.openedAt ? new Date(p.openedAt).toLocaleDateString("id-ID") : "Belum diatur"}</strong>
+                    </div>
+                    <div className="data-row">
+                      <span>Jadwal Ujian:</span>
+                      <strong>{p.examStartTime ? new Date(p.examStartTime).toLocaleDateString("id-ID") : "Belum diatur"}</strong>
+                    </div>
+                  </div>
 
-                  {p.attendances.length === 0 && p.attempts.length === 0 ? (
-                    <p className="text-xs text-zinc-600">Belum ada peserta.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {p.attendances.map((a) => {
-                        const attempt = p.attempts.find((at) => at.user.id === a.user?.id);
-                        const isDone = attempt?.submittedAt != null;
-                        const isWorking = attempt && !attempt.submittedAt;
-
-                        return (
-                          <div
-                            key={a.id}
-                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs ${
-                              isWorking
-                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                                : isDone
-                                  ? "border-white/10 bg-white/5 text-zinc-400"
-                                  : "border-gold/30 bg-gold/5 text-gold"
-                            }`}
-                            title={
-                              isWorking
-                                ? "Sedang mengerjakan"
-                                : isDone
-                                  ? `Selesai - ${new Date(attempt.submittedAt!).toLocaleString("id-ID")}`
-                                  : "Sudah absen, belum mulai"
+                  {/* Form edit periode */}
+                  {editingDates?.id === p.id && (
+                    <div className="mt-4 p-4 border border-[var(--border-strong)] bg-[var(--surface-2)] rounded-[3px]">
+                      <div className="card-heading !pb-2 mb-3">
+                        <span className="section-kicker">EDIT PERIODE</span>
+                        <h5 className="font-serif text-sm">Konfigurasi Jadwal & Soal</h5>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="setting-field !p-3 sm:col-span-2">
+                          <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                            Hubungkan ke Periode Pendaftaran
+                          </label>
+                          <select
+                            value={editingDates.recruitmentPeriodId ?? ""}
+                            onChange={(e) =>
+                              setEditingDates((cur) =>
+                                cur ? { ...cur, recruitmentPeriodId: e.target.value } : cur
+                              )
                             }
+                            className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
                           >
-                            <span>{a.user?.displayName ?? a.discordUserId ?? "?"}</span>
-                            {isWorking && <span className="animate-pulse">●</span>}
-                            {isDone && <span>✓</span>}
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                const name = a.user?.displayName ?? a.discordUserId ?? "?";
-                                if (!window.confirm(`Hapus absensi & ujian "${name}" dari periode ini?\n\nAbsensi, sesi ujian, dan hasil terkait periode ini akan dihapus.`))
-                                  return;
-                                const res = await fetch(`/api/admin/attendance?id=${encodeURIComponent(a.id)}`, {
-                                  method: "DELETE",
-                                  headers,
-                                });
-                                const json = await res.json();
-                                setMsg({ ok: json.ok, text: json.message });
-                                if (json.ok) {
-                                  toast.success(json.message);
-                                  await load();
-                                } else {
-                                  toast.error(json.message ?? "Gagal menghapus.");
-                                }
-                              }}
-                              aria-label="Hapus absensi"
-                              className="rounded px-1 text-xs text-zinc-500 transition hover:text-red-400"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        );
-                      })}
-
-                      {/* Attempt tanpa absensi */}
-                      {p.attempts
-                        .filter((at) => !p.attendances.some((a) => a.user?.id === at.user.id))
-                        .map((at) => (
-                          <div
-                            key={at.id}
-                            className="flex items-center gap-1.5 rounded-md border border-red-400/30 bg-red-500/5 px-2 py-1 text-xs text-red-300"
-                            title={
-                              at.submittedAt
-                                ? `Ujian (tanpa absen) - Selesai ${new Date(at.submittedAt).toLocaleString("id-ID")}`
-                                : "Ujian (tanpa absen) - Sedang mengerjakan"
+                            <option value="">[Putus Relasi / Draft Tanpa Pendaftaran]</option>
+                            <option value="auto" className="bg-[#171717] text-[#e0a842] font-semibold">
+                              ⚡ [+ Buat Otomatis Sesuai Nama Periode Ujian]
+                            </option>
+                            {recruitmentPeriods.map((r) => (
+                              <option key={r.id} value={r.id} className="bg-[#171717] text-[#eeeae2]">
+                                {r.code} — {r.name} {r.isActive ? "(Aktif)" : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="setting-field !p-3">
+                          <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                            Tanggal Buka Absen
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={editingDates.openedAt}
+                            onChange={(e) =>
+                              setEditingDates((cur) =>
+                                cur ? { ...cur, openedAt: e.target.value } : cur
+                              )
                             }
-                          >
-                            <span>{at.user.displayName}</span>
-                            {at.submittedAt ? <span>✓</span> : <span className="animate-pulse">●</span>}
-                            <button
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                if (!window.confirm(`Hapus ujian "${at.user.displayName}" dari periode ini?\n\nCasis akan bisa mengikuti ujian lagi pada periode ini.`))
-                                  return;
-                                const res = await fetch(`/api/admin/users?userId=${encodeURIComponent(at.user.id)}&periodId=${encodeURIComponent(p.id)}`, {
-                                  method: "DELETE",
-                                  headers,
-                                });
-                                const json = await res.json();
-                                setMsg({ ok: json.ok, text: json.message });
-                                if (json.ok) {
-                                  toast.success(json.message);
-                                  await load();
-                                } else {
-                                  toast.error(json.message ?? "Gagal menghapus.");
-                                }
-                              }}
-                              aria-label="Hapus ujian"
-                              className="rounded px-1 text-xs text-zinc-500 transition hover:text-red-400"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
+                            className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                          />
+                        </div>
+                        <div className="setting-field !p-3">
+                          <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                            Batas Waktu Penutupan Pendaftaran & Absen (kosongkan = tanpa batas waktu)
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={editingDates.closedAt}
+                            onChange={(e) =>
+                              setEditingDates((cur) =>
+                                cur ? { ...cur, closedAt: e.target.value } : cur
+                              )
+                            }
+                            className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                          />
+                        </div>
+                        <div className="setting-field !p-3">
+                          <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                            Jumlah Soal Pilihan Ganda (kosong = default 15)
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={editingDates.mcqCount}
+                            onChange={(e) =>
+                              setEditingDates((cur) =>
+                                cur
+                                  ? {
+                                      ...cur,
+                                      mcqCount: e.target.value.replace(/[^0-9]/g, "").slice(0, 2),
+                                    }
+                                  : cur
+                              )
+                            }
+                            placeholder="15"
+                            className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                          />
+                        </div>
+                        <div className="setting-field !p-3">
+                          <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                            Jumlah Soal Essay (kosong = default 5)
+                          </label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={editingDates.essayCount}
+                            onChange={(e) =>
+                              setEditingDates((cur) =>
+                                cur
+                                  ? {
+                                      ...cur,
+                                      essayCount: e.target.value.replace(/[^0-9]/g, "").slice(0, 2),
+                                    }
+                                  : cur
+                              )
+                            }
+                            placeholder="5"
+                            className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                          />
+                        </div>
+                        <div className="setting-field !p-3">
+                          <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                            Waktu Mulai Ujian (kosongkan = tidak diatur)
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={editingDates.examStartTime}
+                            onChange={(e) =>
+                              setEditingDates((cur) =>
+                                cur
+                                  ? { ...cur, examStartTime: e.target.value }
+                                  : cur
+                              )
+                            }
+                            className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                          />
+                        </div>
+                        <div className="setting-field !p-3">
+                          <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                            Waktu Tutup Ujian (kosongkan = tidak diatur)
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={editingDates.examEndTime}
+                            onChange={(e) =>
+                              setEditingDates((cur) =>
+                                cur
+                                  ? { ...cur, examEndTime: e.target.value }
+                                  : cur
+                              )
+                            }
+                            className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center gap-3">
+                        <button
+                          type="button"
+                          className="primary-button !min-h-[40px] px-5 text-xs"
+                          onClick={savePeriodDates}
+                          disabled={busy}
+                        >
+                          {busy ? "Menyimpan..." : "Simpan Perubahan"}
+                        </button>
+                        <button
+                          type="button"
+                          className="outline-button !min-h-[40px] px-4 text-xs"
+                          onClick={() => setEditingDates(null)}
+                          disabled={busy}
+                        >
+                          Batal
+                        </button>
+                      </div>
                     </div>
                   )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-        </>
+
+                  {/* Daftar Peserta */}
+                  <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] block mb-2">
+                      Peserta ({p._count.attendances} absen · {p._count.attempts} ujian)
+                    </span>
+
+                    {p.attendances.length === 0 && p.attempts.length === 0 ? (
+                      <p className="text-xs text-[var(--muted)]">Belum ada peserta pada periode ini.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {p.attendances.map((a) => {
+                          const attempt = p.attempts.find((at) => at.user.id === a.user?.id);
+                          const isDone = attempt?.submittedAt != null;
+                          const isWorking = attempt && !attempt.submittedAt;
+
+                          return (
+                            <div
+                              key={a.id}
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] border text-xs ${
+                                isWorking
+                                  ? "border-[var(--gold)] bg-[var(--surface-2)] text-[var(--gold)]"
+                                  : isDone
+                                    ? "border-[var(--green)] bg-[var(--surface-2)] text-[var(--green)]"
+                                    : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]"
+                              }`}
+                              title={
+                                isWorking
+                                  ? "Sedang mengerjakan"
+                                  : isDone
+                                    ? `Selesai - ${new Date(attempt.submittedAt!).toLocaleString("id-ID")}`
+                                    : "Sudah absen, belum mulai"
+                              }
+                            >
+                              <span>{a.user?.displayName ?? a.discordUserId ?? "?"}</span>
+                              {isWorking && <span className="animate-pulse">●</span>}
+                              {isDone && <span>✓</span>}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const name = a.user?.displayName ?? a.discordUserId ?? "?";
+                                  if (!window.confirm(`Hapus absensi & ujian "${name}" dari periode ini?\n\nAbsensi, sesi ujian, dan hasil terkait periode ini akan dihapus.`))
+                                    return;
+                                  const res = await fetch(`/api/admin/attendance?id=${encodeURIComponent(a.id)}`, {
+                                    method: "DELETE",
+                                    headers,
+                                  });
+                                  const json = await res.json();
+                                  setMsg({ ok: json.ok, text: json.message });
+                                  if (json.ok) {
+                                    toast.success(json.message);
+                                    await load();
+                                  } else {
+                                    toast.error(json.message ?? "Gagal menghapus.");
+                                  }
+                                }}
+                                aria-label="Hapus absensi"
+                                className="ml-1 text-[var(--muted)] hover:text-[#d87575] transition"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+
+                        {/* Attempt tanpa absensi */}
+                        {p.attempts
+                          .filter((at) => !p.attendances.some((a) => a.user?.id === at.user.id))
+                          .map((at) => (
+                            <div
+                              key={at.id}
+                              className="flex items-center gap-1.5 px-2.5 py-1 rounded-[3px] border border-[#d87575]/40 bg-[var(--surface-2)] text-xs text-[#d87575]"
+                              title={
+                                at.submittedAt
+                                  ? `Ujian (tanpa absen) - Selesai ${new Date(at.submittedAt).toLocaleString("id-ID")}`
+                                  : "Ujian (tanpa absen) - Sedang mengerjakan"
+                              }
+                            >
+                              <span>{at.user.displayName}</span>
+                              {at.submittedAt ? <span>✓</span> : <span className="animate-pulse">●</span>}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!window.confirm(`Hapus ujian "${at.user.displayName}" dari periode ini?\n\nCasis akan bisa mengikuti ujian lagi pada periode ini.`))
+                                    return;
+                                  const res = await fetch(`/api/admin/users?userId=${encodeURIComponent(at.user.id)}&periodId=${encodeURIComponent(p.id)}`, {
+                                    method: "DELETE",
+                                    headers,
+                                  });
+                                  const json = await res.json();
+                                  setMsg({ ok: json.ok, text: json.message });
+                                  if (json.ok) {
+                                    toast.success(json.message);
+                                    await load();
+                                  } else {
+                                    toast.error(json.message ?? "Gagal menghapus.");
+                                  }
+                                }}
+                                aria-label="Hapus ujian"
+                                className="ml-1 text-[var(--muted)] hover:text-[#d87575] transition"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {tab === "bank" && (
-        <>
-      {/* Bank soal */}
-      <Card strong className="p-6">
-        <h2 className="font-display text-lg font-bold gold-text">🗂 Bank Soal ({questions.length})</h2>
-
-        <div className="mt-4 grid gap-3 rounded-xl border border-white/10 bg-black/20 p-4">
-          <div className="flex flex-wrap gap-3">
-            <div className="flex overflow-hidden rounded-lg border border-white/15">
-              {(["MCQ", "ESSAY"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setQType(t)}
-                  className={`px-4 py-2 text-sm font-semibold transition ${
-                    qType === t ? "bg-crimson-800 text-gold" : "bg-white/5 text-zinc-400"
-                  }`}
-                >
-                  {t === "MCQ" ? "Pilihan Ganda" : "Essay"}
-                </button>
-              ))}
+        <section className="admin-panel active" data-panel="questions">
+          <div className="panel-heading mb-6">
+            <div>
+              <span className="section-kicker">EXAMINATION</span>
+              <h2 className="font-serif text-2xl font-normal">Bank Soal ({questions.length})</h2>
             </div>
-            <input
-              type="number"
-              value={qPoints}
-              onChange={(e) => setQPoints(Number(e.target.value))}
-              min={1}
-              max={10}
-              className="w-24 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none"
-            />
-          </div>
-          <textarea
-            value={qPrompt}
-            onChange={(e) => setQPrompt(e.target.value)}
-            rows={2}
-            placeholder="Pertanyaan..."
-            className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-gold/60"
-          />
-          {qType === "MCQ" ? (
-            <>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {qOptions.map((opt, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="correct"
-                      checked={qCorrect === i}
-                      onChange={() => setQCorrect(i)}
-                      className="accent-gold"
-                    />
-                    <span className="font-mono text-xs text-gold">{String.fromCharCode(65 + i)}.</span>
-                    <input
-                      value={opt}
-                      onChange={(e) =>
-                        setQOptions((prev) => prev.map((o, idx) => (idx === i ? e.target.value : o)))
-                      }
-                      placeholder={`Opsi ${String.fromCharCode(65 + i)}`}
-                      className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none"
-                    />
-                  </div>
-                ))}
-              </div>
-              <p className="text-[11px] text-zinc-500">Pilih radio = jawaban benar.</p>
-            </>
-          ) : (
-            <input
-              value={qKeywords}
-              onChange={(e) => setQKeywords(e.target.value)}
-              placeholder="Kata kunci auto-grading, pisahkan koma: reserse,kriminal,penyidikan"
-              className="w-full rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm text-zinc-100 outline-none focus:border-gold/60"
-            />
-          )}
-          <div>
-            <Button variant="gold" onClick={addQuestion} disabled={busy}>
-              {busy ? "Menyimpan..." : "Tambah Soal"}
-            </Button>
-          </div>
-        </div>
-
-        <div className="mt-5 max-h-96 space-y-2 overflow-y-auto pr-1">
-          {questions.length > 0 && (
-            <div className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2">
-              <p className="text-xs text-zinc-400">{questions.length} soal total</p>
-              <div className="flex gap-2">
+            {questions.length > 0 && (
+              <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={async () => {
                     if (!confirm(`Hapus semua soal ${qType === "MCQ" ? "Pilihan Ganda" : "Essay"}?\n\nSemua soal pada kategori ini akan hilang permanen.`)) return;
                     setBusy(true);
@@ -1439,11 +1685,12 @@ export function AdminPanel() {
                     await load();
                     setBusy(false);
                   }}
-                  className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
+                  className="outline-button reject-button !min-h-[36px] !py-1 text-xs"
                 >
                   Hapus Semua {qType === "MCQ" ? "PG" : "Essay"}
                 </button>
                 <button
+                  type="button"
                   onClick={async () => {
                     if (!confirm("Hapus SEMUA soal (PG + Essay)?\n\nBank soal akan kosong total sampai Anda menambahkannya lagi.")) return;
                     setBusy(true);
@@ -1455,50 +1702,186 @@ export function AdminPanel() {
                     await load();
                     setBusy(false);
                   }}
-                  className="rounded-md border border-red-500/40 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
+                  className="outline-button reject-button !min-h-[36px] !py-1 text-xs"
                 >
-                  Hapus Semua
+                  Hapus Semua Soal
+                </button>
+              </div>
+            )}
+          </div>
+
+          <article className="panel-card mb-6">
+            <div className="card-heading mb-4">
+              <div>
+                <span className="section-kicker">TAMBAH SOAL</span>
+                <h3 className="font-serif text-lg font-normal">Form Input Pertanyaan</h3>
+              </div>
+              <span className="status-badge">BANK</span>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex border border-[var(--border-strong)] rounded-[3px] overflow-hidden">
+                  {(["MCQ", "ESSAY"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setQType(t)}
+                      className={`px-4 py-2 text-xs font-semibold tracking-wider uppercase transition ${
+                        qType === t
+                          ? "bg-[var(--accent)] text-[var(--accent-text)]"
+                          : "bg-[var(--surface-2)] text-[var(--muted)] hover:text-[var(--text)]"
+                      }`}
+                    >
+                      {t === "MCQ" ? "Pilihan Ganda" : "Essay"}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold">Bobot:</span>
+                  <input
+                    type="number"
+                    value={qPoints}
+                    onChange={(e) => setQPoints(Number(e.target.value))}
+                    min={1}
+                    max={10}
+                    className="w-20 h-9 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                  />
+                  <span className="text-xs text-[var(--muted)]">poin</span>
+                </div>
+              </div>
+
+              <textarea
+                value={qPrompt}
+                onChange={(e) => setQPrompt(e.target.value)}
+                rows={3}
+                placeholder="Tuliskan pertanyaan ujian..."
+                className="w-full p-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+              />
+
+              {qType === "MCQ" ? (
+                <div className="space-y-2">
+                  <span className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block">
+                    Pilihan Jawaban (Pilih radio untuk jawaban benar)
+                  </span>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {qOptions.map((opt, i) => (
+                      <div key={i} className="flex items-center gap-2 p-2 border border-[var(--border)] rounded-[3px] bg-[var(--surface)]">
+                        <input
+                          type="radio"
+                          name="correct"
+                          checked={qCorrect === i}
+                          onChange={() => setQCorrect(i)}
+                          className="accent-[#b52228] cursor-pointer"
+                        />
+                        <span className="font-mono text-xs font-bold text-[var(--muted)]">{String.fromCharCode(65 + i)}.</span>
+                        <input
+                          value={opt}
+                          onChange={(e) =>
+                            setQOptions((prev) => prev.map((o, idx) => (idx === i ? e.target.value : o)))
+                          }
+                          placeholder={`Opsi ${String.fromCharCode(65 + i)}`}
+                          className="w-full bg-transparent text-sm text-[var(--text)] outline-none"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="setting-field !p-3">
+                  <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                    Kata Kunci Auto-Grading (pisahkan koma)
+                  </label>
+                  <input
+                    value={qKeywords}
+                    onChange={(e) => setQKeywords(e.target.value)}
+                    placeholder="reserse,kriminal,penyidikan"
+                    className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+                  />
+                </div>
+              )}
+
+              <div>
+                <button
+                  type="button"
+                  className="primary-button !min-h-[42px] px-6 text-xs"
+                  onClick={addQuestion}
+                  disabled={busy}
+                >
+                  {busy ? "Menyimpan..." : "Tambah Soal"}
                 </button>
               </div>
             </div>
-          )}
-          {questions.map((q) => (
-            <div key={q.id} className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
-              <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-medium text-zinc-200">{q.prompt}</p>
-                <div className="flex items-center gap-2">
-                  <Badge tone={q.type === "MCQ" ? "gold" : "neutral"}>
-                    {q.type === "MCQ" ? `PG · ${q.points}pt` : `Essay · ${q.points}pt`}
-                  </Badge>
-                  <button
-                    onClick={async () => {
-                      if (!confirm("Hapus soal ini?\n\nSoal yang dihapus tidak bisa dipulihkan dari panel ini.")) return;
-                      setBusy(true);
-                      await fetch("/api/admin/questions", {
-                        method: "DELETE",
-                        headers,
-                        body: JSON.stringify({ id: q.id }),
-                      });
-                      await load();
-                      setBusy(false);
-                    }}
-                    className="rounded-md border border-red-500/40 px-2 py-1 text-xs text-red-400 transition hover:bg-red-500/10"
-                  >
-                    Hapus
-                  </button>
-                </div>
+          </article>
+
+          <article className="panel-card">
+            <div className="card-heading mb-4">
+              <div>
+                <span className="section-kicker">DAFTAR SOAL</span>
+                <h3 className="font-serif text-lg font-normal">Semua Pertanyaan ({questions.length})</h3>
               </div>
             </div>
-          ))}
-        </div>
-      </Card>
-        </>
+
+            {questions.length === 0 ? (
+              <p className="text-xs text-[var(--muted)]">Belum ada soal dalam bank soal.</p>
+            ) : (
+              <div className="max-h-[600px] space-y-2 overflow-y-auto pr-1">
+                {questions.map((q) => (
+                  <div key={q.id} className="p-3 border border-[var(--border)] rounded-[3px] bg-[var(--surface-2)]">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm text-[var(--text)] leading-relaxed">{q.prompt}</p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="status-badge">
+                          {q.type === "MCQ" ? `PG · ${q.points} pt` : `Essay · ${q.points} pt`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm("Hapus soal ini?\n\nSoal yang dihapus tidak bisa dipulihkan dari panel ini.")) return;
+                            setBusy(true);
+                            await fetch("/api/admin/questions", {
+                              method: "DELETE",
+                              headers,
+                              body: JSON.stringify({ id: q.id }),
+                            });
+                            await load();
+                            setBusy(false);
+                          }}
+                          className="outline-button reject-button !min-h-[30px] !py-0 px-2 text-xs"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
+        </section>
       )}
 
       {tab === "rekap" && <CandidatesTab headers={headers} />}
+      {tab === "pendaftaran" && <ApplicationsTab headers={headers} />}
       {tab === "casis" && <CasisManagement headers={headers} onDeleted={() => load()} />}
       {tab === "data" && <BlacklistTab headers={headers} />}
       {tab === "discord" && <DiscordMessagesTab headers={headers} />}
+      {tab === "content" && <ContentSettingsTab headers={headers} />}
+        </section>
+      </main>
+
+      <footer className="system-footer mt-16">
+        <div className="footer-brand">
+          <img src="/design-assets/logo-pusdik.png" alt="Logo Pusdik Reserse" />
+          <div>
+            <strong>BARESKRIM POLRI RBX</strong>
+            <span>PUSDIK RESERSE</span>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <span>© 2026 Bareskrim Polri RBX. Hak Cipta Dilindungi.</span>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -1610,24 +1993,27 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
 
       <div className="grid gap-6 sm:grid-cols-2">
         {/* General Settings */}
-        <Card className="p-4">
-          <h3 className="font-semibold text-zinc-100 mb-4">Umum</h3>
+        <div className="panel-card !min-h-0">
+          <div className="card-heading mb-4">
+            <span className="section-kicker">PARAMETER</span>
+            <h3 className="font-serif text-base font-normal">Umum</h3>
+          </div>
           <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="setting-field !p-3">
+              <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
                 Durasi Ujian (menit, 5-300)
               </label>
-                <input
-                  type="number"
-                  min={5}
-                  max={300}
-                  value={(settings.examDurationMinutes as number) ?? 45}
-                  onChange={(e) => handleChange("examDurationMinutes", Number(e.target.value))}
-                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                />
+              <input
+                type="number"
+                min={5}
+                max={300}
+                value={(settings.examDurationMinutes as number) ?? 45}
+                onChange={(e) => handleChange("examDurationMinutes", Number(e.target.value))}
+                className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+              />
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="setting-field !p-3">
+              <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
                 Minimal Pangkat Polisi (rank number)
               </label>
               <input
@@ -1636,77 +2022,80 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
                 max={255}
                 value={(settings.minPoliceRank as number) ?? 224}
                 onChange={(e) => handleChange("minPoliceRank", Number(e.target.value))}
-                className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
+                className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
               />
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Group IDs */}
-        <Card className="p-4">
-          <h3 className="font-semibold text-zinc-100 mb-4">Grup & Role ID</h3>
-          <div className="space-y-4">
-            <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  Required Group ID ([RI] Republic Indonesia)
-                </label>
-                <input
-                  type="text"
-                  value={String(settings.requiredGroupId ?? 0)}
-                  onChange={(e) => handleChange("requiredGroupId", e.target.value)}
-                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                />
+        <div className="panel-card !min-h-0">
+          <div className="card-heading mb-4">
+            <span className="section-kicker">INTEGRASI ROBLOX</span>
+            <h3 className="font-serif text-base font-normal">Grup & Role ID</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="setting-field !p-3">
+              <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
+                Required Group ID ([RI] Republic Indonesia)
+              </label>
+              <input
+                type="text"
+                value={String(settings.requiredGroupId ?? 0)}
+                onChange={(e) => handleChange("requiredGroupId", e.target.value)}
+                className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+              />
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="setting-field !p-3">
+              <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
                 Police Group ID (Kepolisian)
               </label>
-                <input
-                  type="text"
-                  value={String(settings.policeGroupId ?? "")}
-                  onChange={(e) => handleChange("policeGroupId", e.target.value)}
-                  className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                />
+              <input
+                type="text"
+                value={String(settings.policeGroupId ?? "")}
+                onChange={(e) => handleChange("policeGroupId", e.target.value)}
+                className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+              />
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="setting-field !p-3">
+              <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
                 Banned Group IDs (pisahkan koma)
               </label>
-                 <input
-                   type="text"
-                   value={Array.isArray(settings.bannedGroupIds) ? settings.bannedGroupIds.join(",") : ""}
-                   onChange={(e) => handleChange("bannedGroupIds", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
-                   className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                 />
-              <p className="mt-1 text-[11px] text-zinc-500">Contoh: 367050757,34766643</p>
+              <input
+                type="text"
+                value={Array.isArray(settings.bannedGroupIds) ? settings.bannedGroupIds.join(",") : ""}
+                onChange={(e) => handleChange("bannedGroupIds", e.target.value.split(",").map((s) => s.trim()).filter(Boolean))}
+                className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+              />
+              <p className="mt-1 text-[11px] text-[var(--muted)]">Contoh: 367050757,34766643</p>
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="setting-field !p-3">
+              <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
                 Role ID: Tahap Akademik
               </label>
-                 <input
-                   type="text"
-                   value={String(settings.tahapAkademikRoleId ?? "")}
-                   onChange={(e) => handleChange("tahapAkademikRoleId", e.target.value)}
-                   className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                 />
+              <input
+                type="text"
+                value={String(settings.tahapAkademikRoleId ?? "")}
+                onChange={(e) => handleChange("tahapAkademikRoleId", e.target.value)}
+                className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+              />
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <div className="setting-field !p-3">
+              <label className="text-xs uppercase tracking-wider text-[var(--muted)] font-bold block mb-1">
                 Role ID: Tahap Interview
               </label>
-                 <input
-                   type="text"
-                   value={String(settings.tahapInterviewRoleId ?? "")}
-                   onChange={(e) => handleChange("tahapInterviewRoleId", e.target.value)}
-                   className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-gold/60"
-                 />
+              <input
+                type="text"
+                value={String(settings.tahapInterviewRoleId ?? "")}
+                onChange={(e) => handleChange("tahapInterviewRoleId", e.target.value)}
+                className="w-full h-10 px-3 border border-[var(--border-strong)] rounded-[3px] bg-[var(--surface-2)] text-[var(--text)] text-sm outline-none focus:border-[#b52228]"
+              />
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Discord Bot */}
-        <Card className="p-4 sm:col-span-2">
+        <div className="panel-card sm:col-span-2 !min-h-0">
           <h3 className="font-semibold text-zinc-100 mb-4">Discord Bot & Webhook</h3>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -1795,16 +2184,26 @@ function SettingsForm({ headers }: { headers: Record<string, string> }) {
               <p className="mt-1 text-[11px] text-zinc-500">Webhook untuk kirim laporan ujian ke channel Discord.</p>
             </div>
           </div>
-        </Card>
+        </div>
       </div>
 
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
-        <Button variant="gold" onClick={saveSettings} disabled={busy}>
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border)] mt-6">
+        <button
+          type="button"
+          className="primary-button !min-h-[42px] px-6 text-xs"
+          onClick={saveSettings}
+          disabled={busy}
+        >
           {busy ? "Menyimpan..." : "Simpan Pengaturan"}
-        </Button>
-        <Button variant="ghost" onClick={fetchSettings} disabled={busy}>
+        </button>
+        <button
+          type="button"
+          className="outline-button !min-h-[42px] px-4 text-xs"
+          onClick={fetchSettings}
+          disabled={busy}
+        >
           Batal / Muat Ulang
-        </Button>
+        </button>
       </div>
 
       <div className="text-xs text-zinc-500">

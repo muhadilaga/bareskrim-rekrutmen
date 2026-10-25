@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
 const STORAGE_KEY = "brk_exam_tab_lock";
@@ -95,20 +93,58 @@ export function TabLock({ children }: { children: React.ReactNode }) {
 
   if (locked) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center px-4">
-        <Card strong className="w-full max-w-md p-8 text-center animate-scale-in">
-          <div className="text-4xl">🚫</div>
-          <h1 className="mt-4 font-display text-xl font-bold text-red-300">
-            Ujian Terbuka di Tab Lain
+      <div
+        style={{
+          minHeight: "70vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "460px",
+            width: "100%",
+            padding: "36px 28px",
+            border: "1px solid var(--casis-border)",
+            background: "var(--casis-surface)",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: "36px", marginBottom: "16px" }}>🚫</div>
+          <h1
+            style={{
+              fontFamily: "var(--font-cinzel), serif",
+              fontSize: "18px",
+              color: "#f08a8a",
+              letterSpacing: "0.06em",
+              margin: "0 0 12px",
+            }}
+          >
+            UJIAN TERBUKA DI TAB LAIN
           </h1>
-          <p className="mt-3 text-sm text-zinc-400">
+          <p style={{ fontSize: "13px", color: "var(--casis-muted)", lineHeight: "1.6", margin: "0 0 24px" }}>
             Ujian sedang berlangsung di tab lain pada browser ini. Tutup tab tersebut terlebih
             dahulu, lalu muat ulang halaman ini untuk melanjutkan.
           </p>
-          <Link href="/" className="mt-6 inline-block">
-            <Button variant="ghost">Kembali ke Beranda</Button>
+          <Link
+            href="/dashboard"
+            style={{
+              display: "inline-block",
+              padding: "12px 24px",
+              border: "1px solid var(--casis-gold)",
+              background: "var(--casis-gold)",
+              color: "#000",
+              fontSize: "12px",
+              fontWeight: 700,
+              textDecoration: "none",
+              letterSpacing: "0.08em",
+            }}
+          >
+            Kembali ke Dashboard
           </Link>
-        </Card>
+        </div>
       </div>
     );
   }

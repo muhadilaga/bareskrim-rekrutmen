@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
-import { submitExam } from "@/lib/exam-service";
+import { submitExam, type SubmitExamResult } from "@/lib/exam-service";
 import { prisma } from "@/lib/prisma";
 import { clientIp, submitLimiter, userSubmitLimiter } from "@/lib/rate-limit";
 import { logStudentAction } from "@/lib/audit";
+import {
+  requireCurrentCandidateEligibility,
+  assertEligibilityStillValid,
+  type CandidateEligibilityContext,
+} from "@/lib/candidate-guard";
+import { candidateGuardErrorResponse } from "@/lib/guard-response";
 
 const SubmitSchema = z.object({
   attemptId: z.string().min(1),
@@ -52,6 +58,18 @@ export async function POST(req: Request) {
     );
   }
 
+  // TASK 03L.2E.4.2 — Candidate Guard: submit hanya untuk calon DITERIMA.
+  // Dijalankan sebelum submitExam membuat ExamResult/mengubah ExamAttempt.
+  // TASK 03L.2E.4.6 — ctx disimpan untuk pemeriksaan final di batas penulisan.
+  let ctx: CandidateEligibilityContext;
+  try {
+    ctx = await requireCurrentCandidateEligibility(prisma, user);
+  } catch (err) {
+    const guardResponse = candidateGuardErrorResponse(err);
+    if (guardResponse) return guardResponse;
+    throw err;
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = SubmitSchema.safeParse(body);
   if (!parsed.success) {
@@ -61,7 +79,23 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await submitExam(user, parsed.data);
+  // TASK 03L.2E.4.6 — Pemeriksaan final sebelum submitExam menulis ExamResult.
+  try {
+    await assertEligibilityStillValid(prisma, ctx);
+  } catch (err) {
+    const guardResponse = candidateGuardErrorResponse(err);
+    if (guardResponse) return guardResponse;
+    throw err;
+  }
+
+  let result: SubmitExamResult;
+  try {
+    result = await submitExam(user, parsed.data, { ctx });
+  } catch (err) {
+    const guardResponse = candidateGuardErrorResponse(err);
+    if (guardResponse) return guardResponse;
+    throw err;
+  }
   if (!result.ok) {
     const status =
       result.code === "NOT_FOUND"
@@ -72,8 +106,16 @@ export async function POST(req: Request) {
             ? 410
             : result.code === "NO_ATTENDANCE"
               ? 403
-              : 400;
-return NextResponse.json({ ok: false, code: result.code, message: result.message }, { status });
+              : result.code === "PAYLOAD_CONFLICT"
+                ? 409
+                : result.code === "CONCURRENCY_RETRY_REQUIRED"
+                  ? 409
+                  : result.code === "INVALID_STATE"
+                    ? 500
+                    : result.code === "ELIGIBILITY_VIOLATION"
+                      ? 403
+                      : 400;
+    return NextResponse.json({ ok: false, code: result.code, message: result.message }, { status });
   }
 
    // Catat aksi siswa (best-effort, tidak mengganggu respons)

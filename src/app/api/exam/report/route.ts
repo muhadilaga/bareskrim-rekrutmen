@@ -9,6 +9,12 @@ import { CONFIG } from "@/lib/constants";
 import { clientIp, createRateLimiter, userSubmitLimiter } from "@/lib/rate-limit";
 import type { GradedAnswerDetail } from "@/lib/grading";
 import { serializeGradedDetails } from "@/lib/grading";
+import {
+  requireCurrentCandidateEligibility,
+  assertEligibilityStillValid,
+  type CandidateEligibilityContext,
+} from "@/lib/candidate-guard";
+import { candidateGuardErrorResponse } from "@/lib/guard-response";
 
 const reportLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
 
@@ -47,6 +53,18 @@ export async function POST(req: Request) {
      );
    }
 
+   // TASK 03L.2E.4.2 — Candidate Guard: laporan Discord + assign role hanya
+   // untuk calon DITERIMA. Dijalankan sebelum side effect Discord/DB apa pun.
+   // TASK 03L.2E.4.6 — ctx disimpan untuk pemeriksaan final di batas side effect.
+   let ctx: CandidateEligibilityContext;
+   try {
+     ctx = await requireCurrentCandidateEligibility(prisma, user);
+   } catch (err) {
+     const guardResponse = candidateGuardErrorResponse(err);
+     if (guardResponse) return guardResponse;
+     throw err;
+   }
+
    const body = await req.json().catch(() => null);
   const parsed = ReportSchema.safeParse(body);
   if (!parsed.success) {
@@ -62,6 +80,16 @@ export async function POST(req: Request) {
 
     if (!result || result.attempt.userId !== user.id) {
       return NextResponse.json({ ok: false, message: "Hasil tidak ditemukan." }, { status: 404 });
+    }
+
+    // TASK 03L.2E.4.6 — Pemeriksaan final sebelum side effect Discord. Bila
+    // kelayakan berubah selama request, jangan kirim laporan / ubah role.
+    try {
+      await assertEligibilityStillValid(prisma, ctx);
+    } catch (err) {
+      const guardResponse = candidateGuardErrorResponse(err);
+      if (guardResponse) return guardResponse;
+      throw err;
     }
 
     if (result.discordMessageId) {

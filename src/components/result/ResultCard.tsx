@@ -1,10 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import type { ResultPayload } from "@/types";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/utils";
 
 export function ResultCard({
   result,
@@ -19,159 +16,486 @@ export function ResultCard({
 }) {
   const passed = result.passed;
   const details = result.answersJson;
+  const scorePercent = Math.min(100, Math.max(0, (result.score / (result.maxScore || 100)) * 100));
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      {/* Ringkasan nilai */}
-      <Card strong className="overflow-hidden">
-        <div
-          className={cn(
-            "chequered border-b p-8 text-center",
-            passed ? "border-gold/30" : "border-red-500/30"
-          )}
+    <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+      {/* Ringkasan Nilai V2 */}
+      <div
+        style={{
+          border: "1px solid var(--casis-border)",
+          background: "var(--casis-surface)",
+          padding: "36px 28px",
+          textAlign: "center",
+          marginBottom: "24px",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: "var(--casis-muted)",
+            fontWeight: 700,
+          }}
         >
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-400">Hasil Ujian</p>
-          <p className="mt-3 font-display text-6xl font-bold gold-text">{result.score}</p>
-          <p className="text-sm text-zinc-400">dari {result.maxScore} poin</p>
-          <div className="mt-4 flex items-center justify-center gap-3">
-            <Badge tone="green" className="text-sm">
-              LOLOS TAHAP INTERVIEW
-            </Badge>
-          </div>
-          <div className="mx-auto mt-6 h-2 w-full max-w-xs overflow-hidden rounded-full bg-white/10">
-            <div
-              className={cn(
-                "h-full rounded-full",
-                passed
-                  ? "bg-gradient-to-r from-gold-500 to-gold"
-                  : "bg-gradient-to-r from-red-700 to-crimson"
-              )}
-              style={{ width: `${(result.score / result.maxScore) * 100}%` }}
-            />
-          </div>
+          Hasil Ujian Akademik
+        </span>
+        <div
+          style={{
+            fontFamily: "var(--font-cinzel), serif",
+            fontSize: "64px",
+            fontWeight: 700,
+            color: passed ? "var(--casis-gold)" : "#f08a8a",
+            lineHeight: 1.1,
+            marginTop: "12px",
+          }}
+        >
+          {result.score}
+        </div>
+        <p style={{ fontSize: "13px", color: "var(--casis-muted)", marginTop: "6px" }}>
+          dari {result.maxScore} poin maksimal (Passing Grade: {kkm})
+        </p>
+
+        <div style={{ marginTop: "16px", display: "inline-block" }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 16px",
+              border: passed
+                ? "1px solid rgba(80, 170, 120, 0.5)"
+                : "1px solid rgba(216, 117, 117, 0.5)",
+              background: passed ? "rgba(80, 170, 120, 0.12)" : "rgba(216, 117, 117, 0.12)",
+              color: passed ? "#62c799" : "#f08a8a",
+              fontSize: "12px",
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+            }}
+          >
+            {passed ? "✓ LOLOS TAHAP AKADEMIK" : "✕ BELUM MEMENUHI PASSING GRADE"}
+          </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">
-          {[
-            { label: "Pilihan Ganda", value: `${result.mcqScore} poin` },
-            { label: "Essay", value: `${result.essayScore} poin` },
-            { label: "Pangkat", value: result.attempt.user.policeGroupRank ?? "-" },
-            {
-              label: "Periode",
-              value: result.attempt.period.name,
-            },
-          ].map((s) => (
-            <div key={s.label} className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
-              <p className="text-[11px] uppercase tracking-wider text-zinc-500">{s.label}</p>
-              <p className="mt-1 truncate text-sm font-semibold text-zinc-100">{s.value}</p>
-            </div>
-          ))}
+        <div
+          style={{
+            maxWidth: "280px",
+            height: "4px",
+            margin: "24px auto 0",
+            background: "rgba(255, 255, 255, 0.08)",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${scorePercent}%`,
+              background: passed ? "var(--casis-gold)" : "#f08a8a",
+              transition: "width 0.3s ease",
+            }}
+          />
         </div>
-      </Card>
 
-      {/* Rekap jawaban (hanya untuk tampilan dengan showAnswers) */}
+        {/* 4 Detail Grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: "12px",
+            marginTop: "32px",
+            paddingTop: "24px",
+            borderTop: "1px solid var(--casis-border)",
+            textAlign: "left",
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid var(--casis-border)",
+              background: "#080909",
+              padding: "14px 16px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "10px",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--casis-muted)",
+                display: "block",
+                fontWeight: 700,
+              }}
+            >
+              Pilihan Ganda
+            </span>
+            <strong
+              style={{
+                display: "block",
+                marginTop: "6px",
+                fontSize: "14px",
+                color: "var(--casis-text)",
+              }}
+            >
+              {result.mcqScore} poin
+            </strong>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid var(--casis-border)",
+              background: "#080909",
+              padding: "14px 16px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "10px",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--casis-muted)",
+                display: "block",
+                fontWeight: 700,
+              }}
+            >
+              Penilaian Esai
+            </span>
+            <strong
+              style={{
+                display: "block",
+                marginTop: "6px",
+                fontSize: "14px",
+                color: "var(--casis-text)",
+              }}
+            >
+              {result.essayScore} poin
+            </strong>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid var(--casis-border)",
+              background: "#080909",
+              padding: "14px 16px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "10px",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--casis-muted)",
+                display: "block",
+                fontWeight: 700,
+              }}
+            >
+              Pangkat Casis
+            </span>
+            <strong
+              style={{
+                display: "block",
+                marginTop: "6px",
+                fontSize: "14px",
+                color: "var(--casis-text)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {result.attempt.user.policeGroupRank ?? "-"}
+            </strong>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid var(--casis-border)",
+              background: "#080909",
+              padding: "14px 16px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "10px",
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--casis-muted)",
+                display: "block",
+                fontWeight: 700,
+              }}
+            >
+              Periode Seleksi
+            </span>
+            <strong
+              style={{
+                display: "block",
+                marginTop: "6px",
+                fontSize: "14px",
+                color: "var(--casis-gold)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {result.attempt.period.name}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      {/* Rekap Jawaban */}
       {showAnswers && (
-        <div>
-          <h2 className="mb-3 font-display text-lg font-bold gold-text">Rekap Jawaban Anda</h2>
-          <div className="space-y-3">
+        <div style={{ marginBottom: "24px" }}>
+          <h2
+            style={{
+              fontFamily: "var(--font-cinzel), serif",
+              fontSize: "16px",
+              fontWeight: 700,
+              color: "var(--casis-gold)",
+              letterSpacing: "0.08em",
+              marginBottom: "16px",
+            }}
+          >
+            REKAPITULASI JAWABAN ANDA
+          </h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {details.map((d, i) => (
-              <Card key={d.questionId} className="p-5">
-                <div className="flex items-start gap-3">
+              <div
+                key={d.questionId}
+                style={{
+                  border: "1px solid var(--casis-border)",
+                  background: "var(--casis-surface)",
+                  padding: "20px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "14px" }}>
                   <span
-                    className={cn(
-                      "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
-                      d.isCorrect === true
-                        ? "bg-emerald-500/20 text-emerald-400"
-                        : d.isCorrect === false
-                          ? "bg-red-500/20 text-red-400"
-                          : "bg-gold/20 text-gold"
-                    )}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "24px",
+                      height: "24px",
+                      border:
+                        d.isCorrect === true
+                          ? "1px solid rgba(80, 170, 120, 0.5)"
+                          : d.isCorrect === false
+                            ? "1px solid rgba(216, 117, 117, 0.5)"
+                            : "1px solid var(--casis-gold)",
+                      background:
+                        d.isCorrect === true
+                          ? "rgba(80, 170, 120, 0.15)"
+                          : d.isCorrect === false
+                            ? "rgba(216, 117, 117, 0.15)"
+                            : "rgba(173, 149, 100, 0.15)",
+                      color:
+                        d.isCorrect === true
+                          ? "#62c799"
+                          : d.isCorrect === false
+                            ? "#f08a8a"
+                            : "var(--casis-gold)",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
                   >
                     {d.isCorrect === true ? "✓" : d.isCorrect === false ? "✕" : i + 1}
                   </span>
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-medium text-zinc-100">
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 500,
+                          color: "var(--casis-text)",
+                          lineHeight: "1.6",
+                          margin: 0,
+                        }}
+                      >
                         {i + 1}. {d.prompt}
                       </p>
-                      <span className="shrink-0 text-xs text-zinc-500">{d.earned} poin</span>
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--casis-gold)",
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {d.earned} poin
+                      </span>
                     </div>
 
                     {d.type === "MCQ" ? (
-                      <div className="mt-2 space-y-1 text-sm">
-                        <p className="text-zinc-400">
+                      <div style={{ marginTop: "12px", fontSize: "13px" }}>
+                        <p style={{ color: "var(--casis-muted)", margin: "0 0 6px" }}>
                           Jawaban Anda:{" "}
-                          <span
-                            className={cn(
-                              "font-semibold",
-                              d.isCorrect ? "text-emerald-400" : "text-red-400"
-                            )}
+                          <strong
+                            style={{
+                              color: d.isCorrect ? "#62c799" : "#f08a8a",
+                            }}
                           >
                             {d.userAnswer ? `Opsi ${d.userAnswer}` : "Tidak dijawab"}
-                          </span>
+                          </strong>
                         </p>
                         {d.correctKey && (
-                          <p className="text-zinc-500">
-                            Kunci jawaban: <span className="text-gold">Opsi {d.correctKey}</span>
+                          <p style={{ color: "var(--casis-muted)", margin: "0 0 10px" }}>
+                            Kunci jawaban:{" "}
+                            <span style={{ color: "var(--casis-gold)", fontWeight: 600 }}>
+                              Opsi {d.correctKey}
+                            </span>
                           </p>
                         )}
-                        <div className="mt-1.5 grid gap-1.5">
+                        <div style={{ display: "grid", gap: "6px" }}>
                           {(d.options ?? []).map((o) => (
                             <div
                               key={o.key}
-                              className={cn(
-                                "rounded border px-3 py-1.5 text-xs",
-                                o.key === d.correctKey
-                                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                                  : o.key === d.userAnswer
-                                    ? "border-red-500/40 bg-red-500/10 text-red-300"
-                                    : "border-white/10 bg-white/5 text-zinc-400"
-                              )}
+                              style={{
+                                padding: "8px 12px",
+                                fontSize: "12px",
+                                border:
+                                  o.key === d.correctKey
+                                    ? "1px solid rgba(80, 170, 120, 0.5)"
+                                    : o.key === d.userAnswer
+                                      ? "1px solid rgba(216, 117, 117, 0.5)"
+                                      : "1px solid var(--casis-border)",
+                                background:
+                                  o.key === d.correctKey
+                                    ? "rgba(80, 170, 120, 0.1)"
+                                    : o.key === d.userAnswer
+                                      ? "rgba(216, 117, 117, 0.1)"
+                                      : "#080909",
+                                color:
+                                  o.key === d.correctKey
+                                    ? "#b8e2c2"
+                                    : o.key === d.userAnswer
+                                      ? "#efa3a5"
+                                      : "var(--casis-muted)",
+                              }}
                             >
-                              <span className="font-mono font-bold">{o.key}.</span> {o.text}
+                              <strong style={{ marginRight: "6px" }}>{o.key}.</strong> {o.text}
                             </div>
                           ))}
                         </div>
                       </div>
                     ) : (
-                      <div className="mt-2 text-sm">
-                        <p className="whitespace-pre-wrap rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-zinc-300">
-                          {d.userAnswer || <span className="italic text-zinc-600">Kosong</span>}
-                        </p>
+                      <div style={{ marginTop: "12px", fontSize: "13px" }}>
+                        <div
+                          style={{
+                            padding: "10px 14px",
+                            border: "1px solid var(--casis-border)",
+                            background: "#080909",
+                            color: "var(--casis-text)",
+                            lineHeight: "1.6",
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
+                          {d.userAnswer || (
+                            <span style={{ color: "var(--casis-muted)", fontStyle: "italic" }}>
+                              Kosong
+                            </span>
+                          )}
+                        </div>
                         {d.matchedKeywords && d.matchedKeywords.length > 0 && (
-                          <p className="mt-1.5 text-xs text-zinc-500">
+                          <p
+                            style={{
+                              marginTop: "8px",
+                              fontSize: "11px",
+                              color: "var(--casis-muted)",
+                            }}
+                          >
                             Kata kunci terdeteksi:{" "}
-                            <span className="text-gold">{d.matchedKeywords.join(", ")}</span>
+                            <span style={{ color: "var(--casis-gold)" }}>
+                              {d.matchedKeywords.join(", ")}
+                            </span>
                           </p>
                         )}
                       </div>
                     )}
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3 pb-10">
-        <a href="/" className="flex-1">
-          <Button variant="ghost" className="w-full">
-            Kembali ke Beranda
-          </Button>
-        </a>
+      {/* Action Buttons */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "12px",
+          paddingBottom: "40px",
+        }}
+      >
+        <Link
+          href="/dashboard"
+          style={{
+            flex: 1,
+            minWidth: "180px",
+            padding: "14px",
+            textAlign: "center",
+            textDecoration: "none",
+            border: "1px solid var(--casis-border)",
+            background: "transparent",
+            color: "var(--casis-text)",
+            fontSize: "12px",
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            transition: "all 0.15s ease",
+          }}
+        >
+          Kembali ke Dashboard
+        </Link>
         {resultId && (
-          <a href={`/review/${resultId}`} className="flex-1">
-            <Button variant="gold" className="w-full">
-              Review Jawaban
-            </Button>
-          </a>
+          <Link
+            href={`/review/${resultId}`}
+            style={{
+              flex: 1,
+              minWidth: "180px",
+              padding: "14px",
+              textAlign: "center",
+              textDecoration: "none",
+              border: "1px solid var(--casis-gold)",
+              background: "var(--casis-gold)",
+              color: "#000000",
+              fontSize: "12px",
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              transition: "all 0.15s ease",
+            }}
+          >
+            Review Jawaban
+          </Link>
         )}
-        <a href="/hasil" className="flex-1">
-          <Button variant="gold" className="w-full">
-            Cek Hasil Lain
-          </Button>
-        </a>
+        <Link
+          href="/"
+          style={{
+            flex: 1,
+            minWidth: "180px",
+            padding: "14px",
+            textAlign: "center",
+            textDecoration: "none",
+            border: "1px solid var(--casis-border)",
+            background: "transparent",
+            color: "var(--casis-muted)",
+            fontSize: "12px",
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            transition: "all 0.15s ease",
+          }}
+        >
+          Beranda Utama
+        </Link>
       </div>
     </div>
   );

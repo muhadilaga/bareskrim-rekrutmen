@@ -1,0 +1,496 @@
+.casis-root {
+  --casis-bg: #080909;
+  --casis-surface: #101212;
+  --casis-text: #f1f1ed;
+  --casis-muted: #9d9d98;
+  --casis-border: rgba(255, 255, 255, .12);
+  --casis-red: #b71920;
+  --casis-gold: #ad9564;
+  flex: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--casis-bg);
+  color: var(--casis-text);
+  font-family: "Inter", Arial, sans-serif;
+  color-scheme: dark;
+  isolation: isolate;
+}
+
+.casis-root *, .casis-root *::before, .casis-root *::after { box-sizing: border-box; }
+.casis-root :where(h1, h2, h3, p, dl, dd) { margin: 0; }
+.casis-root a { text-decoration: none; }
+.casis-root a:focus-visible { outline: 2px solid var(--casis-gold); outline-offset: 5px; }
+.casis-root .casis-shell { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.casis-root .casis-header { min-height: 78px; padding: 16px 5vw; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--casis-border); }
+.casis-root .casis-brand { display: flex; align-items: center; gap: 12px; color: var(--casis-text); }
+.casis-root .casis-brand img { flex-shrink: 0; object-fit: contain; }
+.casis-root .casis-brand span { display: flex; flex-direction: column; gap: 5px; }
+.casis-root .casis-brand strong { font-size: 11px; letter-spacing: .08em; }
+.casis-root .casis-brand small { font-size: 10px; letter-spacing: .12em; color: var(--casis-muted); }
+.casis-root .casis-system-label, .casis-root .casis-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .12em; line-height: 1.5; color: var(--casis-gold); }
+.casis-root .casis-main { flex: 1; }
+.casis-root .casis-main--login { display: grid; place-items: center; padding: 56px 24px; }
+.casis-root .casis-login-panel { width: min(100%, 470px); padding: 46px; border: 1px solid var(--casis-border); background: var(--casis-surface); }
+.casis-root h1 { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: clamp(38px, 5vw, 54px); line-height: 1.06; }
+.casis-root .casis-login-panel h1 { margin-top: 18px; }
+.casis-root .casis-login-description { margin-top: 22px; font-size: 15px; line-height: 1.7; color: var(--casis-muted); }
+.casis-root .casis-primary-link { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 52px; margin-top: 32px; padding: 16px 20px; background: var(--casis-red); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: .06em; line-height: 1.5; transition: background .15s ease; }
+.casis-root .casis-primary-link:hover { background: #d52a32; }
+.casis-root .casis-primary-link span { font-size: 20px; line-height: 1; }
+.casis-root .casis-login-note { margin-top: 22px; font-size: 12px; line-height: 1.75; color: var(--casis-muted); }
+.casis-root .casis-login-error { margin-top: 24px; padding: 14px 0 14px 14px; border-left: 2px solid var(--casis-red); color: #efa3a5; font-size: 14px; line-height: 1.6; }
+.casis-root .casis-login-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; margin-top: 30px; }
+.casis-root .casis-text-link { color: var(--casis-muted); font-size: 12px; line-height: 1.6; text-decoration: underline; text-underline-offset: 4px; }
+.casis-root .casis-text-link:hover { color: var(--casis-text); }
+.casis-root .casis-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 22px 5vw; border-top: 1px solid var(--casis-border); background: var(--casis-bg); color: var(--casis-muted); font-size: 10px; letter-spacing: .1em; }
+.casis-root .casis-main--dashboard { width: min(1160px, calc(100% - 64px)); margin: 0 auto; }
+.casis-root .casis-shell--dashboard .casis-header { min-height: 64px; }
+.casis-root .casis-welcome { padding: 54px 0 36px; border-bottom: 1px solid var(--casis-border); }
+.casis-root .casis-welcome h1 { margin-top: 18px; overflow-wrap: anywhere; }
+.casis-root .casis-welcome h1 span { color: var(--casis-text); }
+.casis-root .casis-welcome > p:last-child { margin-top: 22px; color: var(--casis-muted); font-size: 15px; line-height: 1.7; }
+.casis-root .casis-dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding: 34px 0; }
+.casis-root .casis-section { min-width: 0; display: flex; flex-direction: column; }
+.casis-root .casis-section-label { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 11px; font-weight: 600; letter-spacing: .12em; color: var(--casis-muted); }
+.casis-root .casis-section-label::before { content: ""; width: 3px; height: 12px; background: var(--casis-red); }
+.casis-root .casis-panel { flex: 1; padding: 28px; border: 1px solid var(--casis-border); background: var(--casis-surface); }
+.casis-root .casis-session-note { font-size: 13px; color: var(--casis-gold); line-height: 1.6; }
+.casis-root .casis-identity { margin-top: 22px; }
+.casis-root .casis-identity > div { padding: 17px 0; border-top: 1px solid var(--casis-border); }
+.casis-root .casis-identity > div:last-child { padding-bottom: 0; }
+.casis-root .casis-identity dt { font-size: 10px; letter-spacing: .1em; color: var(--casis-muted); }
+.casis-root .casis-identity dd { margin-top: 8px; font-size: 16px; line-height: 1.6; overflow-wrap: anywhere; }
+.casis-root .casis-application-note h3 { font-family: "DM Serif Display", Georgia, serif; font-size: 26px; font-weight: 400; line-height: 1.2; }
+.casis-root .casis-application-note p { margin-top: 18px; color: var(--casis-muted); font-size: 14px; line-height: 1.8; }
+.casis-root .casis-dashboard-closing { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; padding: 24px 0 42px; border-top: 1px solid var(--casis-border); }
+.casis-root .casis-dashboard-closing p { color: var(--casis-muted); font-size: 12px; line-height: 1.7; }
+.casis-root .casis-unavailable { padding: 60px 0; }
+.casis-root .casis-unavailable h1 { margin-top: 20px; }
+.casis-root .casis-unavailable > p:last-of-type { margin: 24px 0; color: var(--casis-muted); line-height: 1.7; }
+.casis-root .casis-skip-link { position: absolute; top: 12px; left: 24px; z-index: 2; padding: 12px 18px; background: var(--casis-surface); color: var(--casis-text); transform: translateY(-200%); }
+.casis-root .casis-skip-link:focus { transform: translateY(0); }
+
+@media (max-width: 760px) {
+  .casis-root .casis-main--dashboard { width: calc(100% - 40px); }
+  .casis-root .casis-dashboard-grid { grid-template-columns: 1fr; gap: 26px; }
+  .casis-root .casis-dashboard-closing { flex-direction: column; gap: 16px; }
+}
+@media (max-width: 600px) {
+  .casis-root .casis-header { padding: 16px 24px; gap: 14px; }
+  .casis-root .casis-brand span { display: none; }
+  .casis-root .casis-main--login { padding: 36px 20px; }
+  .casis-root .casis-login-panel { padding: 34px 24px; }
+  .casis-root .casis-panel { padding: 24px; }
+  .casis-root .casis-welcome { padding-top: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .casis-root .casis-primary-link { transition: none; }
+}
+
+.casis-root .casis-claim-form label { display: block; margin: 22px 0 10px; font-size: 11px; letter-spacing: .1em; color: var(--casis-muted); }
+.casis-root .casis-claim-form input { width: 100%; min-height: 50px; padding: 12px; border: 1px solid rgba(255, 255, 255, .32); border-radius: 0; background: var(--casis-bg); color: var(--casis-text); font: inherit; font-size: 16px; transition: border-color .15s ease; }
+.casis-root .casis-claim-form input:hover { border-color: rgba(255, 255, 255, .48); }
+.casis-root .casis-claim-form input:focus, .casis-root .casis-claim-form input:focus-visible { border-color: var(--casis-gold); outline: 2px solid var(--casis-gold); outline-offset: 2px; }
+.casis-root .casis-claim-form button:focus-visible, .casis-root .casis-claim-another summary:focus-visible { outline: 2px solid var(--casis-gold); outline-offset: 4px; }
+.casis-root .casis-claim-form button { width: 100%; border: 0; border-radius: 0; cursor: pointer; font-family: inherit; justify-content: center; }
+.casis-root .casis-claim-form :disabled { cursor: wait; opacity: .65; }
+.casis-root .casis-claim-note { color: var(--casis-muted); font-size: 12px; line-height: 1.75; margin-top: 20px; }
+.casis-root .casis-claim-message { border-left: 2px solid var(--casis-gold); padding-left: 14px; }
+.casis-root .casis-application-summary + .casis-application-summary { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--casis-border); }
+.casis-root .casis-claim-another { margin-top: 24px; border-top: 1px solid var(--casis-border); padding-top: 20px; }
+.casis-root .casis-claim-another summary { cursor: pointer; color: var(--casis-muted); font-size: 13px; }
+.casis-root .casis-claim-another[open] summary { margin-bottom: 24px; }
+
+/* =========================================
+   CASIS ATTENDANCE & STATUS PANEL
+========================================= */
+.casis-root .attendance-panel {
+  width: min(100%, 520px);
+  padding: 42px;
+  border: 1px solid var(--casis-border);
+  background: var(--casis-surface);
+}
+
+.casis-root .attendance-header {
+  border-bottom: 1px solid var(--casis-border);
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+}
+
+.casis-root .attendance-header h1 {
+  margin-top: 10px;
+  font-family: "DM Serif Display", Georgia, serif;
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--casis-text);
+}
+
+.casis-root .attendance-tabs {
+  display: flex;
+  gap: 16px;
+  border-bottom: 1px solid var(--casis-border);
+  margin-bottom: 28px;
+}
+
+.casis-root .attendance-tab-btn {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 8px 4px 14px;
+  color: var(--casis-muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.casis-root .attendance-tab-btn.active {
+  color: var(--casis-text);
+  border-bottom-color: var(--casis-gold);
+}
+
+.casis-root .attendance-tab-btn:hover:not(.active) {
+  color: var(--casis-text);
+}
+
+.casis-root .attendance-form-group {
+  margin-bottom: 22px;
+}
+
+.casis-root .attendance-form-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: var(--casis-muted);
+  text-transform: uppercase;
+}
+
+.casis-root .attendance-form-group input,
+.casis-root .attendance-form-group textarea {
+  width: 100%;
+  padding: 13px 15px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  background: #080909;
+  color: #f1f1ed;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 0;
+  outline: none;
+  transition: border-color .15s ease;
+}
+
+.casis-root .attendance-form-group input:focus,
+.casis-root .attendance-form-group textarea:focus {
+  border-color: var(--casis-gold);
+  box-shadow: 0 0 0 1px var(--casis-gold);
+}
+
+.casis-root .attendance-form-group small {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--casis-muted);
+  line-height: 1.5;
+}
+
+.casis-root .attendance-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 50px;
+  margin-top: 26px;
+  padding: 14px 20px;
+  background: var(--casis-red);
+  color: #fff;
+  border: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+
+.casis-root .attendance-submit-btn:hover:not(:disabled) {
+  background: #d52a32;
+}
+
+.casis-root .attendance-submit-btn:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.casis-root .attendance-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 18px;
+  border: 1px solid var(--casis-border);
+  background: transparent;
+  color: var(--casis-text);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.casis-root .attendance-secondary-btn:hover {
+  border-color: var(--casis-gold);
+  background: rgba(173, 149, 100, .08);
+}
+
+.casis-root .attendance-feedback {
+  margin-bottom: 24px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, .15);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.casis-root .attendance-feedback.success {
+  border-color: rgba(104, 180, 120, .35);
+  background: rgba(18, 34, 22, .65);
+  color: #78c889;
+}
+
+.casis-root .attendance-feedback.error {
+  border-color: rgba(216, 117, 117, .35);
+  background: rgba(37, 19, 19, .65);
+  color: #f08a8a;
+}
+
+.casis-root .attendance-result-card {
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid var(--casis-border);
+  background: #080909;
+}
+
+.casis-root .attendance-result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--casis-border);
+  font-size: 12px;
+}
+
+.casis-root .attendance-result-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* =========================================
+   STUDENT PANEL DESIGN PROTOTYPE FIDELITY
+========================================= */
+
+.casis-root .student-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 5vw;
+  border-bottom: 1px solid var(--casis-border);
+  background: #0c0c0c;
+}
+.casis-root .student-brand, .casis-root .student-header-right, .casis-root .student-user, .casis-root .student-footer-brand {
+  display: flex;
+  align-items: center;
+}
+.casis-root .student-brand { gap: 10px; color: var(--casis-text); }
+.casis-root .student-brand img { width: 34px; height: 34px; object-fit: contain; }
+.casis-root .student-brand div, .casis-root .student-user, .casis-root .student-footer-brand div { display: flex; flex-direction: column; line-height: 1.1; }
+.casis-root .student-brand strong { font-size: 10px; letter-spacing: .08em; }
+.casis-root .student-brand span { margin-top: 4px; color: var(--casis-muted); font-size: 9px; letter-spacing: .16em; }
+
+.casis-root .student-header-right { gap: 20px; }
+.casis-root .student-user { align-items: flex-end; }
+.casis-root .student-user span { color: var(--casis-muted); font-size: 10px; font-weight: 700; letter-spacing: .14em; }
+.casis-root .student-user strong { margin-top: 3px; font-size: 13px; font-weight: 600; }
+
+.casis-root .logout-button {
+  min-height: 32px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--casis-border);
+  background: transparent;
+  color: var(--casis-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color .2s ease, border-color .2s ease, background .2s ease;
+}
+.casis-root .logout-button:hover { border-color: var(--casis-red); background: rgba(181, 34, 39, .1); color: var(--casis-text); }
+
+.casis-root .student-main { width: min(1160px, calc(100% - 64px)); margin: 0 auto; }
+.casis-root .student-welcome {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 42px 0 28px;
+  border-bottom: 1px solid var(--casis-border);
+}
+.casis-root .student-welcome h1 {
+  margin-top: 11px;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 600;
+  letter-spacing: -.025em;
+}
+.casis-root .student-welcome h1 span { color: var(--casis-red-bright); }
+.casis-root .welcome-copy { max-width: 510px; margin-top: 12px; color: var(--casis-muted); font-size: 14px; line-height: 1.65; }
+
+.casis-root .student-id-card {
+  min-width: 245px;
+  padding: 17px 18px;
+  border: 1px solid var(--casis-border);
+  background: var(--casis-surface);
+}
+.casis-root .student-id-card span, .casis-root .status-date span, .casis-root .profile-list span, .casis-root .information-card small, .casis-root .announcement-date {
+  display: block;
+  color: var(--casis-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .15em;
+}
+.casis-root .student-id-card strong { display: block; margin-top: 7px; font-size: 15px; font-weight: 600; letter-spacing: .07em; }
+.casis-root .student-id-card small { display: block; margin-top: 7px; color: var(--casis-gold); font-size: 11px; letter-spacing: .07em; }
+
+.casis-root .student-status-section { padding: 28px 0; }
+.casis-root .section-label { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.casis-root .section-label::before { width: 3px; height: 12px; background: var(--casis-red); content: ""; }
+.casis-root .section-label p { font-size: 11px; font-weight: 700; letter-spacing: .16em; color: var(--casis-muted); }
+
+.casis-root .status-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--casis-border);
+  background: var(--casis-surface);
+}
+.casis-root .status-panel-main { display: flex; align-items: flex-start; gap: 12px; }
+.casis-root .status-dot { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--casis-gold); box-shadow: 0 0 0 4px rgba(173, 149, 100, .1); flex-shrink: 0; }
+.casis-root .status-panel h2 { font-size: 13px; font-weight: 700; letter-spacing: .05em; }
+.casis-root .status-panel-main p { max-width: 590px; margin-top: 9px; color: var(--casis-muted); font-size: 14px; line-height: 1.65; }
+.casis-root .status-date { min-width: 170px; padding-left: 24px; border-left: 1px solid var(--casis-border); }
+.casis-root .status-date strong { display: block; margin-top: 7px; font-size: 13px; font-weight: 500; }
+
+.casis-root .timeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin-top: 14px;
+  border: 1px solid var(--casis-border);
+  background: var(--casis-surface);
+}
+.casis-root .timeline-step { position: relative; min-height: 85px; padding: 17px 18px; opacity: .45; }
+.casis-root .timeline-step + .timeline-step { border-left: 1px solid var(--casis-border); }
+.casis-root .timeline-step.active, .casis-root .timeline-step.current { opacity: 1; }
+.casis-root .timeline-step > span { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1px solid var(--casis-border); color: var(--casis-muted); font-size: 11px; }
+.casis-root .timeline-step.active > span { border-color: var(--casis-red); background: var(--casis-red); color: white; }
+.casis-root .timeline-step.current > span { border-color: var(--casis-gold); color: var(--casis-gold); }
+.casis-root .timeline-step strong { display: block; margin-top: 8px; font-size: 13px; font-weight: 600; }
+.casis-root .timeline-step small { display: block; margin-top: 4px; color: var(--casis-muted); font-size: 11px; }
+
+.casis-root .student-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 14px; padding: 0 0 28px; }
+.casis-root .student-card { padding: 22px; border: 1px solid var(--casis-border); background: var(--casis-surface); }
+.casis-root .card-heading { display: flex; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid var(--casis-border); }
+.casis-root .card-heading p { font-size: 11px; font-weight: 700; letter-spacing: .16em; color: var(--casis-muted); }
+.casis-root .card-status { color: var(--casis-green); font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+
+.casis-root .profile-list { display: grid; grid-template-columns: 1fr 1fr; }
+.casis-root .profile-list > div { min-height: 80px; padding: 17px 15px 17px 0; border-bottom: 1px solid rgba(255, 255, 255, .07); }
+.casis-root .profile-list > div:nth-child(even) { padding-left: 15px; padding-right: 0; border-left: 1px solid rgba(255, 255, 255, .07); }
+.casis-root .profile-list strong { display: block; margin-top: 8px; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
+
+.casis-root .announcement-card { display: flex; flex-direction: column; }
+.casis-root .announcement-mark { color: var(--casis-green); font-size: 11px; }
+.casis-root .announcement-main { padding-top: 18px; }
+.casis-root .announcement-date { color: var(--casis-red-bright); }
+.casis-root .announcement-main h2 { margin-top: 10px; font-size: 20px; font-weight: 600; line-height: 1.25; }
+.casis-root .announcement-main p { margin-top: 11px; color: var(--casis-muted); font-size: 14px; line-height: 1.65; }
+
+.casis-root .student-information { padding: 0 0 28px; }
+.casis-root .information-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.casis-root .information-card {
+  min-height: 94px;
+  display: grid;
+  grid-template-columns: 20px 1fr 14px;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--casis-border);
+  background: var(--casis-surface);
+  transition: border-color .2s ease, background .2s ease;
+}
+.casis-root .information-card:hover:not(.locked) { border-color: rgba(241, 239, 233, .28); background: #181818; }
+.casis-root .information-card > span { color: var(--casis-red-bright); font-size: 11px; }
+.casis-root .information-card strong { display: block; margin-top: 6px; font-size: 13px; font-weight: 600; }
+.casis-root .information-card b { color: var(--casis-muted); font-size: 14px; font-weight: 400; }
+.casis-root .information-card.locked { opacity: .48; }
+
+.casis-root .student-closing { display: flex; justify-content: space-between; gap: 24px; padding: 18px 0 28px; border-top: 1px solid var(--casis-border); color: var(--casis-muted); font-size: 12px; }
+.casis-root .student-closing > span { font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+.casis-root .student-closing p { line-height: 1.5; }
+
+.casis-root .student-footer {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 5vw;
+  border-top: 1px solid var(--casis-border);
+  background: #060606;
+  color: var(--casis-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+.casis-root .student-footer-brand { gap: 8px; }
+.casis-root .student-footer-brand img { width: 28px; height: 28px; object-fit: contain; }
+.casis-root .student-footer-brand strong { color: var(--casis-text); font-size: 10px; }
+.casis-root .student-footer-brand span { margin-top: 3px; font-size: 9px; }
+
+@media (max-width: 760px) {
+  .casis-root .student-main { width: min(100% - 40px, 1160px); }
+  .casis-root .student-welcome { align-items: stretch; flex-direction: column; padding: 30px 0 22px; }
+  .casis-root .student-id-card { min-width: 0; }
+  .casis-root .status-panel { align-items: flex-start; flex-direction: column; }
+  .casis-root .status-date { min-width: 0; padding: 14px 0 0; border-top: 1px solid var(--casis-border); border-left: 0; }
+  .casis-root .timeline { grid-template-columns: 1fr 1fr; }
+  .casis-root .student-grid, .casis-root .information-cards { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .casis-root .student-header { min-height: 58px; padding: 0 20px; }
+  .casis-root .student-brand div, .casis-root .student-user { display: none; }
+  .casis-root .student-header-right { gap: 0; }
+  .casis-root .student-welcome h1 { font-size: 26px; }
+  .casis-root .status-panel, .casis-root .student-card { padding: 18px; }
+  .casis-root .profile-list { grid-template-columns: 1fr; }
+  .casis-root .profile-list > div:nth-child(even) { padding-left: 0; border-left: 0; }
+  .casis-root .student-closing, .casis-root .student-footer { align-items: flex-start; flex-direction: column; }
+}

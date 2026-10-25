@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { ClientQuestion } from "@/types";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { CountdownTimer } from "@/components/exam/CountdownTimer";
 import { MCQQuestion } from "@/components/exam/MCQQuestion";
 import { EssayQuestion } from "@/components/exam/EssayQuestion";
@@ -287,149 +285,374 @@ const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5">
-      <Card strong className="sticky top-20 z-30 flex flex-wrap items-center justify-between gap-4 p-4">
+    <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+      <div
+        style={{
+          position: "sticky",
+          top: "16px",
+          zIndex: 30,
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "16px",
+          padding: "16px 20px",
+          background: "rgba(10, 11, 12, 0.92)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid var(--casis-border)",
+          marginBottom: "24px",
+        }}
+      >
         <div>
-          <p className="text-xs uppercase tracking-widest text-zinc-500">Periode</p>
-          <p className="font-display text-sm font-bold gold-text">{periodName}</p>
+          <p
+            style={{
+              fontSize: "10px",
+              textTransform: "uppercase",
+              letterSpacing: "0.14em",
+              color: "var(--casis-muted)",
+              margin: 0,
+              fontWeight: 700,
+            }}
+          >
+            Periode Seleksi
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-cinzel), serif",
+              fontSize: "14px",
+              fontWeight: 700,
+              color: "var(--casis-gold)",
+              letterSpacing: "0.06em",
+              margin: "4px 0 0 0",
+            }}
+          >
+            {periodName}
+          </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-xs text-zinc-500">
-              Terjawab <span className="font-bold text-gold">{answeredCount}</span>/{questions.length}
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: "11px", color: "var(--casis-muted)", margin: 0 }}>
+              Terjawab{" "}
+              <strong style={{ color: "var(--casis-gold)" }}>{answeredCount}</strong>/
+              {questions.length}
             </p>
-            <div className="mt-1 h-1.5 w-36 overflow-hidden rounded-full bg-white/10">
+            <div
+              style={{
+                marginTop: "6px",
+                height: "4px",
+                width: "130px",
+                background: "rgba(255, 255, 255, 0.08)",
+                overflow: "hidden",
+              }}
+            >
               <div
-                className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold"
-                style={{ width: `${progress}%` }}
+                style={{
+                  height: "100%",
+                  width: `${progress}%`,
+                  background: "var(--casis-gold)",
+                  transition: "width 0.2s ease",
+                }}
               />
             </div>
-            <p className="mt-1 text-[10px] text-zinc-600" aria-live="polite">
-              {saveStatus === "saving" && "Menyimpan..."}
-              {saveStatus === "saved" && "Tersimpan"}
+            <p
+              style={{
+                marginTop: "4px",
+                fontSize: "10px",
+                color: "var(--casis-muted)",
+                margin: "4px 0 0 0",
+              }}
+              aria-live="polite"
+            >
+              {saveStatus === "saving" && "Menyimpan draf..."}
+              {saveStatus === "saved" && "Draf tersimpan"}
               {saveStatus === "error" && (
-                <span className="text-red-400" role="alert">Gagal menyimpan</span>
+                <span style={{ color: "#f08a8a" }} role="alert">
+                  Gagal menyimpan draf
+                </span>
               )}
             </p>
           </div>
           <CountdownTimer seconds={initialSeconds} onExpire={onExpire} />
         </div>
-      </Card>
+      </div>
 
-{questions.map((q, i) => (
-         <div id={`question-${q.id}`} key={q.id}>
-           {q.type === "MCQ" ? (
-             <MCQQuestion
-               question={q}
-               index={i}
-               value={answers[q.id] ?? ""}
-               onChange={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))}
-               isBookmarked={bookmarked.has(q.id)}
-               onToggleBookmark={() => toggleBookmark(q.id)}
-               isFlagged={flagged.has(q.id)}
-               onToggleFlag={() => toggleFlag(q.id)}
-             />
-           ) : (
-             <EssayQuestion
-               question={q}
-               index={i}
-               value={answers[q.id] ?? ""}
-               onChange={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))}
-               isBookmarked={bookmarked.has(q.id)}
-               onToggleBookmark={() => toggleBookmark(q.id)}
-               isFlagged={flagged.has(q.id)}
-               onToggleFlag={() => toggleFlag(q.id)}
-             />
-           )}
-         </div>
-       ))}
+      {questions.map((q, i) => (
+        <div id={`question-${q.id}`} key={q.id}>
+          {q.type === "MCQ" ? (
+            <MCQQuestion
+              question={q}
+              index={i}
+              value={answers[q.id] ?? ""}
+              onChange={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))}
+              isBookmarked={bookmarked.has(q.id)}
+              onToggleBookmark={() => toggleBookmark(q.id)}
+              isFlagged={flagged.has(q.id)}
+              onToggleFlag={() => toggleFlag(q.id)}
+            />
+          ) : (
+            <EssayQuestion
+              question={q}
+              index={i}
+              value={answers[q.id] ?? ""}
+              onChange={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))}
+              isBookmarked={bookmarked.has(q.id)}
+              onToggleBookmark={() => toggleBookmark(q.id)}
+              isFlagged={flagged.has(q.id)}
+              onToggleFlag={() => toggleFlag(q.id)}
+            />
+          )}
+        </div>
+      ))}
 
       {/* Navigation summary */}
-      <div className="sticky bottom-4 z-20 flex flex-wrap items-center gap-2 rounded-lg border border-white/10 bg-crimson-950/80 p-3 backdrop-blur-sm">
-        <span className="mr-2 text-xs font-semibold text-zinc-400">Navigasi:</span>
-{questions.map((q, i) => {
-           const answered = (answers[q.id] ?? "").trim().length > 0;
-           const marked = bookmarked.has(q.id);
-           const isFlagged = flagged.has(q.id);
-           return (
-             <button
-               key={q.id}
-               type="button"
-               onClick={() => {
-                 const el = document.getElementById(`question-${q.id}`);
-                 el?.scrollIntoView({ behavior: "smooth", block: "center" });
-               }}
-               className={`flex h-8 w-8 items-center justify-center rounded-full border font-mono text-xs font-bold transition ${
-                 answered
-                   ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                   : isFlagged
-                   ? "border-orange-500/40 bg-orange-500/10 text-orange-300"
-                   : marked
-                     ? "border-gold/40 bg-gold/10 text-gold"
-                     : "border-white/10 bg-white/5 text-zinc-400 hover:border-white/30"
-               }`}
-               title={`Soal ${i + 1}${answered ? " (jawab)" : isFlagged ? " (flag)" : marked ? " (bookmark)" : ""}`}
-             >
-               {i + 1}
-             </button>
-           );
-         })}
-         <div className="ml-2 flex items-center gap-3 text-[10px] text-zinc-500">
-           <span className="flex items-center gap-1">
-             <span className="inline-block h-2 w-2 rounded-full bg-emerald-500/40" />
-             Jawab
-           </span>
-           <span className="flex items-center gap-1">
-             <span className="inline-block h-2 w-2 rounded-full bg-orange-500/40" />
-             Flag
-           </span>
-           <span className="flex items-center gap-1">
-             <span className="inline-block h-2 w-2 rounded-full bg-gold/40" />
-             Bookmark
-           </span>
-           <span className="flex items-center gap-1">
-             <span className="inline-block h-2 w-2 rounded-full bg-white/10" />
-             Kosong
-           </span>
-         </div>
+      <div
+        style={{
+          position: "sticky",
+          bottom: "16px",
+          zIndex: 20,
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: "8px",
+          padding: "14px 18px",
+          background: "rgba(10, 11, 12, 0.95)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid var(--casis-border)",
+          marginBottom: "20px",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            color: "var(--casis-muted)",
+            textTransform: "uppercase",
+            marginRight: "6px",
+          }}
+        >
+          Navigasi:
+        </span>
+        {questions.map((q, i) => {
+          const answered = (answers[q.id] ?? "").trim().length > 0;
+          const marked = bookmarked.has(q.id);
+          const isFlagged = flagged.has(q.id);
+          return (
+            <button
+              key={q.id}
+              type="button"
+              onClick={() => {
+                const el = document.getElementById(`question-${q.id}`);
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+              style={{
+                width: "30px",
+                height: "30px",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "11px",
+                fontWeight: 700,
+                cursor: "pointer",
+                border: answered
+                  ? "1px solid rgba(80, 170, 120, 0.6)"
+                  : isFlagged
+                    ? "1px solid rgba(224, 148, 64, 0.6)"
+                    : marked
+                      ? "1px solid var(--casis-gold)"
+                      : "1px solid var(--casis-border)",
+                background: answered
+                  ? "rgba(80, 170, 120, 0.15)"
+                  : isFlagged
+                    ? "rgba(224, 148, 64, 0.15)"
+                    : marked
+                      ? "rgba(173, 149, 100, 0.15)"
+                      : "#080909",
+                color: answered
+                  ? "#62c799"
+                  : isFlagged
+                    ? "#e09440"
+                    : marked
+                      ? "var(--casis-gold)"
+                      : "var(--casis-muted)",
+                transition: "all 0.15s ease",
+              }}
+              title={`Soal ${i + 1}${answered ? " (jawab)" : isFlagged ? " (flag)" : marked ? " (bookmark)" : ""}`}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            fontSize: "10px",
+            color: "var(--casis-muted)",
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ width: "8px", height: "8px", background: "rgba(80, 170, 120, 0.6)" }} />
+            Terjawab
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ width: "8px", height: "8px", background: "rgba(224, 148, 64, 0.6)" }} />
+            Ragu
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ width: "8px", height: "8px", background: "var(--casis-gold)" }} />
+            Ditandai
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+            <span style={{ width: "8px", height: "8px", background: "var(--casis-border)" }} />
+            Kosong
+          </span>
+        </div>
       </div>
 
       {error && (
-        <div role="alert" className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div
+          role="alert"
+          style={{
+            border: "1px solid rgba(216, 117, 117, 0.5)",
+            background: "rgba(37, 19, 19, 0.7)",
+            padding: "14px 18px",
+            fontSize: "13px",
+            color: "#f08a8a",
+            marginBottom: "20px",
+          }}
+        >
           {error}
         </div>
       )}
 
-      <div className="pb-10">
-        <Button
-          variant="gold"
-          className="w-full py-3.5 text-base"
+      <div style={{ paddingBottom: "40px" }}>
+        <button
+          type="button"
           onClick={() => setConfirmOpen(true)}
           disabled={submitting}
+          style={{
+            width: "100%",
+            padding: "16px",
+            background: "var(--casis-gold)",
+            color: "#000000",
+            border: "1px solid var(--casis-gold)",
+            fontFamily: "var(--font-cinzel), serif",
+            fontSize: "14px",
+            fontWeight: 700,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            cursor: submitting ? "not-allowed" : "pointer",
+            opacity: submitting ? 0.6 : 1,
+            transition: "all 0.2s ease",
+          }}
         >
-          {submitting ? "Menilai & Mengirim..." : "Submit Ujian Sekarang"}
-        </Button>
+          {submitting ? "Menilai & Mengirim Ujian..." : "Kirim Jawaban Ujian"}
+        </button>
       </div>
 
       {confirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <Card strong className="w-full max-w-md p-6">
-            <h3 className="font-display text-lg font-bold gold-text">Konfirmasi Submit</h3>
-            <div className="gold-line my-3" />
-            <p className="text-sm leading-relaxed text-zinc-300">
-              Anda menjawab <span className="font-bold text-gold">{answeredCount}</span> dari{" "}
-              {questions.length} soal. Setelah dikirim, nilai akan langsung dinilai otomatis dan
-              <span className="font-bold text-gold"> tidak dapat diulang</span> pada periode ini.
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0, 0, 0, 0.8)",
+            backdropFilter: "blur(6px)",
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "460px",
+              padding: "28px",
+              background: "#0d0e10",
+              border: "1px solid var(--casis-border)",
+            }}
+          >
+            <h3
+              style={{
+                fontFamily: "var(--font-cinzel), serif",
+                fontSize: "18px",
+                fontWeight: 700,
+                color: "var(--casis-gold)",
+                letterSpacing: "0.08em",
+                margin: 0,
+              }}
+            >
+              KONFIRMASI PENYERAHAN
+            </h3>
+            <div
+              style={{
+                height: "1px",
+                background: "var(--casis-border)",
+                margin: "16px 0",
+              }}
+            />
+            <p
+              style={{
+                fontSize: "13px",
+                lineHeight: "1.7",
+                color: "var(--casis-text)",
+                margin: 0,
+              }}
+            >
+              Anda telah menjawab{" "}
+              <strong style={{ color: "var(--casis-gold)" }}>{answeredCount}</strong> dari{" "}
+              <strong>{questions.length}</strong> butir soal. Setelah dikirim, jawaban akan dinilai oleh sistem dan{" "}
+              <span style={{ color: "#f08a8a" }}>tidak dapat diubah atau diulang kembali</span>.
             </p>
-            <div className="mt-5 flex gap-3">
-              <Button variant="ghost" className="flex-1" onClick={() => setConfirmOpen(false)}>
-                Batal
-              </Button>
-              <Button variant="gold" className="flex-1" onClick={doSubmit} disabled={submitting}>
-                {submitting ? "Mengirim..." : "Ya, Submit"}
-              </Button>
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                marginTop: "24px",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setConfirmOpen(false)}
+                disabled={submitting}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "transparent",
+                  color: "var(--casis-muted)",
+                  border: "1px solid var(--casis-border)",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  cursor: "pointer",
+                }}
+              >
+                BATAL
+              </button>
+              <button
+                type="button"
+                onClick={doSubmit}
+                disabled={submitting}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "var(--casis-gold)",
+                  color: "#000000",
+                  border: "1px solid var(--casis-gold)",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                }}
+              >
+                {submitting ? "MENGIRIM..." : "YA, SERAHKAN"}
+              </button>
             </div>
-          </Card>
+          </div>
         </div>
       )}
     </div>

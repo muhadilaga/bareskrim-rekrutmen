@@ -1,0 +1,3627 @@
+/* =========================================
+   BARES — GLOBAL DESIGN SYSTEM
+========================================= */
+
+.design-root{
+
+    --bg: #080909;
+    --surface: #101212;
+    --surface-2: #171919;
+
+    --border: rgba(255, 255, 255, .12);
+    --border-soft: rgba(255, 255, 255, .08);
+
+    --text: #f1f1ed;
+    --text-muted: #9d9d98;
+    --text-dim: #666864;
+
+    --red: #b71920;
+    --red-bright: #d52a32;
+
+    --success: #42c98a;
+
+    --display: "DM Serif Display", serif;
+    --sans: "Inter", sans-serif;
+
+}
+
+
+/* =========================================
+   RESET
+========================================= */
+
+.design-root *{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+
+.design-root{
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+}
+
+.design-root a{
+    color: inherit;
+    text-decoration: none;
+}
+
+.design-root img{
+    display: block;
+    max-width: 100%;
+}
+
+.design-root figure{
+    margin: 0;
+}
+
+
+/* =========================================
+   GLOBAL TEXT
+========================================= */
+
+.design-root .eyebrow{
+    margin-bottom: 18px;
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: .14em;
+    color: rgba(255,255,255,.58);
+}
+
+.design-root .body-copy{
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text-muted);
+}
+
+.design-root .btn{
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 11px;
+    transition:
+        color .2s ease,
+        background .2s ease,
+        transform .2s ease;
+}
+
+.design-root .btn span{
+    font-size: 15px;
+}
+
+.design-root .btn-primary{
+    padding: 15px 22px;
+    background: var(--red);
+}
+
+.design-root .btn-primary:hover{
+    background: var(--red-bright);
+    transform: translateY(-1px);
+}
+
+.design-root .btn-text{
+    color: rgba(255,255,255,.7);
+}
+
+.design-root .btn-text:hover{
+    color: white;
+}
+
+h1,
+h2,
+.design-root h3{
+    font-weight: 400;
+}
+
+
+/* =========================================
+   NAVBAR
+========================================= */
+
+.design-root .navbar{
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 20;
+
+    width: 100%;
+    height: 72px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 48px;
+
+    border-bottom: 1px solid rgba(255,255,255,.08);
+
+    background: rgba(0, 0, 0,0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.design-root .brand{
+    min-width: 280px;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.design-root .brand-mark{
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.design-root .brand-mark img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.design-root .brand-text{
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.design-root .brand-text strong{
+    font-size: 12px;
+    letter-spacing: .04em;
+}
+
+.design-root .brand-text span{
+    margin-top: 4px;
+    font-size: 9px;
+    color: var(--text-muted);
+}
+
+.design-root .nav-links{
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    margin-left: auto;
+}
+
+.design-root .nav-links a{
+    position: relative;
+
+    padding: 27px 0;
+
+    font-size: 11px;
+    color: rgba(255,255,255,.68);
+
+    transition: color .2s ease;
+}
+
+.nav-links a:hover,
+.design-root .nav-links a.active{
+    color: white;
+}
+
+.design-root .nav-links a.active::after{
+    content: "";
+
+    position: absolute;
+    left: 0;
+    bottom: 0;
+
+    width: 100%;
+    height: 2px;
+
+    background: var(--red-bright);
+}
+
+.design-root .nav-login{
+    margin-left: 30px;
+
+    padding: 12px 28px;
+
+    font-size: 11px;
+
+    background: var(--red);
+
+    transition: background .2s ease;
+}
+
+.design-root .nav-login:hover{
+    background: var(--red-bright);
+}
+
+
+/* =========================================
+   HERO
+========================================= */
+
+.design-root .hero{
+    position: relative;
+
+    min-height: 760px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 120px 48px 80px;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(0,0,0,.96) 0%,
+            rgba(0,0,0,.70) 28%,
+            rgba(0,0,0,.18) 58%,
+            rgba(0,0,0,.62) 100%
+        ),
+        url("/design-assets/hero.png");
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.design-root .hero::after{
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+
+    background:
+        linear-gradient(
+            120deg,
+            transparent 40%,
+            rgba(120,40,30,.18),
+            transparent 70%
+        );
+}
+
+.design-root .hero-content{
+    position: relative;
+    z-index: 2;
+
+    width: min(620px, 50%);
+}
+
+.design-root .hero-eyebrow{
+    padding-left: 14px;
+    border-left: 2px solid var(--red);
+}
+
+.design-root .hero h1{
+  font-family: var(--display);
+  font-size: clamp(56px, 5vw, 82px);
+  line-height: .92;
+  letter-spacing: -.025em;
+  width: 738px;
+  height: 135px;
+}
+
+.design-root .hero-description{
+  max-width: 440px;
+  margin-top: 28px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(255,255,255,.62);
+  width: 579px;
+  height: 77px;
+}
+
+.design-root .hero-actions{
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-top: 34px;
+}
+
+.design-root .recruitment-card{
+    position: absolute;
+    z-index: 3;
+
+    top: 140px;
+    right: 48px;
+
+    width: 330px;
+
+    padding: 28px;
+
+    background: rgba(8,9,9,.72);
+    border: 1px solid var(--border);
+
+    backdrop-filter: blur(8px);
+}
+
+.design-root .card-topline{
+    display: flex;
+    justify-content: space-between;
+
+    margin-bottom: 18px;
+
+    font-size: 8px;
+    letter-spacing: .12em;
+
+    color: var(--text-muted);
+}
+
+.design-root .recruitment-card h2{
+    font-family: var(--display);
+    font-size: 38px;
+    line-height: 1;
+}
+
+.design-root .recruitment-card h3{
+    margin-top: 5px;
+
+    font-family: var(--display);
+    font-size: 28px;
+}
+
+.design-root .status{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 22px;
+
+    font-size: 11px;
+    color: var(--success);
+}
+
+.design-root .status span{
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: var(--success);
+}
+
+.design-root .date{
+    margin-top: 14px;
+
+    font-size: 13px;
+    line-height: 1.6;
+
+    color: rgba(255,255,255,.84);
+}
+
+.design-root .date span{
+    color: var(--text-muted);
+}
+
+.design-root .card-button{
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 22px;
+}
+
+.design-root .quick-links{
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.design-root .quick-links a{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    padding: 14px 0;
+
+    border-bottom: 1px solid var(--border);
+
+    font-size: 11px;
+    color: rgba(255,255,255,.7);
+
+    transition: color .2s ease;
+}
+
+.design-root .quick-links a:hover{
+    color: white;
+}
+
+.design-root .quick-links a span{
+    font-size: 8px;
+    color: var(--text-dim);
+}
+
+.design-root .quick-links a b{
+    margin-left: auto;
+
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.design-root .hero-footer{
+    position: absolute;
+    z-index: 3;
+
+    left: 48px;
+    right: 48px;
+    bottom: 25px;
+
+    display: flex;
+    justify-content: space-between;
+
+    font-size: 8px;
+    letter-spacing: .14em;
+
+    color: rgba(255,255,255,.42);
+}
+
+
+/* =========================================
+   SECTION INDEX
+========================================= */
+
+.design-root .section-index{
+    height: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    padding-top: 8px;
+
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.design-root .vertical-line{
+    width: 1px;
+    height: 110px;
+
+    margin-top: 18px;
+
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(255,255,255,.24),
+            transparent
+        );
+}
+
+.design-root .vertical-label{
+    margin-top: 18px;
+
+    writing-mode: vertical-rl;
+
+    font-size: 7px;
+    letter-spacing: .18em;
+
+    color: var(--text-dim);
+}
+
+.design-root .section-index-simple{
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+}
+
+
+/* =========================================
+   INTRO
+========================================= */
+
+.design-root .intro{
+    min-height: 650px;
+
+    display: grid;
+    grid-template-columns: 70px minmax(360px,1fr) minmax(500px,46%);
+    align-items: center;
+
+    gap: 54px;
+
+    padding: 105px 48px;
+
+    background: var(--surface);
+
+    border-top: 1px solid var(--border);
+}
+
+.design-root .intro-content{
+    max-width: 500px;
+}
+
+.design-root .intro-content .eyebrow{
+    padding-left: 14px;
+    border-left: 2px solid var(--red);
+}
+
+.design-root .intro-content h2{
+    font-family: var(--display);
+
+    font-size: clamp(52px,5vw,76px);
+    line-height: .94;
+
+    letter-spacing: -.025em;
+}
+
+.design-root .intro-content .body-copy{
+    max-width: 425px;
+    margin-top: 27px;
+}
+
+.design-root .intro-content .btn{
+    margin-top: 30px;
+}
+
+.design-root .editorial-image{
+    position: relative;
+}
+
+.design-root .intro-image{
+    justify-self: end;
+    width: 100%;
+    max-width: 650px;
+}
+
+.design-root .intro-image::before{
+    content: "";
+
+    position: absolute;
+
+    top: -12px;
+    left: -12px;
+
+    width: 48px;
+    height: 48px;
+
+    border-top: 1px solid rgba(255,255,255,.3);
+    border-left: 1px solid rgba(255,255,255,.3);
+
+    pointer-events: none;
+}
+
+.design-root .intro-image img{
+    width: 100%;
+    height: 450px;
+
+    object-fit: cover;
+    object-position: center 45%;
+
+    border: 1px solid rgba(255,255,255,.14);
+
+    filter: saturate(.82);
+
+    transition:
+        transform .7s cubic-bezier(.2,.7,.2,1),
+        filter .4s ease;
+}
+
+.design-root .intro-image:hover img{
+    transform: scale(1.025);
+    filter: saturate(.95);
+}
+
+.design-root .intro-image figcaption{
+    display: flex;
+    justify-content: space-between;
+
+    margin-top: 13px;
+
+    font-size: 8px;
+    letter-spacing: .14em;
+
+    color: rgba(255,255,255,.4);
+}
+
+
+/* =========================================
+   EDUCATION
+========================================= */
+
+.design-root .education{
+    padding: 125px 48px 135px;
+
+    background: var(--bg);
+
+    border-top: 1px solid var(--border);
+}
+
+.design-root .section-heading{
+    display: grid;
+    grid-template-columns: 90px 1fr;
+
+    gap: 60px;
+
+    margin-bottom: 50px;
+}
+
+.design-root .section-heading h2{
+    font-family: var(--display);
+
+    font-size: clamp(52px,5vw,72px);
+    line-height: .95;
+
+    letter-spacing: -.025em;
+}
+
+.design-root .education-intro-line{
+    display: flex;
+    align-items: center;
+    gap: 25px;
+
+    margin-left: 150px;
+    margin-bottom: 28px;
+
+    padding-top: 16px;
+
+    border-top: 1px solid var(--border-soft);
+}
+
+.design-root .education-intro-line span{
+    font-size: 8px;
+    letter-spacing: .15em;
+    color: var(--text-muted);
+}
+
+.design-root .education-intro-line p{
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+.design-root .education-grid{
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 20px;
+}
+
+.design-root .education-card{
+    min-width: 0;
+}
+
+.design-root .education-image{
+    position: relative;
+
+    height: 390px;
+
+    overflow: hidden;
+
+    background: #0c0d0d;
+
+    border-top: 1px solid rgba(255,255,255,.18);
+}
+
+.design-root .education-image img{
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    filter: saturate(.76) contrast(.96);
+
+    transition:
+        transform .8s cubic-bezier(.2,.7,.2,1),
+        filter .5s ease;
+}
+
+.design-root .education-card:hover .education-image img{
+    transform: scale(1.045);
+    filter: saturate(.95) contrast(1);
+}
+
+.design-root .image-overlay{
+    position: absolute;
+    inset: 0;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(0,0,0,.28),
+            transparent 38%,
+            rgba(0,0,0,.75)
+        );
+}
+
+.design-root .image-meta{
+    position: absolute;
+    z-index: 2;
+
+    top: 18px;
+    left: 18px;
+    right: 18px;
+
+    display: flex;
+    justify-content: space-between;
+
+    font-size: 8px;
+    letter-spacing: .13em;
+
+    color: rgba(255,255,255,.7);
+}
+
+.design-root .image-meta span:first-child{
+    color: white;
+    font-size: 10px;
+}
+
+.design-root .image-label{
+    position: absolute;
+    z-index: 2;
+
+    left: 20px;
+    bottom: 18px;
+
+    font-size: 8px;
+    letter-spacing: .18em;
+
+    color: rgba(255,255,255,.62);
+}
+
+.design-root .image-label::before{
+    content: "";
+
+    display: inline-block;
+
+    width: 20px;
+    height: 1px;
+
+    margin-right: 10px;
+
+    vertical-align: middle;
+
+    background: rgba(255,255,255,.45);
+
+    transition:
+        width .3s ease,
+        background .3s ease;
+}
+
+.design-root .education-card:hover .image-label::before{
+    width: 34px;
+    background: var(--red-bright);
+}
+
+.design-root .education-info{
+    display: grid;
+    grid-template-columns: 42px 1fr;
+
+    gap: 18px;
+
+    padding: 23px 0 28px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.design-root .education-number{
+    padding-top: 6px;
+
+    font-size: 9px;
+    color: var(--text-muted);
+}
+
+.design-root .education-info h3{
+    font-family: var(--display);
+
+    font-size: 31px;
+    line-height: 1;
+}
+
+.design-root .education-info p{
+    max-width: 330px;
+
+    margin-top: 13px;
+
+    font-size: 12px;
+    line-height: 1.75;
+
+    color: var(--text-muted);
+}
+
+.design-root .education-card:nth-child(1) img{
+    object-position: center 45%;
+}
+
+.design-root .education-card:nth-child(2) img{
+    object-position: center 50%;
+}
+
+.design-root .education-card:nth-child(3) img{
+    object-position: center 42%;
+}
+
+
+/* =========================================
+   PROCESS
+========================================= */
+
+.design-root .process{
+    display: grid;
+    grid-template-columns: 1fr 1.05fr;
+
+    gap: 100px;
+
+    padding: 120px 48px;
+
+    background: var(--surface);
+
+    border-top: 1px solid var(--border);
+}
+
+.design-root .process-intro{
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 60px;
+}
+
+.design-root .process-intro h2{
+    font-family: var(--display);
+
+    font-size: clamp(52px,5vw,72px);
+    line-height: .95;
+
+    letter-spacing: -.025em;
+}
+
+.design-root .process-intro .body-copy{
+    max-width: 390px;
+    margin-top: 28px;
+}
+
+.design-root .process-list{
+    border-top: 1px solid var(--border);
+}
+
+.design-root .process-item{
+    display: grid;
+    grid-template-columns: 42px 1fr 55px 25px;
+
+    gap: 18px;
+
+    align-items: center;
+
+    padding: 24px 0;
+
+    border-bottom: 1px solid var(--border);
+
+    transition:
+        padding .25s ease,
+        background .25s ease;
+}
+
+.design-root .process-item:hover{
+    padding-left: 8px;
+    padding-right: 8px;
+
+    background: rgba(255,255,255,.015);
+}
+
+.design-root .process-number{
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.design-root .process-main h3{
+    font-family: var(--display);
+    font-size: 27px;
+}
+
+.design-root .process-main p{
+    margin-top: 6px;
+
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.design-root .process-status{
+    font-size: 7px;
+    letter-spacing: .12em;
+    text-align: right;
+    color: var(--text-dim);
+}
+
+.design-root .process-item:first-child .process-status{
+    color: var(--success);
+}
+
+.design-root .process-item b{
+    font-size: 17px;
+    font-weight: 400;
+
+    text-align: right;
+
+    transition:
+        transform .2s ease,
+        color .2s ease;
+}
+
+.design-root .process-item:hover b{
+    transform: translateX(5px);
+    color: var(--red-bright);
+}
+
+
+/* =========================================
+   ENVIRONMENT
+========================================= */
+
+.design-root .environment{
+    min-height: 640px;
+
+    display: grid;
+    grid-template-columns: 58% 42%;
+
+    background: var(--bg);
+
+    border-top: 1px solid var(--border);
+}
+
+.design-root .environment-image{
+    position: relative;
+    overflow: hidden;
+
+    background: #0b0c0c;
+}
+
+.design-root .environment-image::after{
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent 65%,
+            rgba(0,0,0,.35)
+        );
+}
+
+.design-root .environment-image img{
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+    object-position: center;
+
+    filter: saturate(.8);
+
+    transition: transform .8s ease;
+}
+
+.design-root .environment:hover .environment-image img{
+    transform: scale(1.02);
+}
+
+.design-root .environment-image figcaption{
+    position: absolute;
+    z-index: 2;
+
+    left: 28px;
+    bottom: 25px;
+
+    font-size: 8px;
+    letter-spacing: .14em;
+
+    color: rgba(255,255,255,.55);
+}
+
+.design-root .environment-content{
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    padding: 80px;
+}
+
+.design-root .environment-content h2{
+    font-family: var(--display);
+
+    font-size: clamp(48px,4.5vw,68px);
+    line-height: .95;
+
+    letter-spacing: -.02em;
+}
+
+.design-root .environment-content .body-copy{
+    max-width: 380px;
+    margin-top: 26px;
+}
+
+.design-root .environment-content .btn{
+    margin-top: 30px;
+}
+
+.design-root .environment-meta{
+    display: flex;
+    justify-content: space-between;
+
+    margin-top: 80px;
+    padding-top: 14px;
+
+    border-top: 1px solid var(--border);
+
+    font-size: 8px;
+    letter-spacing: .12em;
+
+    color: var(--text-dim);
+}
+
+
+/* =========================================
+   ARCHIVE
+========================================= */
+
+.design-root .archive{
+    padding: 120px 48px;
+
+    background: var(--surface);
+
+    border-top: 1px solid var(--border);
+}
+
+.design-root .archive-header{
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 40px;
+
+    margin-bottom: 60px;
+}
+
+.design-root .archive-header h2{
+    font-family: var(--display);
+
+    font-size: clamp(52px,5vw,72px);
+    line-height: .95;
+}
+
+.design-root .archive-grid{
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 18px;
+}
+
+.design-root .archive-card{
+    min-height: 230px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    padding: 26px;
+
+    border: 1px solid var(--border);
+
+    background: var(--bg);
+
+    transition:
+        border-color .25s ease,
+        transform .25s ease,
+        background .25s ease;
+}
+
+.design-root .archive-card:hover{
+    border-color: rgba(183,25,32,.7);
+    transform: translateY(-4px);
+    background: #0c0e0e;
+}
+
+.design-root .archive-card-top{
+    display: flex;
+    justify-content: space-between;
+
+    font-size: 8px;
+    letter-spacing: .13em;
+
+    color: var(--text-muted);
+}
+
+.design-root .archive-card strong{
+    font-family: var(--display);
+    font-size: 34px;
+    font-weight: 400;
+}
+
+.design-root .archive-card-bottom{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.design-root .archive-card-bottom small{
+    font-size: 8px;
+    letter-spacing: .1em;
+    color: var(--text-dim);
+}
+
+.design-root .archive-card-bottom span{
+    font-size: 17px;
+
+    transition:
+        transform .2s ease,
+        color .2s ease;
+}
+
+.design-root .archive-card:hover .archive-card-bottom span{
+    transform: translateX(5px);
+    color: var(--red-bright);
+}
+
+
+/* =========================================
+   FINAL CTA
+========================================= */
+
+.design-root .final-cta{
+    position: relative;
+
+    min-height: 540px;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 160px;
+
+    gap: 60px;
+
+    align-items: center;
+
+    padding: 100px 48px;
+
+    overflow: hidden;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(0,0,0,.96),
+            rgba(90,10,15,.35)
+        );
+
+    border-top: 1px solid var(--border);
+}
+
+.design-root .final-cta::after{
+    content: "";
+
+    position: absolute;
+    right: -150px;
+    bottom: -220px;
+
+    width: 520px;
+    height: 520px;
+
+    border: 1px solid rgba(255,255,255,.05);
+    border-radius: 50%;
+}
+
+.design-root .final-cta-content{
+    min-width: 0;
+    max-width: 860px;
+}
+
+.design-root .final-cta-index{
+    align-self: start;
+
+    padding-top: 8px;
+
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.design-root .final-cta-content .eyebrow{
+    padding-left: 14px;
+    border-left: 2px solid var(--red);
+}
+
+.design-root .final-cta-content h2{
+    font-family: var(--display);
+
+    font-size: clamp(58px,6vw,88px);
+    line-height: .92;
+
+    letter-spacing: -.025em;
+}
+
+.design-root .final-cta-content .body-copy{
+    margin-top: 24px;
+}
+
+.design-root .final-cta-content .btn{
+    margin-top: 30px;
+}
+
+.design-root .final-cta-mark{
+    position: relative;
+    z-index: 2;
+
+    width: 100px;
+    height: 100px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    transform: rotate(45deg);
+}
+
+.design-root .final-cta-mark span{
+    position: absolute;
+
+    width: 70px;
+    height: 70px;
+
+    border: 1px solid rgba(255,255,255,.13);
+}
+
+.design-root .final-cta-mark span:nth-child(2){
+    width: 48px;
+    height: 48px;
+
+    border-color: rgba(183,25,32,.65);
+}
+
+.design-root .final-cta-mark span:nth-child(3){
+    width: 18px;
+    height: 18px;
+
+    background: var(--red);
+    border: 0;
+}
+
+
+/* =========================================
+   FOOTER
+========================================= */
+
+.design-root .footer{
+    min-height: 120px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 30px;
+
+    padding: 30px 48px;
+
+    background: #060707;
+
+    border-top: 1px solid var(--border);
+}
+
+.design-root .footer-brand{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.design-root .footer-brand img{
+    width: 42px;
+    height: 42px;
+
+    object-fit: contain;
+}
+
+.design-root .footer-brand div{
+    display: flex;
+    flex-direction: column;
+}
+
+.design-root .footer-brand strong{
+    font-size: 10px;
+    letter-spacing: .04em;
+}
+
+.design-root .footer-brand span{
+    margin-top: 4px;
+
+    font-size: 8px;
+    color: var(--text-muted);
+}
+
+.footer p,
+.design-root .footer > span{
+    font-size: 9px;
+    color: var(--text-muted);
+}
+
+.design-root .footer-admin-login{
+    color: var(--text-dim);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    transition: color .2s ease;
+}
+
+.design-root .footer-admin-login:hover{
+    color: var(--text-muted);
+}
+
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1100px) {
+
+    .design-root .intro{
+        grid-template-columns: 60px 1fr 45%;
+        gap: 35px;
+    }
+
+    .design-root .intro-image img{
+        height: 400px;
+    }
+
+    .design-root .process{
+        gap: 60px;
+    }
+
+    .design-root .environment-content{
+        padding: 60px;
+    }
+
+    .design-root .final-cta{
+        grid-template-columns: minmax(0, 1fr) 120px;
+        gap: 40px;
+    }
+
+}
+
+
+@media (max-width: 900px) {
+
+    .design-root .navbar{
+        padding: 0 24px;
+    }
+
+    .design-root .brand{
+        min-width: auto;
+    }
+
+    .design-root .nav-links{
+        display: none;
+    }
+
+    .design-root .nav-login{
+        margin-left: auto;
+    }
+
+    .design-root .hero{
+        min-height: 900px;
+        padding: 130px 24px 60px;
+        align-items: flex-start;
+    }
+
+    .design-root .hero-content{
+        width: 100%;
+    }
+
+    .design-root .hero h1{
+        font-size: 58px;
+    }
+
+    .design-root .recruitment-card{
+        left: 24px;
+        right: 24px;
+        top: auto;
+        bottom: 40px;
+        width: auto;
+    }
+
+    .design-root .hero-footer{
+        display: none;
+    }
+
+
+    .design-root .intro{
+        grid-template-columns: 1fr;
+        gap: 36px;
+        padding: 80px 24px;
+    }
+
+    .design-root .section-index{
+        height: auto;
+        flex-direction: row;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .design-root .vertical-line{
+        width: 80px;
+        height: 1px;
+        margin: 0;
+    }
+
+    .design-root .vertical-label{
+        writing-mode: horizontal-tb;
+        margin: 0;
+    }
+
+    .design-root .intro-image{
+        max-width: none;
+    }
+
+    .design-root .intro-image img{
+        height: 420px;
+    }
+
+
+    .design-root .education{
+        padding: 80px 24px;
+    }
+
+    .design-root .section-heading{
+        grid-template-columns: 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    .design-root .education-intro-line{
+        margin-left: 0;
+    }
+
+    .design-root .education-grid{
+        grid-template-columns: 1fr;
+        gap: 55px;
+    }
+
+    .design-root .education-image{
+        height: 380px;
+    }
+
+
+    .design-root .process{
+        grid-template-columns: 1fr;
+        gap: 60px;
+        padding: 80px 24px;
+    }
+
+    .design-root .process-intro{
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .design-root .process-item{
+        grid-template-columns: 38px 1fr 25px;
+    }
+
+    .design-root .process-status{
+        display: none;
+    }
+
+
+    .design-root .environment{
+        grid-template-columns: 1fr;
+    }
+
+    .design-root .environment-image{
+        min-height: 420px;
+    }
+
+    .design-root .environment-content{
+        padding: 70px 24px;
+    }
+
+    .design-root .environment-meta{
+        margin-top: 60px;
+    }
+
+
+    .design-root .archive{
+        padding: 80px 24px;
+    }
+
+    .design-root .archive-header{
+        align-items: flex-start;
+        flex-direction: column;
+        margin-bottom: 40px;
+    }
+
+    .design-root .archive-grid{
+        grid-template-columns: 1fr;
+    }
+
+
+    .design-root .final-cta{
+        grid-template-columns: 1fr;
+        gap: 30px;
+        padding: 80px 24px;
+    }
+
+    .design-root .final-cta-mark{
+        display: none;
+    }
+
+
+    .design-root .footer{
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 30px 24px;
+    }
+
+}
+.design-root .recruitment-tab{
+    --black: #090909;
+    --black-soft: #101010;
+    --panel: #141414;
+
+    --white: #f1efe9;
+    --muted: #918e88;
+    --muted-dark: #5f5d59;
+
+    --red: #b52227;
+    --red-bright: #cf2d33;
+
+    --gold: #ad9564;
+
+    --line: rgba(241, 239, 233, 0.12);
+
+    --serif: "DM Serif Display", Georgia, serif;
+    --sans: "Inter", Arial, sans-serif;
+}
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+.design-root .recruitment-tab,
+    .design-root .recruitment-tab *{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.design-root .recruitment-tab{
+    scroll-behavior: smooth;
+}
+
+.design-root .recruitment-tab{
+    background: var(--black);
+    color: var(--white);
+
+    font-family: var(--sans);
+
+    line-height: 1.6;
+
+    overflow-x: hidden;
+}
+
+.design-root .recruitment-tab a{
+    color: inherit;
+    text-decoration: none;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.design-root .recruitment-tab .site-header{
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+
+    padding: 28px 5vw;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    z-index: 10;
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.design-root .recruitment-tab .brand{
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+}
+
+.design-root .recruitment-tab .brand img{
+    width: 42px;
+    height: 42px;
+
+    object-fit: contain;
+}
+
+.design-root .recruitment-tab .brand-copy{
+    display: flex;
+    flex-direction: column;
+
+    line-height: 1.1;
+}
+
+.design-root .recruitment-tab .brand-copy strong{
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 0.15em;
+}
+
+.design-root .recruitment-tab .brand-copy span{
+    margin-top: 5px;
+
+    color: var(--muted);
+
+    font-size: 8px;
+
+    letter-spacing: 0.22em;
+}
+
+.design-root .recruitment-tab .back-link{
+    color: rgba(241, 239, 233, 0.68);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.16em;
+
+    transition: color 0.25s ease;
+}
+
+.design-root .recruitment-tab .back-link:hover{
+    color: var(--white);
+}
+
+
+/* =========================================================
+   COMMON
+========================================================= */
+
+.design-root .recruitment-tab .eyebrow{
+    color: var(--gold);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.2em;
+}
+
+.design-root .recruitment-tab .section-heading{
+    display: flex;
+    align-items: center;
+
+    gap: 18px;
+
+    margin-bottom: 55px;
+
+    color: var(--muted);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.design-root .recruitment-tab .section-heading span{
+    color: var(--red);
+
+    font-size: 10px;
+
+    letter-spacing: 0;
+}
+
+.design-root .recruitment-tab h2{
+    font-family: var(--serif);
+
+    font-size: clamp(46px, 5.5vw, 76px);
+
+    font-weight: 400;
+
+    line-height: 0.98;
+
+    letter-spacing: -0.04em;
+}
+
+.design-root .recruitment-tab h2 em{
+    color: var(--red);
+
+    font-style: normal;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.design-root .recruitment-tab .recruitment-hero{
+    min-height: 720px;
+
+    position: relative;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    padding:
+        150px
+        9vw
+        80px;
+
+    overflow: hidden;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.design-root .recruitment-tab .hero-bg{
+    position: absolute;
+
+    inset: 0;
+
+    background:
+        url("/design-assets/hero.png")
+        center / cover
+        no-repeat;
+
+    filter: saturate(0.5);
+}
+
+.design-root .recruitment-tab .hero-overlay{
+    position: absolute;
+
+    inset: 0;
+
+    background:
+        linear-gradient(
+            90deg,
+            rgba(9, 9, 9, 0.97) 0%,
+            rgba(9, 9, 9, 0.82) 40%,
+            rgba(9, 9, 9, 0.45) 75%,
+            rgba(9, 9, 9, 0.76) 100%
+        );
+}
+
+.design-root .recruitment-tab .hero-overlay::after{
+    content: "";
+
+    position: absolute;
+
+    inset: 0;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(9, 9, 9, 0.45),
+            transparent 40%,
+            rgba(9, 9, 9, 0.92)
+        );
+}
+
+.design-root .recruitment-tab .hero-content,
+    .design-root .recruitment-tab .hero-countdown{
+    position: relative;
+
+    z-index: 2;
+}
+
+.design-root .recruitment-tab .hero-content{
+    max-width: 800px;
+}
+
+.design-root .recruitment-tab .hero-status{
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    margin-bottom: 34px;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.design-root .recruitment-tab .hero-status span{
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #6aad78;
+
+    box-shadow:
+        0 0 13px rgba(106, 173, 120, 0.6);
+}
+
+.design-root .recruitment-tab .hero-label{
+    margin-bottom: 16px;
+
+    color: rgba(241, 239, 233, 0.56);
+
+    font-size: 10px;
+    font-weight: 600;
+
+    letter-spacing: 0.26em;
+}
+
+
+/* =========================================================
+   HERO TYPOGRAPHY
+========================================================= */
+
+.design-root .recruitment-tab .hero-title{
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 3px;
+}
+
+.design-root .recruitment-tab .hero-title > span{
+    order: 1;
+
+    color: rgba(241, 239, 233, 0.48);
+
+    font-size: 10px;
+    font-weight: 700;
+
+    letter-spacing: 0.28em;
+
+    padding-left: 6px;
+}
+
+.design-root .recruitment-tab .hero-title h1{
+    order: 2;
+
+    margin-left: -7px;
+
+    font-family: var(--serif);
+
+    font-size: clamp(130px, 15vw, 215px);
+
+    font-weight: 400;
+
+    line-height: 0.78;
+
+    letter-spacing: -0.065em;
+
+    color: var(--white);
+}
+
+.design-root .recruitment-tab .hero-meta{
+    margin-top: 34px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 16px;
+
+    color: rgba(241, 239, 233, 0.67);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.2em;
+}
+
+.design-root .recruitment-tab .hero-meta i{
+    width: 45px;
+    height: 1px;
+
+    background: var(--red);
+}
+
+
+/* =========================================================
+   COUNTDOWN
+========================================================= */
+
+.design-root .recruitment-tab .hero-countdown{
+    min-width: 330px;
+
+    padding-left: 40px;
+
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.design-root .recruitment-tab .hero-countdown > p{
+    margin-bottom: 20px;
+
+    color: var(--muted);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.2em;
+}
+
+.design-root .recruitment-tab .countdown{
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+}
+
+.design-root .recruitment-tab .countdown div{
+    display: flex;
+    flex-direction: column;
+
+    min-width: 55px;
+}
+
+.design-root .recruitment-tab .countdown strong{
+    font-family: var(--serif);
+
+    font-size: 42px;
+
+    font-weight: 400;
+
+    line-height: 1;
+}
+
+.design-root .recruitment-tab .countdown span{
+    margin-top: 7px;
+
+    color: var(--muted);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.14em;
+}
+
+.design-root .recruitment-tab .countdown b{
+    align-self: flex-start;
+
+    margin-top: 4px;
+
+    color: var(--red);
+
+    font-family: var(--serif);
+
+    font-size: 22px;
+
+    font-weight: 400;
+}
+
+
+/* =========================================================
+   INFORMATION
+========================================================= */
+
+.design-root .recruitment-tab .information{
+    padding: 120px 9vw;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.design-root .recruitment-tab .information-grid{
+    display: block;
+
+    border-top: 1px solid var(--line);
+}
+
+.design-root .recruitment-tab .info-block{
+    padding: 45px 0;
+}
+
+.design-root .recruitment-tab .info-block + .info-block{
+    padding-left: 45px;
+
+    border-left: 1px solid var(--line);
+}
+
+.design-root .recruitment-tab .block-heading{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 35px;
+
+    padding-bottom: 20px;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.design-root .recruitment-tab .block-heading > div{
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+}
+
+.design-root .recruitment-tab .block-heading > div > span{
+    color: var(--red);
+
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.design-root .recruitment-tab .block-heading h2{
+    font-family: var(--sans);
+
+    font-size: 17px;
+
+    font-weight: 600;
+
+    letter-spacing: -0.01em;
+}
+
+.design-root .recruitment-tab .block-heading small{
+    color: var(--muted-dark);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.15em;
+}
+
+
+/* =========================================================
+   REQUIREMENTS
+========================================================= */
+
+.design-root .recruitment-tab .requirement-list{
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 20px 60px;
+}
+
+.design-root .recruitment-tab .requirement{
+    display: block;
+
+    padding: 20px 0;
+
+    border-bottom: 1px solid rgba(241, 239, 233, 0.08);
+}
+
+.design-root .recruitment-tab .requirement strong{
+    display: block;
+
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white);
+}
+
+.design-root .recruitment-tab .requirement p{
+    max-width: 100%;
+
+    margin-top: 6px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    line-height: 1.7;
+}
+
+
+/* =========================================================
+   PROCESS
+========================================================= */
+
+.design-root .recruitment-tab .process-item{
+    min-height: 75px;
+
+    display: grid;
+
+    grid-template-columns: 35px 1fr auto;
+
+    gap: 15px;
+
+    align-items: center;
+
+    border-bottom: 1px solid rgba(241, 239, 233, 0.08);
+
+    opacity: 0.45;
+
+    transition: opacity 0.25s ease;
+}
+
+.design-root .recruitment-tab .process-item:hover,
+    .design-root .recruitment-tab .process-item.active{
+    opacity: 1;
+}
+
+.design-root .recruitment-tab .process-item > span{
+    color: var(--red);
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.design-root .recruitment-tab .process-item strong{
+    display: block;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.design-root .recruitment-tab .process-item p{
+    margin-top: 3px;
+
+    color: var(--muted);
+
+    font-size: 10px;
+}
+
+.design-root .recruitment-tab .process-item em{
+    color: var(--muted-dark);
+
+    font-size: 7px;
+    font-style: normal;
+    font-weight: 700;
+
+    letter-spacing: 0.14em;
+}
+
+.design-root .recruitment-tab .process-item.active em{
+    color: #6aad78;
+}
+
+
+/* =========================================================
+   SCHEDULE
+========================================================= */
+
+.design-root .recruitment-tab .schedule{
+    padding: 120px 9vw;
+
+    background: #0d0d0d;
+
+    border-bottom: 1px solid var(--line);
+}
+
+.design-root .recruitment-tab .schedule-header{
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+
+    margin-bottom: 55px;
+}
+
+.design-root .recruitment-tab .schedule-header h2{
+    margin-top: 17px;
+}
+
+.design-root .recruitment-tab .schedule-header > p{
+    max-width: 350px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    line-height: 1.8;
+}
+
+.design-root .recruitment-tab .schedule-list{
+    border-top: 1px solid var(--line);
+}
+
+.design-root .recruitment-tab .schedule-row{
+    min-height: 95px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 24px;
+    padding: 16px 0;
+
+    border-bottom: 1px solid var(--line);
+
+    transition: background 0.25s ease;
+}
+
+.design-root .recruitment-tab .schedule-row:hover{
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.design-root .recruitment-tab .schedule-number{
+    color: var(--muted-dark);
+
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.design-root .recruitment-tab .schedule-date{
+    display: flex;
+    align-items: baseline;
+
+    gap: 6px;
+}
+
+.design-root .recruitment-tab .schedule-date strong{
+    font-family: var(--serif);
+
+    font-size: 32px;
+
+    font-weight: 400;
+
+    line-height: 1;
+}
+
+.design-root .recruitment-tab .schedule-date span{
+    color: var(--gold);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.1em;
+}
+
+.design-root .recruitment-tab .schedule-detail{
+    flex: 1;
+}
+
+.design-root .recruitment-tab .schedule-detail span{
+    display: block;
+
+    color: var(--gold);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.18em;
+}
+
+.design-root .recruitment-tab .schedule-detail strong{
+    display: block;
+
+    margin-top: 5px;
+
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.design-root .recruitment-tab .schedule-state{
+    color: var(--muted-dark);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.14em;
+
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+}
+
+.design-root .recruitment-tab .schedule-row.active .schedule-state{
+    color: #6aad78;
+    border-color: rgba(106, 173, 120, 0.35);
+    background: rgba(106, 173, 120, 0.08);
+}
+
+
+/* =========================================================
+   CTA
+========================================================= */
+
+.design-root .recruitment-tab .registration-cta{
+    min-height: 470px;
+
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    padding: 100px 9vw;
+
+    overflow: hidden;
+
+    background: #111;
+}
+
+.design-root .recruitment-tab .cta-number{
+    position: absolute;
+
+    right: 7vw;
+    top: 50%;
+    transform: translateY(-50%);
+
+    color: rgba(212, 175, 55, 0.09);
+
+    font-family: var(--serif);
+
+    font-size: 240px;
+
+    line-height: 1;
+
+    letter-spacing: -0.06em;
+
+    pointer-events: none;
+    user-select: none;
+}
+
+.design-root .recruitment-tab .cta-content{
+    position: relative;
+
+    z-index: 2;
+
+    max-width: 700px;
+}
+
+.design-root .recruitment-tab .cta-content h2{
+    margin-top: 18px;
+}
+
+.design-root .recruitment-tab .cta-content > p:not(.eyebrow){
+    max-width: 510px;
+
+    margin-top: 25px;
+
+    color: var(--muted);
+
+    font-size: 12px;
+
+    line-height: 1.8;
+}
+
+.design-root .recruitment-tab .register-button{
+    margin-top: 35px;
+
+    min-height: 52px;
+
+    padding: 0 22px;
+
+    display: inline-flex;
+    align-items: center;
+
+    gap: 20px;
+
+    background: var(--white);
+
+    color: var(--black);
+
+    font-size: 8px;
+    font-weight: 700;
+
+    letter-spacing: 0.16em;
+
+    transition:
+        transform 0.25s ease,
+        background 0.25s ease;
+}
+
+.design-root .recruitment-tab .register-button span{
+    font-size: 16px;
+}
+
+.design-root .recruitment-tab .register-button:hover{
+    transform: translateY(-2px);
+
+    background: white;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.design-root .recruitment-tab .site-footer{
+    min-height: 95px;
+
+    padding: 28px 5vw;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    background: #080808;
+
+    border-top: 1px solid var(--line);
+}
+
+.design-root .recruitment-tab .footer-brand{
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+}
+
+.design-root .recruitment-tab .footer-brand img{
+    width: 34px;
+    height: 34px;
+
+    object-fit: contain;
+}
+
+.design-root .recruitment-tab .footer-brand div{
+    display: flex;
+    flex-direction: column;
+}
+
+.design-root .recruitment-tab .footer-brand strong{
+    font-size: 8px;
+
+    letter-spacing: 0.15em;
+}
+
+.design-root .recruitment-tab .footer-brand span{
+    margin-top: 3px;
+
+    color: var(--muted-dark);
+
+    font-size: 7px;
+
+    letter-spacing: 0.17em;
+}
+
+.design-root .recruitment-tab .footer-note{
+    color: var(--muted-dark);
+
+    font-size: 7px;
+    font-weight: 700;
+
+    letter-spacing: 0.16em;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .design-root .recruitment-tab .recruitment-hero{
+        min-height: 780px;
+
+        padding:
+            150px
+            7vw
+            65px;
+
+        display: block;
+    }
+
+    .design-root .recruitment-tab .hero-countdown{
+        margin-top: 65px;
+
+        padding-top: 25px;
+        padding-left: 0;
+
+        border-left: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .design-root .recruitment-tab .information-grid{
+        grid-template-columns: 1fr;
+    }
+
+    .design-root .recruitment-tab .requirement-list{
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .design-root .recruitment-tab .info-block,
+    .design-root .recruitment-tab .info-block + .info-block{
+        padding: 40px 0;
+    }
+
+    .design-root .recruitment-tab .info-block + .info-block{
+        border-left: none;
+
+        border-top: 1px solid var(--line);
+    }
+
+    .design-root .recruitment-tab .schedule-header{
+        display: block;
+    }
+
+    .design-root .recruitment-tab .schedule-header > p{
+        margin-top: 25px;
+    }
+
+    .design-root .recruitment-tab .schedule-row{
+        grid-template-columns: 40px 80px 1fr 85px;
+
+        gap: 20px;
+    }
+}
+
+
+@media (max-width: 600px) {
+
+    .design-root .recruitment-tab .site-header{
+        padding: 20px 6vw;
+    }
+
+    .design-root .recruitment-tab .brand-copy{
+        display: none;
+    }
+
+    .design-root .recruitment-tab .recruitment-hero{
+        min-height: 760px;
+
+        padding:
+            135px
+            6vw
+            55px;
+    }
+
+    .design-root .recruitment-tab .hero-title h1{
+        font-size: 35vw;
+    }
+
+    .design-root .recruitment-tab .hero-meta{
+        flex-wrap: wrap;
+    }
+
+    .design-root .recruitment-tab .countdown{
+        gap: 8px;
+    }
+
+    .design-root .recruitment-tab .countdown div{
+        min-width: 45px;
+    }
+
+    .design-root .recruitment-tab .countdown strong{
+        font-size: 31px;
+    }
+
+    .design-root .recruitment-tab .information,
+    .design-root .recruitment-tab .schedule,
+    .design-root .recruitment-tab .registration-cta{
+        padding-left: 6vw;
+        padding-right: 6vw;
+    }
+
+    .design-root .recruitment-tab .schedule-row{
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 0;
+    }
+
+    .design-root .recruitment-tab .schedule-state{
+        align-self: flex-start;
+    }
+
+    .design-root .recruitment-tab .cta-number{
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 160px;
+    }
+
+    .design-root .recruitment-tab .site-footer{
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 18px;
+    }
+}
+
+/* =========================================
+   TYPOGRAPHY POLISH
+========================================= */
+
+.design-root .eyebrow{
+    font-size: 11px;
+    line-height: 1.3;
+    letter-spacing: .09em;
+}
+
+.body-copy,
+.hero-description,
+.intro-description,
+.environment-copy,
+.design-root .archive-note p{
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.nav-links a,
+.nav-login,
+.design-root .btn{
+    font-size: 13px;
+}
+
+.footer p,
+.footer > span,
+.footer-admin-login,
+.design-root .footer-brand span{
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.design-root .footer-brand strong{
+    font-size: 11px;
+}
+
+
+/* =========================================
+   PAGE TABS
+========================================= */
+
+.design-root .page-tab[hidden]{
+    display: none !important;
+}
+
+.design-root .page-tab{
+    width: 100%;
+}
+
+.design-root .recruitment-tab{
+    width: 100%;
+}
+
+
+/* =========================================
+   ABOUT TAB
+========================================= */
+
+.design-root .about-tab{
+    background: var(--bg);
+    color: var(--text);
+}
+
+.design-root .about-tab em{
+    color: var(--red-bright);
+    font-style: normal;
+}
+
+
+/* ABOUT HERO */
+
+.design-root .about-hero{
+    min-height: 760px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 145px 9vw 90px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+    background:
+        linear-gradient(
+            90deg,
+            rgba(8,9,9,.98) 0%,
+            rgba(8,9,9,.90) 48%,
+            rgba(8,9,9,.45) 100%
+        ),
+        url("/design-assets/hero.png") center / cover no-repeat;
+}
+
+.design-root .about-hero::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(0,0,0,.18),
+            transparent 45%,
+            rgba(0,0,0,.65)
+        );
+}
+
+.design-root .about-hero-copy{
+    position: relative;
+    z-index: 2;
+    max-width: 760px;
+}
+
+.design-root .about-hero-copy .eyebrow{
+    padding-left: 14px;
+    border-left: 2px solid var(--red);
+}
+
+.design-root .about-hero-copy h1{
+    max-width: 800px;
+    font-family: var(--display);
+    font-size: clamp(64px, 7vw, 104px);
+    line-height: .9;
+    letter-spacing: -.04em;
+}
+
+.design-root .about-lead{
+    max-width: 510px;
+    margin-top: 34px;
+    color: rgba(255,255,255,.62);
+    font-size: 13px;
+    line-height: 1.85;
+}
+
+.design-root .about-hero-mark{
+    position: absolute;
+    z-index: 2;
+    right: 9vw;
+    bottom: 125px;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 22px;
+    border: 1px solid rgba(255,255,255,.16);
+    transform: rotate(45deg);
+    background: rgba(8,9,9,.22);
+}
+
+.about-hero-mark span,
+.design-root .about-hero-mark small{
+    transform: rotate(-45deg);
+}
+
+.design-root .about-hero-mark span{
+    font-family: var(--display);
+    font-size: 43px;
+    line-height: 1;
+}
+
+.design-root .about-hero-mark small{
+    margin-top: 9px;
+    font-size: 7px;
+    line-height: 1.5;
+    letter-spacing: .16em;
+    color: var(--text-muted);
+}
+
+.design-root .about-hero-meta{
+    position: absolute;
+    z-index: 2;
+    left: 9vw;
+    right: 9vw;
+    bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8px;
+    letter-spacing: .16em;
+    color: rgba(255,255,255,.38);
+}
+
+
+/* PHILOSOPHY */
+
+.design-root .about-philosophy{
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 70px;
+    padding: 125px 9vw;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.design-root .about-side-label{
+    padding-top: 7px;
+}
+
+.design-root .about-side-label span{
+    writing-mode: vertical-rl;
+    font-size: 8px;
+    letter-spacing: .18em;
+    color: var(--text-dim);
+}
+
+.design-root .about-philosophy-main{
+    max-width: 900px;
+}
+
+.about-philosophy-main h2,
+.about-section-head h2,
+.design-root .about-journey-copy h2{
+    font-family: var(--display);
+    font-size: clamp(52px, 6vw, 82px);
+    line-height: .93;
+    letter-spacing: -.035em;
+}
+
+.design-root .about-philosophy-copy{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 55px;
+    max-width: 850px;
+    margin-top: 42px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+}
+
+.design-root .about-philosophy-copy p{
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--text-muted);
+}
+
+
+/* PRINCIPLES */
+
+.design-root .about-principles{
+    padding: 125px 9vw;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+}
+
+.design-root .about-section-head{
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 60px;
+    margin-bottom: 65px;
+}
+
+.design-root .about-section-head > div{
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.design-root .about-section-head > div > span{
+    font-size: 10px;
+    color: var(--red-bright);
+}
+
+.design-root .about-principle-grid{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.design-root .about-principle{
+    min-height: 330px;
+    display: grid;
+    grid-template-columns: 35px 1fr;
+    gap: 20px;
+    padding: 38px 35px 38px 0;
+}
+
+.design-root .about-principle + .about-principle{
+    padding-left: 35px;
+    border-left: 1px solid var(--border);
+}
+
+.design-root .about-principle > span{
+    padding-top: 4px;
+    font-size: 9px;
+    color: var(--red-bright);
+}
+
+.design-root .about-principle-kicker{
+    margin-bottom: 18px;
+    font-size: 8px;
+    letter-spacing: .17em;
+    color: var(--text-dim);
+}
+
+.design-root .about-principle h3{
+    font-family: var(--display);
+    font-size: 39px;
+    line-height: 1;
+}
+
+.design-root .about-principle div > p:last-child{
+    max-width: 290px;
+    margin-top: 18px;
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--text-muted);
+}
+
+
+/* JOURNEY */
+
+.design-root .about-journey{
+    min-height: 650px;
+    display: grid;
+    grid-template-columns: 55% 45%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.design-root .about-journey-image{
+    position: relative;
+    min-height: 650px;
+    overflow: hidden;
+}
+
+.design-root .about-journey-image img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: saturate(.78);
+}
+
+.design-root .about-journey-image::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 50%, rgba(0,0,0,.42));
+}
+
+.design-root .about-journey-image span{
+    position: absolute;
+    z-index: 2;
+    left: 28px;
+    bottom: 26px;
+    font-size: 8px;
+    letter-spacing: .14em;
+    color: rgba(255,255,255,.5);
+}
+
+.design-root .about-journey-copy{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 85px;
+}
+
+.design-root .about-journey-copy .body-copy{
+    max-width: 390px;
+}
+
+.design-root .about-journey-copy > p:not(.eyebrow){
+    max-width: 390px;
+    margin-top: 28px;
+    font-size: 12px;
+    line-height: 1.85;
+    color: var(--text-muted);
+}
+
+.design-root .about-journey-copy .btn{
+    margin-top: 30px;
+    align-self: flex-start;
+}
+
+
+/* CLOSING */
+
+.design-root .about-closing{
+    min-height: 520px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 100px 9vw;
+    overflow: hidden;
+    background:
+        linear-gradient(
+            110deg,
+            #080909 0%,
+            #14090a 60%,
+            #080909 100%
+        );
+}
+
+.design-root .about-closing::after{
+    content: "";
+    position: absolute;
+    right: -130px;
+    bottom: -250px;
+    width: 560px;
+    height: 560px;
+    border: 1px solid rgba(255,255,255,.05);
+    border-radius: 50%;
+}
+
+.design-root .about-closing h2{
+    position: relative;
+    z-index: 2;
+    font-family: var(--display);
+    font-size: clamp(58px, 7vw, 105px);
+    line-height: .88;
+    letter-spacing: -.04em;
+}
+
+.design-root .about-closing-line{
+    width: 80px;
+    height: 2px;
+    margin-top: 35px;
+    background: var(--red-bright);
+}
+
+
+/* ABOUT RESPONSIVE */
+
+@media (max-width: 900px) {
+
+    .design-root .about-hero{
+        min-height: 720px;
+        padding: 130px 24px 80px;
+    }
+
+    .design-root .about-hero-mark{
+        right: 45px;
+        bottom: 110px;
+        width: 115px;
+        height: 115px;
+    }
+
+    .design-root .about-hero-mark span{
+        font-size: 32px;
+    }
+
+    .design-root .about-hero-meta{
+        left: 24px;
+        right: 24px;
+    }
+
+    .design-root .about-philosophy{
+        grid-template-columns: 1fr;
+        gap: 35px;
+        padding: 80px 24px;
+    }
+
+    .design-root .about-side-label span{
+        writing-mode: horizontal-tb;
+    }
+
+    .design-root .about-philosophy-copy{
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .design-root .about-principles{
+        padding: 80px 24px;
+    }
+
+    .design-root .about-section-head{
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .design-root .about-principle-grid{
+        grid-template-columns: 1fr;
+    }
+
+    .about-principle,
+    .design-root .about-principle + .about-principle{
+        padding: 30px 0;
+        min-height: 0;
+        border-left: 0;
+    }
+
+    .design-root .about-principle + .about-principle{
+        border-top: 1px solid var(--border);
+    }
+
+    .design-root .about-journey{
+        grid-template-columns: 1fr;
+    }
+
+    .design-root .about-journey-image{
+        min-height: 430px;
+    }
+
+    .design-root .about-journey-copy{
+        padding: 70px 24px;
+    }
+
+    .design-root .about-closing{
+        padding: 80px 24px;
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .design-root .about-hero-mark{
+        display: none;
+    }
+
+    .design-root .about-hero-copy h1{
+        font-size: 58px;
+    }
+
+    .design-root .about-hero-meta{
+        font-size: 7px;
+    }
+
+}
+
+
+/* =========================================
+   ARCHIVE TAB
+========================================= */
+
+.design-root .archive-tab{
+    background: var(--bg);
+    color: var(--text);
+}
+
+.design-root .archive-tab em{
+    color: var(--red-bright);
+    font-style: normal;
+}
+
+
+/* ARCHIVE HERO */
+
+.design-root .archive-hero{
+    min-height: 700px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 145px 9vw 90px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+    background:
+        linear-gradient(
+            90deg,
+            rgba(8,9,9,.98) 0%,
+            rgba(8,9,9,.92) 50%,
+            rgba(8,9,9,.55) 100%
+        ),
+        url("/design-assets/environment.png") center / cover no-repeat;
+}
+
+.design-root .archive-hero::after{
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(0,0,0,.2),
+            transparent 50%,
+            rgba(0,0,0,.65)
+        );
+}
+
+.design-root .archive-hero-copy{
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+}
+
+.design-root .archive-hero-copy .eyebrow{
+    padding-left: 14px;
+    border-left: 2px solid var(--red);
+}
+
+.design-root .archive-hero-copy h1{
+    font-family: var(--display);
+    font-size: clamp(64px, 7vw, 104px);
+    line-height: .9;
+    letter-spacing: -.04em;
+}
+
+.design-root .archive-hero-copy > p:last-child{
+    max-width: 510px;
+    margin-top: 32px;
+    color: rgba(255,255,255,.6);
+    font-size: 13px;
+    line-height: 1.85;
+}
+
+.design-root .archive-hero-index{
+    position: absolute;
+    z-index: 2;
+    right: 9vw;
+    bottom: 100px;
+    width: 170px;
+    height: 170px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 25px;
+    border: 1px solid rgba(255,255,255,.15);
+    transform: rotate(45deg);
+}
+
+.archive-hero-index span,
+.design-root .archive-hero-index small{
+    transform: rotate(-45deg);
+}
+
+.design-root .archive-hero-index span{
+    font-family: var(--display);
+    font-size: 62px;
+    line-height: 1;
+}
+
+.design-root .archive-hero-index small{
+    margin-top: 9px;
+    font-size: 7px;
+    line-height: 1.5;
+    letter-spacing: .15em;
+    color: var(--text-muted);
+}
+
+.design-root .archive-records{
+    padding: 120px 9vw;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.design-root .archive-records-head{
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 50px;
+    margin-bottom: 55px;
+}
+
+.design-root .archive-records-head > div{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.design-root .archive-records-head > div > span{
+    color: var(--red-bright);
+    font-size: 10px;
+}
+
+.design-root .archive-records-head > p{
+    max-width: 350px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.8;
+}
+
+.design-root .archive-record-list{
+    border-top: 1px solid var(--border);
+}
+
+.design-root .archive-record{
+    min-height: 155px;
+    display: grid;
+    grid-template-columns: 50px 90px 1fr 110px;
+    gap: 30px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    transition:
+        background .25s ease,
+        padding .25s ease;
+}
+
+.design-root .archive-record:hover{
+    padding-left: 10px;
+    padding-right: 10px;
+    background: rgba(255,255,255,.018);
+}
+
+.design-root .archive-record-number{
+    font-size: 8px;
+    color: var(--text-dim);
+}
+
+.design-root .archive-record-year{
+    font-family: var(--display);
+    font-size: 29px;
+    color: rgba(255,255,255,.78);
+}
+
+.design-root .archive-record-main > span{
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: .17em;
+    color: var(--text-muted);
+}
+
+.design-root .archive-record-main h2{
+    margin-top: 7px;
+    font-family: var(--display);
+    font-size: 32px;
+    line-height: 1;
+}
+
+.design-root .archive-record-main p{
+    max-width: 470px;
+    margin-top: 9px;
+    color: var(--text-dim);
+    font-size: 10px;
+    line-height: 1.65;
+}
+
+.design-root .archive-record-status{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.design-root .archive-record-status span{
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    color: #6aad78;
+}
+
+.design-root .archive-record-status b{
+    font-size: 18px;
+    font-weight: 400;
+    transition:
+        transform .2s ease,
+        color .2s ease;
+}
+
+.design-root .archive-record:hover .archive-record-status b{
+    transform: translateX(5px);
+    color: var(--red-bright);
+}
+
+
+/* ARCHIVE NOTE */
+
+.design-root .archive-note{
+    min-height: 500px;
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 70px;
+    align-items: center;
+    padding: 100px 9vw;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+}
+
+.design-root .archive-note-number{
+    font-family: var(--display);
+    font-size: 110px;
+    line-height: .8;
+    color: rgba(255,255,255,.05);
+}
+
+.design-root .archive-note h2{
+    font-family: var(--display);
+    font-size: clamp(50px, 5vw, 74px);
+    line-height: .92;
+    letter-spacing: -.035em;
+}
+
+.design-root .archive-note > div:last-child > p:not(.eyebrow){
+    max-width: 480px;
+    margin-top: 25px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.85;
+}
+
+.design-root .archive-note .btn{
+    margin-top: 28px;
+}
+
+
+/* CLOSING */
+
+.design-root .archive-closing{
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 90px 9vw;
+    background: #080909;
+}
+
+.design-root .archive-closing > span{
+    margin-bottom: 24px;
+    font-size: 8px;
+    letter-spacing: .16em;
+    color: var(--text-dim);
+}
+
+.design-root .archive-closing h2{
+    font-family: var(--display);
+    font-size: clamp(56px, 6.5vw, 94px);
+    line-height: .9;
+    letter-spacing: -.04em;
+}
+
+/* =========================================
+   TYPOGRAPHY POLISH — PUBLIC TAB VIEWS
+========================================= */
+
+.recruitment-tab .brand-copy strong,
+.recruitment-tab .back-link,
+.recruitment-tab .eyebrow,
+.recruitment-tab .hero-status,
+.recruitment-tab .hero-label,
+.recruitment-tab .hero-meta,
+.recruitment-tab .countdown span,
+.recruitment-tab .block-heading > div > span,
+.recruitment-tab .block-heading small,
+.recruitment-tab .requirement > span,
+.recruitment-tab .process-item > span,
+.recruitment-tab .process-item em,
+.recruitment-tab .schedule-number,
+.recruitment-tab .schedule-date span,
+.recruitment-tab .schedule-detail span,
+.recruitment-tab .schedule-state,
+.recruitment-tab .footer-brand span,
+.recruitment-tab .footer-note,
+.about-tab .eyebrow,
+.about-hero-meta,
+.about-side-label,
+.about-section-head > div > span,
+.about-principle > span,
+.about-principle-kicker,
+.archive-tab .eyebrow,
+.archive-records-head > div > span,
+.archive-record-main > span,
+.archive-record-status,
+.design-root .archive-closing > span{
+    font-size: 11px;
+    line-height: 1.35;
+    letter-spacing: .08em;
+}
+
+.recruitment-tab .hero-countdown > p,
+.recruitment-tab .requirement p,
+.recruitment-tab .process-item p,
+.recruitment-tab .schedule-header > p,
+.recruitment-tab .cta-content > p:not(.eyebrow),
+.about-lead,
+.about-philosophy-copy p,
+.about-principle div > p:last-child,
+.about-journey-copy > p:not(.eyebrow),
+.archive-hero-copy > p:last-child,
+.archive-record-main p,
+.design-root .archive-note > div:last-child > p:not(.eyebrow){
+    font-size: 15px;
+    line-height: 1.7;
+}
+
+.recruitment-tab .requirement strong,
+.recruitment-tab .process-item strong,
+.recruitment-tab .schedule-date strong,
+.recruitment-tab .schedule-detail strong,
+.about-principle h3,
+.design-root .archive-record-main h2{
+    font-size: 20px;
+    line-height: 1.25;
+}
+
+.recruitment-tab .register-button,
+.recruitment-tab .btn,
+.about-tab .btn,
+.design-root .archive-tab .btn{
+    font-size: 13px;
+}
+
+
+/* ARCHIVE RESPONSIVE */
+
+@media (max-width: 900px) {
+
+    .design-root .archive-hero{
+        min-height: 680px;
+        padding: 130px 24px 80px;
+    }
+
+    .design-root .archive-hero-index{
+        right: 45px;
+        bottom: 95px;
+        width: 120px;
+        height: 120px;
+    }
+
+    .design-root .archive-hero-index span{
+        font-size: 43px;
+    }
+
+    .design-root .archive-hero-index small{
+        font-size: 6px;
+    }
+
+    .design-root .archive-records{
+        padding: 80px 24px;
+    }
+
+    .design-root .archive-records-head{
+        display: block;
+    }
+
+    .design-root .archive-records-head > p{
+        margin-top: 25px;
+    }
+
+    .design-root .archive-record{
+        grid-template-columns: 35px 75px 1fr 80px;
+        gap: 18px;
+    }
+
+    .design-root .archive-note{
+        grid-template-columns: 1fr;
+        gap: 35px;
+        padding: 80px 24px;
+    }
+
+    .design-root .archive-note-number{
+        display: none;
+    }
+
+    .design-root .archive-closing{
+        padding: 80px 24px;
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .design-root .archive-hero-index{
+        display: none;
+    }
+
+    .design-root .archive-hero-copy h1{
+        font-size: 58px;
+    }
+
+    .design-root .archive-record{
+        grid-template-columns: 30px 1fr;
+        gap: 12px;
+        padding: 25px 0;
+    }
+
+    .design-root .archive-record-year{
+        font-size: 23px;
+    }
+
+    .design-root .archive-record-main{
+        grid-column: 2;
+    }
+
+    .design-root .archive-record-status{
+        grid-column: 2;
+        justify-content: flex-start;
+        gap: 22px;
+        margin-top: 8px;
+    }
+
+}
+
+/* Keep utility metadata readable at narrow public-tab sizes. */
+@media (max-width: 900px) {
+    .archive-hero-index small,
+    .about-hero-mark small,
+    .recruitment-tab .footer-brand span,
+    .design-root .recruitment-tab .footer-note{
+        font-size: 10px;
+        letter-spacing: .07em;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 769px) {.hero h1 {
+  width: 620px;
+  height: 226.312px;
+}
+
+.design-root .hero-description{
+  width: 440px;
+  height: 76.5px;
+}}
+
+@media (max-width: 481px) {.hero h1 {
+  width: 620px;
+  height: 226.312px;
+}
+
+.design-root .hero-description{
+  width: 440px;
+  height: 76.5px;
+}}
+
+/* =========================================
+   INTEGRATION PENDING (TASK 02)
+   Penanda CTA/navigasi yang routenya belum ada.
+   Bukan bagian desain asli — hanya state nonaktif.
+========================================= */
+
+.design-root [aria-disabled="true"]{
+    cursor: default;
+}
+
+.design-root .nav-links .nav-pending{
+    padding: 27px 0;
+    font-size: 11px;
+    color: rgba(255,255,255,.35);
+    cursor: default;
+}
+
+.design-root .btn[aria-disabled="true"]:hover{
+    transform: none;
+    background: var(--red);
+}
+
+.design-root .btn-text[aria-disabled="true"]:hover{
+    color: rgba(255,255,255,.7);
+}
+
+.design-root .recruitment-tab .register-button[aria-disabled="true"]:hover{
+    transform: none;
+    background: var(--white);
+}
