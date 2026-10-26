@@ -23,6 +23,18 @@ export async function GET(req: Request) {
     // Cari periode aktif
     const activePeriod = await prisma.examPeriod.findFirst({
       where: { isActive: true, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        isAttendanceOpen: true,
+        isExamOpen: true,
+        examStartTime: true,
+        examEndTime: true,
+        openedAt: true,
+        closedAt: true,
+        deletedAt: true,
+      },
     });
 
     if (!activePeriod) {
@@ -46,6 +58,15 @@ export async function GET(req: Request) {
             ],
             deletedAt: null,
           },
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            discordUsername: true,
+            avatarUrl: true,
+            policeGroupRank: true,
+            robloxId: true,
+          },
         });
         if (dbUser) {
           targetUser = dbUser;
@@ -64,6 +85,14 @@ export async function GET(req: Request) {
               { discordId: { equals: queryUsername, mode: "insensitive" } },
             ],
             deletedAt: null,
+          },
+          select: {
+            id: true,
+            userId: true,
+            fullName: true,
+            robloxUsername: true,
+            discordId: true,
+            status: true,
           },
           orderBy: { createdAt: "desc" },
         });

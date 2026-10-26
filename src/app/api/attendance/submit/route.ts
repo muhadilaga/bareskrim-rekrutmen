@@ -191,6 +191,15 @@ export async function POST(req: Request) {
       // Ambil periode seleksi aktif
       const activePeriod = await prisma.examPeriod.findFirst({
         where: { isActive: true, deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+          isAttendanceOpen: true,
+          isExamOpen: true,
+          examStartTime: true,
+          examEndTime: true,
+        },
       });
       if (!activePeriod) {
         return NextResponse.json(
