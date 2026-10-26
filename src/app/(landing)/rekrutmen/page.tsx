@@ -14,23 +14,31 @@ export const dynamic = "force-dynamic";
 
 // Rekrutmen = tab "recruitment" desain asli (index.html).
 export default async function RekrutmenPage() {
-  const [content, activePeriod, activeRecruitment] = await Promise.all([
-    getSiteContent(),
-    prisma.examPeriod.findFirst({
+  const content = await getSiteContent();
+  let activePeriod: Awaited<ReturnType<typeof prisma.examPeriod.findFirst>> = null;
+  let activeRecruitment: Awaited<ReturnType<typeof prisma.recruitmentPeriod.findFirst>> = null;
+
+  try {
+    activePeriod = await prisma.examPeriod.findFirst({
       where: { isActive: true, deletedAt: null },
-      include: { recruitmentPeriod: true },
       orderBy: { openedAt: "desc" },
-    }),
-    prisma.recruitmentPeriod.findFirst({
+    });
+  } catch (err) {
+    console.warn("[rekrutmen] examPeriod query skipped:", err && (err as Error).message);
+  }
+
+  try {
+    activeRecruitment = await prisma.recruitmentPeriod.findFirst({
       where: { isActive: true, deletedAt: null },
       orderBy: { createdAt: "desc" },
-    }),
-  ]);
+    });
+  } catch (err) {
+    console.warn("[rekrutmen] recruitmentPeriod query skipped:", err && (err as Error).message);
+  }
 
   const closingDate =
     activePeriod?.closedAt ||
     activeRecruitment?.closedAt ||
-    activePeriod?.recruitmentPeriod?.closedAt ||
     null;
 
   const deadlineIso = closingDate ? closingDate.toISOString() : null;

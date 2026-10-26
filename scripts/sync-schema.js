@@ -63,21 +63,31 @@ async function main() {
       );
     `);
 
-    // 4. Ensure RecruitmentPeriod table exists
+    // 4. Ensure RecruitmentPeriod table exists and has proper schema
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "RecruitmentPeriod" (
         "id" TEXT NOT NULL PRIMARY KEY,
-        "name" TEXT NOT NULL,
-        "description" TEXT,
-        "batch" INTEGER NOT NULL DEFAULT 1,
-        "phase" TEXT NOT NULL DEFAULT 'ACADEMIC',
-        "status" TEXT NOT NULL DEFAULT 'ACTIVE',
-        "startDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "endDate" TIMESTAMP(3),
+        "code" TEXT NOT NULL DEFAULT 'DEFAULT',
+        "name" TEXT NOT NULL DEFAULT 'Angkatan',
+        "openedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "closedAt" TIMESTAMP(3) NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days'),
+        "isActive" BOOLEAN NOT NULL DEFAULT false,
+        "deletedAt" TIMESTAMP(3),
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "deletedAt" TIMESTAMP(3)
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "code" TEXT;
+      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "name" TEXT DEFAULT 'Angkatan';
+      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "openedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "closedAt" TIMESTAMP(3) DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days');
+      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN DEFAULT false;
+      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);
+      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+      UPDATE "RecruitmentPeriod" SET "code" = id WHERE "code" IS NULL OR "code" = '';
     `);
 
     console.log("[sync-schema] Schema synchronization completed successfully.");
