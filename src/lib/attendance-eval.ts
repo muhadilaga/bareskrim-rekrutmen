@@ -105,7 +105,7 @@ export async function verifyCandidateWhitelist(robloxUsername: string): Promise<
     };
   }
 
-  // 3. Cek User dan Application (daftar casis)
+  // 3. Cek User dan Application (daftar casis yang sudah ada sebelumnya)
   const [existingUser, existingApp] = await Promise.all([
     prisma.user.findFirst({
       where: {
@@ -133,13 +133,8 @@ export async function verifyCandidateWhitelist(robloxUsername: string): Promise<
     }),
   ]);
 
-  if (!existingUser && !existingApp) {
-    return {
-      allowed: false,
-      blockReason: `Nama Roblox '@${trimmed}' belum terdaftar dalam daftar casis Bareskrim. Pastikan Anda telah terdaftar atau hubungi instruktur/personel Pusdik.`,
-    };
-  }
-
+  // Casis yang belum terdaftar di database tetap diizinkan absen (auto-register),
+  // selama tidak masuk dalam daftar Blacklist maupun Putusan Sidang TIDAK LULUS.
   return {
     allowed: true,
     user: existingUser,

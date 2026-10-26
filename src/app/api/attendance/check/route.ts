@@ -124,15 +124,21 @@ export async function GET(req: Request) {
         }
       }
 
-      // Tidak ditemukan di User maupun Application
+      // Belum ada di database -> Diizinkan mendaftar dan absen (auto-register)
       if (!targetUser) {
         return NextResponse.json({
           ok: true,
-          registered: false,
+          registered: true,
           attended: false,
           attendanceOpen: activePeriod.isAttendanceOpen,
-          message: "Username belum terdaftar di whitelist calon siswa.",
+          message: "Anda belum mengisi absensi. Silakan isi form absensi di tab FORM ABSENSI CASIS.",
           period: { id: activePeriod.id, name: activePeriod.name },
+          user: {
+            username: queryUsername,
+            displayName: queryUsername,
+            avatarUrl: null,
+            policeGroupRank: "CASIS",
+          },
         });
       }
     }

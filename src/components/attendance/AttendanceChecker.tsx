@@ -95,10 +95,10 @@ export function AttendanceChecker() {
       setFeedback({ ok: false, message: "Username Discord wajib diisi." });
       return;
     }
-    if (!motivation.trim() || motivation.trim().length < 20) {
+    if (!motivation.trim()) {
       setFeedback({
         ok: false,
-        message: "Motivasi minimal 20 karakter agar dapat dievaluasi untuk Tahap Akademik.",
+        message: "Motivasi wajib diisi untuk absensi.",
       });
       return;
     }
@@ -732,12 +732,12 @@ export function AttendanceChecker() {
                 ) : (
                   <div className="attendance-result-card text-center py-2" style={{ color: "var(--casis-muted)" }}>
                     <p style={{ fontWeight: 700, color: "var(--casis-text)", margin: 0 }}>
-                      {checkResult.registered ? "Belum Mengisi Absensi" : "Tidak Terdaftar di Whitelist"}
+                      {checkResult.registered ? "Belum Mengisi Absensi" : "Perhatian"}
                     </p>
                     <p style={{ margin: "6px 0 0", fontSize: "12px" }}>
                       {checkResult.registered
-                        ? "Anda terdaftar sebagai calon siswa. Silakan isi form absensi di tab sebelah."
-                        : checkResult.message || "Pastikan penulisan username Roblox Anda sesuai dengan berkas."}
+                        ? "Anda dapat mengisi form absensi di tab FORM ABSENSI CASIS."
+                        : checkResult.message || "Pastikan penulisan username Roblox Anda benar."}
                     </p>
                   </div>
                 )}

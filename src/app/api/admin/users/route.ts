@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getAdminKey } from "@/lib/constants";
+import { getAdminKey, CONFIG } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logAdminAction } from "@/lib/audit";
 import { ensureSchema } from "@/lib/init-schema";
+import { assignDiscordRoleAndNickname } from "@/lib/discord-api";
 
 // GET: List semua casis + status absensi + status ujian
 export async function GET(req: Request) {
@@ -243,16 +244,38 @@ export async function PATCH(req: Request) {
       },
     });
 
+    let roleAssigned = false;
+    let roleError: string | null = null;
+    if (roleEligible === true && updated.discordUserId && updated.user?.username) {
+      if (CONFIG.discordBotToken && CONFIG.discordGuildId) {
+        try {
+          const res = await assignDiscordRoleAndNickname(
+            updated.discordUserId,
+            "Tahap Akademik",
+            `[CASIS] ${updated.user.username}`
+          );
+          roleAssigned = res.ok;
+          if (!res.ok) roleError = res.message;
+        } catch (err: any) {
+          roleError = err?.message;
+        }
+      }
+    }
+
     await logAdminAction({
       action: "OVERRIDE_MOTIVASI_CASIS",
       target: updated.user?.username ?? attendanceId,
-      detail: { motivationStatus, roleEligible, motivationReason },
+      detail: { motivationStatus, roleEligible, motivationReason, roleAssigned, roleError },
     });
 
     return NextResponse.json({
       ok: true,
-      message: "Status motivasi dan kelayakan akademik casis berhasil diperbarui.",
+      message: roleEligible
+        ? "Status motivasi casis berhasil disetujui & role Tahap Akademik telah diperbarui."
+        : "Status motivasi dan kelayakan akademik casis berhasil diperbarui.",
       attendance: updated,
+      roleAssigned,
+      roleError,
     });
   } catch (error) {
     console.error("Admin patch casis error:", error);

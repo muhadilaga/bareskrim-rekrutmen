@@ -161,6 +161,33 @@ export async function POST(req: Request) {
             data: { userId: user.id },
           }).catch(() => null);
         }
+      } else {
+        // Casis baru (auto-register saat absensi)
+        let robloxId = 0;
+        let avatarUrl: string | null = null;
+        let policeGroupRank = "CASIS";
+        let displayName = robloxUsernameInput;
+        try {
+          const summary = await getRobloxUserSummary(robloxUsernameInput);
+          if (summary) {
+            robloxId = summary.id;
+            avatarUrl = summary.avatarUrl;
+            if (summary.displayName) displayName = summary.displayName;
+            if (summary.policeGroupRank) policeGroupRank = summary.policeGroupRank;
+          }
+        } catch {}
+
+        const finalRobloxId = robloxId > 0 ? BigInt(robloxId) : BigInt(-Date.now());
+        user = await prisma.user.create({
+          data: {
+            username: robloxUsernameInput,
+            displayName,
+            discordUsername: discordUserId ? discordUserId.trim() : null,
+            robloxId: finalRobloxId,
+            avatarUrl,
+            policeGroupRank,
+          },
+        });
       }
 
       if (user) {
@@ -311,8 +338,8 @@ export async function POST(req: Request) {
         const response = NextResponse.json({
           ok: true,
           message: evalResult.roleEligible
-            ? "Revisi motivasi berhasil! Anda telah memenuhi syarat Tahap Akademik. Silakan menunggu jadwal ujian."
-            : "Revisi motivasi tercatat, namun masih memerlukan perbaikan agar dapat lolos Tahap Akademik.",
+            ? "Revisi motivasi berhasil! Motivasi Anda disetujui dan status Tahap Akademik telah aktif. Silakan menunggu jadwal ujian."
+            : "Revisi motivasi tercatat. Motivasi dinilai masih kurang oleh sistem dan dialihkan untuk peninjauan lebih lanjut oleh instruktur di Admin Panel.",
           roleEligible: evalResult.roleEligible,
           motivationStatus: evalResult.status,
           motivationReason: evalResult.reason,
@@ -386,17 +413,21 @@ export async function POST(req: Request) {
     let roleError: string | null = null;
 
     if (CONFIG.discordBotToken && CONFIG.discordGuildId) {
-      const result = await assignDiscordRoleAndNickname(
-        discordUserId.trim(),
-        "Tahap Akademik",
-        `[CASIS] ${user.username}`
-      );
-      roleAssigned = result.ok;
-      roleError = result.ok
-        ? result.nicknameOk
-          ? null
-          : `Role berhasil, tapi nickname gagal diubah: ${result.nicknameMessage}`
-        : result.message;
+      if (evalResult.roleEligible) {
+        const result = await assignDiscordRoleAndNickname(
+          discordUserId.trim(),
+          "Tahap Akademik",
+          `[CASIS] ${user.username}`
+        );
+        roleAssigned = result.ok;
+        roleError = result.ok
+          ? result.nicknameOk
+            ? null
+            : `Role berhasil, tapi nickname gagal diubah: ${result.nicknameMessage}`
+          : result.message;
+      } else {
+        roleError = "Motivasi dinilai kurang oleh sistem dan dalam peninjauan instruktur. Role Tahap Akademik akan diberikan setelah disetujui di Admin Panel.";
+      }
     } else {
       roleError = "DISCORD_BOT_TOKEN / DISCORD_GUILD_ID belum dikonfigurasi.";
     }
@@ -410,7 +441,7 @@ export async function POST(req: Request) {
 
     const successMessage = evalResult.roleEligible
       ? "Absensi berhasil! Motivasi Anda disetujui dan status Tahap Akademik telah aktif. Silakan menunggu jadwal ujian yang disepakati bersama instruktur atau personel Pusdik."
-      : "Absensi berhasil dicatat, namun motivasi Anda memerlukan revisi agar memenuhi kriteria Tahap Akademik. Silakan perbarui motivasi Anda.";
+      : "Absensi berhasil dicatat! Motivasi Anda dinilai kurang oleh sistem, sehingga otomatis dialihkan untuk ditinjau lebih lanjut oleh instruktur di Admin Panel.";
 
     let token: string | null = null;
     try {
