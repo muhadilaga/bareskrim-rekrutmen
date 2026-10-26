@@ -100,10 +100,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, users: result });
   } catch (error) {
     console.error("Admin list users error:", error);
-    return NextResponse.json(
-      { ok: false, message: "Gagal memuat data casis" },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: true, users: [] });
   }
 }
 

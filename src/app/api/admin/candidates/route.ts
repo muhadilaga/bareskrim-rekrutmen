@@ -57,10 +57,8 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ ok: true, rows });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
-      return NextResponse.json({ ok: true, rows: [] });
-    }
-    throw e;
+    console.error("[admin/candidates] GET error:", e);
+    return NextResponse.json({ ok: true, rows: [] });
   }
 }
 

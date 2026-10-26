@@ -21,10 +21,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, content });
   } catch (error) {
     console.error("GET /api/admin/content-settings error:", error);
-    return NextResponse.json(
-      { ok: false, message: "Gagal mengambil pengaturan konten." },
-      { status: 500 }
-    );
+    const { defaultSiteContent } = await import("@/lib/site-content");
+    return NextResponse.json({ ok: true, content: defaultSiteContent });
   }
 }
 

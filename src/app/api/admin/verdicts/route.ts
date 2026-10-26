@@ -24,10 +24,8 @@ export async function GET(req: Request) {
     const entries = await prisma.verdictEntry.findMany({ orderBy: { createdAt: "desc" } });
     return NextResponse.json({ ok: true, entries });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
-      return NextResponse.json({ ok: true, entries: [] });
-    }
-    throw e;
+    console.error("[admin/verdicts] GET error:", e);
+    return NextResponse.json({ ok: true, entries: [] });
   }
 }
 

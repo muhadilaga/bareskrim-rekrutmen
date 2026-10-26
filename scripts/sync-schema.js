@@ -78,17 +78,38 @@ async function main() {
       );
     `);
 
-    await prisma.$executeRawUnsafe(`
-      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "code" TEXT;
-      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "name" TEXT DEFAULT 'Angkatan';
-      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "openedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
-      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "closedAt" TIMESTAMP(3) DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days');
-      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN DEFAULT false;
-      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);
-      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
-      ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
-      UPDATE "RecruitmentPeriod" SET "code" = id WHERE "code" IS NULL OR "code" = '';
-    `);
+    const additionalStatements = [
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "code" TEXT`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "name" TEXT DEFAULT 'Angkatan'`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "batch" INTEGER DEFAULT 1`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "phase" TEXT DEFAULT 'TAHAP_1'`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "status" TEXT DEFAULT 'DIBUKA'`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "startDate" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "endDate" TIMESTAMP(3) DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days')`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "openedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "closedAt" TIMESTAMP(3) DEFAULT (CURRENT_TIMESTAMP + INTERVAL '30 days')`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN DEFAULT false`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3)`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP`,
+      `ALTER TABLE "RecruitmentPeriod" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP`,
+      `UPDATE "RecruitmentPeriod" SET "code" = id WHERE "code" IS NULL OR "code" = ''`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS "RecruitmentPeriod_code_key" ON "RecruitmentPeriod"("code")`,
+      `CREATE TABLE IF NOT EXISTS "RuntimeSetting" ("key" TEXT NOT NULL PRIMARY KEY, "value" JSONB NOT NULL DEFAULT '{}'::jsonb, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+      `CREATE TABLE IF NOT EXISTS "OAuthState" ("id" TEXT NOT NULL PRIMARY KEY, "stateId" TEXT NOT NULL DEFAULT '', "state" TEXT NOT NULL DEFAULT '', "codeVerifier" TEXT NOT NULL DEFAULT '', "nonce" TEXT NOT NULL DEFAULT '', "expiresAt" TIMESTAMP(3) NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '10 minutes'), "consumedAt" TIMESTAMP(3), "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+      `CREATE TABLE IF NOT EXISTS "BlacklistEntry" ("id" TEXT NOT NULL PRIMARY KEY, "robloxId" TEXT NOT NULL DEFAULT '', "robloxUsername" TEXT NOT NULL DEFAULT '', "reason" TEXT NOT NULL DEFAULT '', "notes" TEXT, "source" TEXT NOT NULL DEFAULT 'MANUAL', "addedBy" TEXT NOT NULL DEFAULT '', "isActive" BOOLEAN NOT NULL DEFAULT true, "revokedAt" TIMESTAMP(3), "revokedBy" TEXT, "revokeReason" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+      `CREATE TABLE IF NOT EXISTS "VerdictEntry" ("id" TEXT NOT NULL PRIMARY KEY, "robloxId" TEXT NOT NULL DEFAULT '', "robloxUsername" TEXT NOT NULL DEFAULT '', "status" TEXT NOT NULL DEFAULT '', "notes" TEXT, "decidedBy" TEXT NOT NULL DEFAULT '', "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+      `CREATE TABLE IF NOT EXISTS "PendingDiscordReport" ("id" TEXT NOT NULL PRIMARY KEY, "channelId" TEXT NOT NULL DEFAULT '', "messageId" TEXT, "payload" JSONB NOT NULL DEFAULT '{}'::jsonb, "retries" INTEGER NOT NULL DEFAULT 0, "status" TEXT NOT NULL DEFAULT 'PENDING', "error" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+      `CREATE TABLE IF NOT EXISTS "AdminLog" ("id" TEXT NOT NULL PRIMARY KEY, "action" TEXT NOT NULL DEFAULT '', "admin" TEXT NOT NULL DEFAULT '', "details" JSONB, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`,
+      `CREATE TABLE IF NOT EXISTS "StudentActionLog" ("id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL DEFAULT '', "action" TEXT NOT NULL DEFAULT '', "details" JSONB, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP)`
+    ];
+
+    for (const sql of additionalStatements) {
+      try {
+        await prisma.$executeRawUnsafe(sql);
+      } catch (e) {
+        console.warn("[sync-schema] Notice on statement:", sql.slice(0, 40), e?.message || e);
+      }
+    }
 
     console.log("[sync-schema] Schema synchronization completed successfully.");
   } catch (err) {

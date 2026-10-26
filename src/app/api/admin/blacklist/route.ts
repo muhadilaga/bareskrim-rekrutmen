@@ -30,10 +30,8 @@ export async function GET(req: Request) {
     });
     return NextResponse.json({ ok: true, entries });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
-      return NextResponse.json({ ok: true, entries: [] });
-    }
-    throw e;
+    console.error("[admin/blacklist] GET error:", e);
+    return NextResponse.json({ ok: true, entries: [] });
   }
 }
 

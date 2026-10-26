@@ -52,10 +52,24 @@ export async function GET(req: Request) {
     });
   } catch (error) {
     console.error("Admin applications GET error:", error);
-    return NextResponse.json({
-      ok: false,
-      message: "Internal server error",
-    }, { status: 500 });
+    try {
+      const basicApplications = await prisma.application.findMany({
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          registrationId: true,
+          status: true,
+          fullName: true,
+          robloxUsername: true,
+          userId: true,
+          createdAt: true,
+          deletedAt: true,
+        },
+      });
+      return NextResponse.json({ ok: true, applications: basicApplications });
+    } catch {
+      return NextResponse.json({ ok: true, applications: [] });
+    }
   }
 }
 

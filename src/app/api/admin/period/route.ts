@@ -291,10 +291,15 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ ok: true, periods, recruitmentPeriods });
   } catch (e) {
-    if (isTableMissing(e)) {
+    console.error("[admin/period] Error in GET /api/admin/period:", e);
+    try {
+      const basicPeriods = await prisma.examPeriod.findMany({
+        orderBy: { openedAt: "desc" },
+      });
+      return NextResponse.json({ ok: true, periods: basicPeriods, recruitmentPeriods: [] });
+    } catch {
       return NextResponse.json({ ok: true, periods: [], recruitmentPeriods: [] });
     }
-    throw e;
   }
 }
 

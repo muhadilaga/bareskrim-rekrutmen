@@ -67,8 +67,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
 
-  const settings = await getEffectiveSettings();
-  return NextResponse.json({ ok: true, settings: maskSettings(settings) });
+  try {
+    const settings = await getEffectiveSettings();
+    return NextResponse.json({ ok: true, settings: maskSettings(settings) });
+  } catch (error) {
+    console.error("GET /api/admin/settings error:", error);
+    const { getSettings } = await import("@/lib/constants");
+    return NextResponse.json({ ok: true, settings: maskSettings(getSettings()) });
+  }
 }
 
 export async function PATCH(req: Request) {

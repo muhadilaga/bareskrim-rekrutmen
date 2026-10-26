@@ -39,10 +39,8 @@ export async function GET(req: Request) {
     const questions = await prisma.question.findMany({ orderBy: { createdAt: "desc" } });
     return NextResponse.json({ ok: true, questions });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2021") {
-      return NextResponse.json({ ok: true, questions: [] });
-    }
-    throw e;
+    console.error("[admin/questions] GET error:", e);
+    return NextResponse.json({ ok: true, questions: [] });
   }
 }
 

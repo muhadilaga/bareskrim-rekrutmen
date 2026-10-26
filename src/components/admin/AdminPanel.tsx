@@ -228,17 +228,28 @@ export function AdminPanel() {
     if (initialCheckRef.current) return;
     initialCheckRef.current = true;
     const savedKey = sessionStorage.getItem("admin_key");
+    const savedStaff = sessionStorage.getItem("admin_staff_discord_username");
+    if (savedKey) setKey(savedKey);
+    if (savedStaff) setStaffDiscordUsername(savedStaff);
     if (!savedKey) return;
+
     fetch("/api/admin/auth/session", {
       headers: { "Content-Type": "application/json", "x-admin-key": savedKey },
       credentials: "include",
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((sj) => {
-        if (sj?.verified) {
+        if (!sj || !sj.ok) {
+          sessionStorage.removeItem("admin_key");
+          sessionStorage.removeItem("admin_staff_discord_username");
+          setKey("");
+          setAuthStep("key");
+          return;
+        }
+        if (sj.verified) {
           setVerifiedAdmin(sj.verifiedAdmin ?? null);
-          setAuthStep("staff");
-          load();
+          setAuthed(true);
+          load(savedKey);
         } else {
           setAuthStep("staff");
         }
@@ -246,6 +257,52 @@ export function AdminPanel() {
       .catch(() => setAuthStep("key"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const load = useCallback(async (overrideKey?: string | unknown) => {
+    const activeKey =
+      typeof overrideKey === "string"
+        ? overrideKey
+        : key || (typeof window !== "undefined" ? sessionStorage.getItem("admin_key") || "" : "");
+    const activeHeaders = { "Content-Type": "application/json", "x-admin-key": activeKey };
+
+    try {
+      const [p, q, d] = await Promise.all([
+        fetch("/api/admin/period", { headers: activeHeaders }),
+        fetch("/api/admin/questions", { headers: activeHeaders }),
+        fetch("/api/admin/init", { headers: activeHeaders }).catch(() => null),
+      ]);
+      // Hanya batalkan authed bila kunci ditolak server (401/403).
+      // Kegagalan lain (network, 5xx) TIDAK membuat user keluar.
+      if (p.status === 401 || p.status === 403 || q.status === 401 || q.status === 403) {
+        setAuthed(false);
+        setMsg({ ok: false, text: "Admin belum lolos verifikasi dua tahap atau sesi sudah habis." });
+        return;
+      }
+      const pj = p.ok ? await p.json().catch(() => ({ ok: true, periods: [], recruitmentPeriods: [] })) : { ok: true, periods: [], recruitmentPeriods: [] };
+      const qj = q.ok ? await q.json().catch(() => ({ ok: true, questions: [] })) : { ok: true, questions: [] };
+      const dj = d && d.ok ? await d.json().catch(() => null) : null;
+      setPeriods(Array.isArray(pj?.periods) ? pj.periods : []);
+      if (Array.isArray(pj?.recruitmentPeriods)) {
+        setRecruitmentPeriods(pj.recruitmentPeriods);
+      }
+      setQuestions(Array.isArray(qj?.questions) ? qj.questions : []);
+      setDbReady(typeof dj?.initialized === "boolean" ? dj.initialized : true);
+      setAuthed(true);
+      // Simpan kunci agar tidak perlu memasukkan ulang saat pindah panel/refresh.
+      if (activeKey) {
+        setKey(activeKey);
+        sessionStorage.setItem("admin_key", activeKey);
+      }
+      // Muat statistik ringan saja; log/diagnostics/discord queue dimuat saat tab terkait dibuka.
+      fetch("/api/admin/stats", { headers: activeHeaders })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((sj) => setStats(sj?.stats ?? null))
+        .catch(() => {});
+    } catch (e) {
+      console.error("[AdminPanel] load error:", e);
+      setAuthed(true);
+    }
+  }, [key]);
 
   const verifyStaff = useCallback(async () => {
     if (!key.trim()) {
@@ -279,13 +336,13 @@ export function AdminPanel() {
       sessionStorage.setItem("admin_staff_discord_username", staffDiscordUsername.trim());
       setAuthStep("staff");
       setMsg({ ok: true, text: `Admin terverifikasi sebagai ${json.verifiedAdmin?.discordUsername ?? staffDiscordUsername.trim()}.` });
-      await load();
+      await load(key.trim());
     } catch {
       setMsg({ ok: false, text: "Gagal memverifikasi staff pusdik." });
     } finally {
       setAuthBusy(false);
     }
-  }, [key, staffDiscordUsername]);
+  }, [key, staffDiscordUsername, load]);
 
   const logoutAdmin = useCallback(async () => {
     await fetch("/api/admin/auth/session", { method: "DELETE", credentials: "include" }).catch(() => null);
@@ -298,42 +355,6 @@ export function AdminPanel() {
     setAuthStep("key");
     setMsg(null);
   }, []);
-
-  const load = useCallback(async () => {
-    const [p, q, d] = await Promise.all([
-      fetch("/api/admin/period", { headers }),
-      fetch("/api/admin/questions", { headers }),
-      fetch("/api/admin/init", { headers }).catch(() => null),
-    ]);
-    // Hanya batalkan authed bila kunci ditolak server (401/403).
-    // Kegagalan lain (network, 5xx) TIDAK membuat user keluar.
-    if (p.status === 401 || p.status === 403 || q.status === 401 || q.status === 403) {
-      setAuthed(false);
-      setMsg({ ok: false, text: "Admin belum lolos verifikasi dua tahap atau sesi sudah habis." });
-      return;
-    }
-    if (!p.ok || !q.ok) {
-      setMsg({ ok: false, text: "Gagal memuat data. Coba lagi." });
-      return;
-    }
-    const pj = await p.json();
-    const qj = await q.json();
-    const dj = d && d.ok ? await d.json() : null;
-    setPeriods(pj.periods);
-    if (Array.isArray(pj.recruitmentPeriods)) {
-      setRecruitmentPeriods(pj.recruitmentPeriods);
-    }
-    setQuestions(qj.questions);
-    setDbReady(typeof dj?.initialized === "boolean" ? dj.initialized : true);
-    setAuthed(true);
-    // Simpan kunci agar tidak perlu memasukkan ulang saat pindah panel/refresh.
-    if (key) sessionStorage.setItem("admin_key", key);
-    // Muat statistik ringan saja; log/diagnostics/discord queue dimuat saat tab terkait dibuka.
-    fetch("/api/admin/stats", { headers })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((sj) => setStats(sj?.stats ?? null))
-      .catch(() => {});
-  }, [headers, key]);
 
   useEffect(() => {
     if (!authed) return;
