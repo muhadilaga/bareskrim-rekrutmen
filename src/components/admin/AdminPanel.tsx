@@ -266,10 +266,9 @@ export function AdminPanel() {
     const activeHeaders = { "Content-Type": "application/json", "x-admin-key": activeKey };
 
     try {
-      const [p, q, d] = await Promise.all([
+      const [p, q] = await Promise.all([
         fetch("/api/admin/period", { headers: activeHeaders }),
         fetch("/api/admin/questions", { headers: activeHeaders }),
-        fetch("/api/admin/init", { headers: activeHeaders }).catch(() => null),
       ]);
       // Hanya batalkan authed bila kunci ditolak server (401/403).
       // Kegagalan lain (network, 5xx) TIDAK membuat user keluar.
@@ -278,15 +277,22 @@ export function AdminPanel() {
         setMsg({ ok: false, text: "Admin belum lolos verifikasi dua tahap atau sesi sudah habis." });
         return;
       }
-      const pj = p.ok ? await p.json().catch(() => ({ ok: true, periods: [], recruitmentPeriods: [] })) : { ok: true, periods: [], recruitmentPeriods: [] };
-      const qj = q.ok ? await q.json().catch(() => ({ ok: true, questions: [] })) : { ok: true, questions: [] };
-      const dj = d && d.ok ? await d.json().catch(() => null) : null;
-      setPeriods(Array.isArray(pj?.periods) ? pj.periods : []);
-      if (Array.isArray(pj?.recruitmentPeriods)) {
-        setRecruitmentPeriods(pj.recruitmentPeriods);
+      const pj = p.ok ? await p.json().catch(() => null) : null;
+      const qj = q.ok ? await q.json().catch(() => null) : null;
+
+      if (pj && Array.isArray(pj.periods)) {
+        setPeriods(pj.periods);
+        if (Array.isArray(pj.recruitmentPeriods)) {
+          setRecruitmentPeriods(pj.recruitmentPeriods);
+        }
+      } else if (!p.ok) {
+        setMsg({ ok: false, text: "Gagal memuat data periode dari database. Silakan muat ulang." });
       }
-      setQuestions(Array.isArray(qj?.questions) ? qj.questions : []);
-      setDbReady(typeof dj?.initialized === "boolean" ? dj.initialized : true);
+
+      if (qj && Array.isArray(qj.questions)) {
+        setQuestions(qj.questions);
+      }
+      setDbReady(true);
       setAuthed(true);
       // Simpan kunci agar tidak perlu memasukkan ulang saat pindah panel/refresh.
       if (activeKey) {

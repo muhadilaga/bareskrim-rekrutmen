@@ -30,6 +30,31 @@ if (
   );
 }
 
+function optimizePrismaUrl(url?: string): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes("pooler.supabase.com")) {
+      // 1. Switch port from 5432 (Session mode, limit 15 connections)
+      //    to 6543 (Transaction mode, built for serverless, handles 1000+ connections).
+      if (parsed.port === "5432") {
+        parsed.port = "6543";
+      }
+      // 2. Transaction mode on PgBouncer requires pgbouncer=true to disable prepared statements.
+      parsed.searchParams.set("pgbouncer", "true");
+      // 3. In serverless functions, limit connection count to 1 per lambda.
+      parsed.searchParams.set("connection_limit", "1");
+      if (!parsed.searchParams.has("pool_timeout")) {
+        parsed.searchParams.set("pool_timeout", "10");
+      }
+      return parsed.toString();
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =
@@ -41,12 +66,12 @@ export const prisma =
         datasources: {
           db: {
             // Dev/test: placeholder aman (tidak pernah menyambung ke host nyata).
-            // Production: terjaga oleh guard di atas.
-            url: rawUrl || "postgresql://placeholder:***@localhost:5432/placeholder",
+            // Production: terjaga oleh guard di atas dan dioptimasi untuk serverless pooler.
+            url: optimizePrismaUrl(rawUrl) || "postgresql://placeholder:***@localhost:5432/placeholder",
           },
         },
       });
 
-if (process.env.NODE_ENV !== "production" && typeof window === "undefined") {
+if (typeof window === "undefined") {
   globalForPrisma.prisma = prisma;
 }

@@ -248,59 +248,67 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, message: "Tidak diizinkan." }, { status: 401 });
   }
 
+  let periods: any[] = [];
   try {
-    const [periods, recruitmentPeriods] = await Promise.all([
-      prisma.examPeriod.findMany({
-        include: {
-          recruitmentPeriod: {
-            select: { id: true, code: true, name: true, deletedAt: true },
-          },
-          _count: { select: { attempts: true, attendances: true } },
-          attempts: {
-            select: {
-              id: true,
-              submittedAt: true,
-              user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
-            },
-          },
-          attendances: {
-            select: {
-              id: true,
-              discordUserId: true,
-              user: { select: { id: true, username: true, displayName: true } },
-            },
+    periods = await prisma.examPeriod.findMany({
+      include: {
+        recruitmentPeriod: {
+          select: { id: true, code: true, name: true, deletedAt: true },
+        },
+        _count: { select: { attempts: true, attendances: true } },
+        attempts: {
+          select: {
+            id: true,
+            submittedAt: true,
+            user: { select: { id: true, username: true, displayName: true, avatarUrl: true } },
           },
         },
-      }),
-      prisma.recruitmentPeriod.findMany({
-        where: { deletedAt: null },
-        select: { id: true, code: true, name: true, isActive: true },
-        orderBy: { createdAt: "desc" },
-      }),
-    ]);
-
-    periods.sort((a, b) => {
-      if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
-      const aOpened = a.openedAt ? new Date(a.openedAt).getTime() : 0;
-      const bOpened = b.openedAt ? new Date(b.openedAt).getTime() : 0;
-      if (aOpened !== bOpened) return bOpened - aOpened;
-      const aClosed = a.closedAt ? new Date(a.closedAt).getTime() : 0;
-      const bClosed = b.closedAt ? new Date(b.closedAt).getTime() : 0;
-      return bClosed - aClosed;
+        attendances: {
+          select: {
+            id: true,
+            discordUserId: true,
+            user: { select: { id: true, username: true, displayName: true } },
+          },
+        },
+      },
     });
-
-    return NextResponse.json({ ok: true, periods, recruitmentPeriods });
-  } catch (e) {
-    console.error("[admin/period] Error in GET /api/admin/period:", e);
+  } catch (err: any) {
+    console.warn("[admin/period] Falling back to basic examPeriod:", err?.message);
     try {
-      const basicPeriods = await prisma.examPeriod.findMany({
+      periods = await prisma.examPeriod.findMany({
         orderBy: { openedAt: "desc" },
       });
-      return NextResponse.json({ ok: true, periods: basicPeriods, recruitmentPeriods: [] });
-    } catch {
-      return NextResponse.json({ ok: true, periods: [], recruitmentPeriods: [] });
+    } catch (fallbackErr: any) {
+      console.error("[admin/period] Fatal error fetching periods:", fallbackErr?.message);
+      return NextResponse.json(
+        { ok: false, message: "Gagal memuat data periode dari database.", periods: [], recruitmentPeriods: [] },
+        { status: 500 }
+      );
     }
   }
+
+  let recruitmentPeriods: any[] = [];
+  try {
+    recruitmentPeriods = await prisma.recruitmentPeriod.findMany({
+      where: { deletedAt: null },
+      select: { id: true, code: true, name: true, isActive: true },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (err: any) {
+    console.warn("[admin/period] Notice on recruitmentPeriod query:", err?.message);
+  }
+
+  periods.sort((a, b) => {
+    if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+    const aOpened = a.openedAt ? new Date(a.openedAt).getTime() : 0;
+    const bOpened = b.openedAt ? new Date(b.openedAt).getTime() : 0;
+    if (aOpened !== bOpened) return bOpened - aOpened;
+    const aClosed = a.closedAt ? new Date(a.closedAt).getTime() : 0;
+    const bClosed = b.closedAt ? new Date(b.closedAt).getTime() : 0;
+    return bClosed - aClosed;
+  });
+
+  return NextResponse.json({ ok: true, periods, recruitmentPeriods });
 }
 
 export async function PATCH(req: Request) {
