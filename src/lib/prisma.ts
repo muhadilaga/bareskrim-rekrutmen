@@ -14,7 +14,12 @@ const rawUrl = process.env.DATABASE_URL;
 const isPlaceholderDb =
   !rawUrl || rawUrl.includes("placeholder") || rawUrl.includes("localhost:5432/placeholder");
 
-if (process.env.NODE_ENV === "production" && isPlaceholderDb) {
+const isBuildPhase =
+  process.env.NEXT_PHASE === "phase-production-build" ||
+  process.env.npm_lifecycle_event === "build" ||
+  Boolean(process.env.VERCEL && !process.env.DATABASE_URL);
+
+if (process.env.NODE_ENV === "production" && isPlaceholderDb && !isBuildPhase) {
   throw new Error(
     "DATABASE_URL tidak valid atau tidak di-set. Konfigurasi database production wajib diisi sebelum aplikasi berjalan."
   );
