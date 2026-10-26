@@ -14,12 +14,32 @@ function botHeaders() {
   };
 }
 
-// Resolve Discord user ID dari username
+// Resolve Discord user ID dari username atau ID Snowflake
 async function resolveDiscordUser(
   username: string
 ): Promise<{ id: string; username: string } | null> {
+  const clean = username.trim().replace(/^@/, "");
+  if (!clean) return null;
+
+  // Jika input berupa Snowflake ID Discord (17-20 digit angka)
+  if (/^\d{17,20}$/.test(clean)) {
+    try {
+      const res = await fetch(`${DISCORD_API}/guilds/${CONFIG.discordGuildId}/members/${clean}`, {
+        headers: botHeaders(),
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (res.ok) {
+        const member = await res.json();
+        return { id: member.user.id, username: member.user.username };
+      }
+    } catch (e) {
+      console.error("[Discord] direct member fetch by ID error:", e);
+    }
+  }
+
+  // Jika input berupa username Discord biasa
   try {
-    const url = `${DISCORD_API}/guilds/${CONFIG.discordGuildId}/members/search?query=${encodeURIComponent(username)}&limit=5`;
+    const url = `${DISCORD_API}/guilds/${CONFIG.discordGuildId}/members/search?query=${encodeURIComponent(clean)}&limit=5`;
     const res = await fetch(url, {
       headers: botHeaders(),
       signal: AbortSignal.timeout(20_000),
@@ -31,7 +51,7 @@ async function resolveDiscordUser(
       await res.json();
     const match = members.find(
       (m) =>
-        m.user.username.toLowerCase() === username.toLowerCase()
+        m.user.username.toLowerCase() === clean.toLowerCase()
     );
     return match?.user ?? members[0]?.user ?? null;
   } catch (e) {
