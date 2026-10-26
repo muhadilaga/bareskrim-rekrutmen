@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import type { SiteContent } from "@/lib/site-content";
-import { defaultSiteContent } from "@/lib/site-content";
+import type { SiteContent } from "@/lib/site-content-types";
+import { defaultSiteContent } from "@/lib/site-content-types";
 import { useToastContext } from "@/components/ui/Toast";
 
 interface ContentSettingsTabProps {

@@ -19,7 +19,12 @@ const isBuildPhase =
   process.env.npm_lifecycle_event === "build" ||
   Boolean(process.env.VERCEL && !process.env.DATABASE_URL);
 
-if (process.env.NODE_ENV === "production" && isPlaceholderDb && !isBuildPhase) {
+if (
+  typeof window === "undefined" &&
+  process.env.NODE_ENV === "production" &&
+  isPlaceholderDb &&
+  !isBuildPhase
+) {
   throw new Error(
     "DATABASE_URL tidak valid atau tidak di-set. Konfigurasi database production wajib diisi sebelum aplikasi berjalan."
   );
@@ -28,18 +33,20 @@ if (process.env.NODE_ENV === "production" && isPlaceholderDb && !isBuildPhase) {
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
-    datasources: {
-      db: {
-        // Dev/test: placeholder aman (tidak pernah menyambung ke host nyata).
-        // Production: terjaga oleh guard di atas.
-        url: rawUrl || "postgresql://placeholder:***@localhost:5432/placeholder",
-      },
-    },
-  });
+  typeof window !== "undefined"
+    ? (null as unknown as PrismaClient)
+    : globalForPrisma.prisma ??
+      new PrismaClient({
+        log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+        datasources: {
+          db: {
+            // Dev/test: placeholder aman (tidak pernah menyambung ke host nyata).
+            // Production: terjaga oleh guard di atas.
+            url: rawUrl || "postgresql://placeholder:***@localhost:5432/placeholder",
+          },
+        },
+      });
 
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== "production" && typeof window === "undefined") {
   globalForPrisma.prisma = prisma;
 }
