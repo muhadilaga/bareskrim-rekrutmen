@@ -109,13 +109,21 @@ export async function verifyCandidateWhitelist(robloxUsername: string): Promise<
   const [existingUser, existingApp] = await Promise.all([
     prisma.user.findFirst({
       where: {
-        username: { equals: trimmed, mode: "insensitive" },
+        OR: [
+          { username: { equals: trimmed, mode: "insensitive" } },
+          { displayName: { equals: trimmed, mode: "insensitive" } },
+          { discordUsername: { equals: trimmed, mode: "insensitive" } },
+        ],
         deletedAt: null,
       },
     }),
     prisma.application.findFirst({
       where: {
-        robloxUsernameKey: lowerKey,
+        OR: [
+          { robloxUsernameKey: lowerKey },
+          { robloxUsername: { equals: trimmed, mode: "insensitive" } },
+          { discordId: { equals: trimmed, mode: "insensitive" } },
+        ],
         deletedAt: null,
       },
       include: {

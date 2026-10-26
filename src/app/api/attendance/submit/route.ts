@@ -114,31 +114,53 @@ export async function POST(req: Request) {
         }
       } else if (whitelistCheck.application) {
         const app = whitelistCheck.application;
-        let robloxId = 0;
-        let avatarUrl: string | null = null;
-        let policeGroupRank = "CASIS";
-        try {
-          const summary = await getRobloxUserSummary(app.robloxUsername);
-          if (summary) {
-            robloxId = summary.id;
-            avatarUrl = summary.avatarUrl;
-            if (summary.policeGroupRank) policeGroupRank = summary.policeGroupRank;
-          }
-        } catch {}
-        user = await prisma.user.create({
-          data: {
-            username: app.robloxUsername,
-            displayName: app.fullName || app.robloxUsername,
-            discordUsername: discordUserId,
-            robloxId: BigInt(robloxId),
-            avatarUrl,
-            policeGroupRank,
+        // Cek jika user sudah ada dengan username sama
+        const existingDbUser = await prisma.user.findFirst({
+          where: {
+            username: { equals: app.robloxUsername, mode: "insensitive" },
           },
         });
-        await prisma.application.update({
-          where: { id: app.id },
-          data: { userId: user.id },
-        });
+
+        if (existingDbUser) {
+          user = await prisma.user.update({
+            where: { id: existingDbUser.id },
+            data: {
+              ...(discordUserId ? { discordUsername: discordUserId } : {}),
+            },
+          });
+          await prisma.application.update({
+            where: { id: app.id },
+            data: { userId: user.id },
+          }).catch(() => null);
+        } else {
+          let robloxId = 0;
+          let avatarUrl: string | null = null;
+          let policeGroupRank = "CASIS";
+          try {
+            const summary = await getRobloxUserSummary(app.robloxUsername);
+            if (summary) {
+              robloxId = summary.id;
+              avatarUrl = summary.avatarUrl;
+              if (summary.policeGroupRank) policeGroupRank = summary.policeGroupRank;
+            }
+          } catch {}
+
+          const finalRobloxId = robloxId > 0 ? BigInt(robloxId) : BigInt(-Date.now());
+          user = await prisma.user.create({
+            data: {
+              username: app.robloxUsername,
+              displayName: app.fullName || app.robloxUsername,
+              discordUsername: discordUserId,
+              robloxId: finalRobloxId,
+              avatarUrl,
+              policeGroupRank,
+            },
+          });
+          await prisma.application.update({
+            where: { id: app.id },
+            data: { userId: user.id },
+          }).catch(() => null);
+        }
       }
 
       if (user) {

@@ -14,11 +14,7 @@ export async function GET() {
     if (!period) {
       return NextResponse.json({ ok: true, active: false, period: null });
     }
-    const now = new Date();
-    // Otomatis hitung isAttendanceOpen berdasarkan tanggal
-    const attendanceOpen = period.isAttendanceOpen
-      && (!period.openedAt || now >= period.openedAt)
-      && (!period.closedAt || now <= period.closedAt);
+    const attendanceOpen = Boolean(period.isAttendanceOpen);
     return NextResponse.json({
       ok: true,
       active: true,
