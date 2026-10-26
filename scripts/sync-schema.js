@@ -10,6 +10,10 @@ async function main() {
 
   const prisma = new PrismaClient();
   try {
+    const u = new URL(process.env.DATABASE_URL);
+    console.log("[sync-schema] Database user in env:", u.username);
+    const tables = await prisma.$queryRawUnsafe("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+    console.log("[sync-schema] Tables in DB:", tables.map(t => t.table_name).join(", "));
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "ExamPeriod" ADD COLUMN IF NOT EXISTS "recruitmentPeriodId" TEXT;
     `);
