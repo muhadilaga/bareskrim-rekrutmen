@@ -29,11 +29,10 @@ export default async function TentangPage() {
           </p>
         </div>
         <div className="about-hero-mark">
-          <span>RBX</span>
-          <small>
-            PUSDIK<br />
-            RESERSE
-          </small>
+          <img
+            src="/design-assets/logo-pusdik.png"
+            alt="Logo Pusdik Reserse"
+          />
         </div>
         <div className="about-hero-meta">
           <span>ABOUT</span>

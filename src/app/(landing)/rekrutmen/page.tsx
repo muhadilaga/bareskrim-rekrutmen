@@ -43,11 +43,20 @@ export default async function RekrutmenPage() {
 
   const deadlineIso = closingDate ? closingDate.toISOString() : null;
   const isPeriodClosed = closingDate ? closingDate.getTime() <= Date.now() : false;
+
+  const extractAngkatan = (name?: string | null) => {
+    if (!name) return null;
+    const match = name.match(/angkatan\s*([0-9A-Za-z]+)/i);
+    if (match?.[1]) return match[1];
+    const firstNum = name.match(/\d+/);
+    return firstNum?.[0] || null;
+  };
+
   const angkatanNumber = (
-    activeRecruitment?.name?.replace(/[^0-9]/g, "") ||
-    activePeriod?.name?.replace(/[^0-9]/g, "") ||
-    content.rekrutmenAngkatan ||
-    "43"
+    content.rekrutmenAngkatan?.trim() ||
+    extractAngkatan(activeRecruitment?.name) ||
+    extractAngkatan(activePeriod?.name) ||
+    "42"
   );
 
   return (
@@ -83,7 +92,7 @@ export default async function RekrutmenPage() {
       </section>
 
       {/* INFORMATION */}
-      <section className="information" style={{ minHeight: "694px" }}>
+      <section className="information" id="persyaratan" style={{ minHeight: "694px" }}>
         <div className="section-heading">
           <p>INFORMASI PENERIMAAN</p>
         </div>
@@ -127,11 +136,11 @@ export default async function RekrutmenPage() {
       </section>
 
       {/* SCHEDULE */}
-      <section className="schedule" style={{ minHeight: "694px" }}>
+      <section className="schedule" id="jadwal" style={{ minHeight: "694px" }}>
         <div className="section-heading">
           <p>JADWAL</p>
         </div>
-        <div className="schedule-header">
+        <div className="schedule-header" id="tahapan">
           <div>
             <p className="eyebrow">{content.rekrutmenJadwalEyebrow || "IMPORTANT DATES"}</p>
             <h2>

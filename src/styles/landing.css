@@ -2737,10 +2737,26 @@ h2,
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
     padding: 22px;
     border: 1px solid rgba(255,255,255,.16);
     transform: rotate(45deg);
     background: rgba(8,9,9,.22);
+}
+
+.design-root .about-hero-mark img{
+    transform: rotate(-45deg);
+    width: 76px;
+    height: 76px;
+    object-fit: contain;
+    margin: auto;
+    display: block;
+}
+
+.design-root #persyaratan,
+.design-root #tahapan,
+.design-root #jadwal{
+    scroll-margin-top: 90px;
 }
 
 .about-hero-mark span,
@@ -3028,6 +3044,11 @@ h2,
         bottom: 110px;
         width: 115px;
         height: 115px;
+    }
+
+    .design-root .about-hero-mark img{
+        width: 58px;
+        height: 58px;
     }
 
     .design-root .about-hero-mark span{

@@ -153,7 +153,7 @@ export const defaultSiteContent: SiteContent = {
   footerNotice: "Hak Cipta © 2026 Bareskrim Polri RBX. Seluruh hak cipta dilindungi undang-undang.",
 
   // Rekrutmen Page
-  rekrutmenAngkatan: "43",
+  rekrutmenAngkatan: "42",
   rekrutmenKicker: "PENERIMAAN / PUSDIK RESERSE",
   rekrutmenTitle: "Penerimaan Calon Siswa Baru",
   rekrutmenSubtitle:

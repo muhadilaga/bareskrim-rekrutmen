@@ -50,13 +50,13 @@ export default async function HomePage() {
             Daftar Sekarang
           </Link>
           <div className="quick-links">
-            <Link href="/rekrutmen">
+            <Link href="/rekrutmen#persyaratan">
               Persyaratan <b>›</b>
             </Link>
-            <Link href="/rekrutmen">
+            <Link href="/rekrutmen#tahapan">
               Tahapan Seleksi <b>›</b>
             </Link>
-            <Link href="/rekrutmen">
+            <Link href="/rekrutmen#jadwal">
               Jadwal Lengkap <b>›</b>
             </Link>
           </div>
@@ -78,9 +78,9 @@ export default async function HomePage() {
           <p className="eyebrow">{content.introKicker}</p>
           <h2>{content.introTitle}</h2>
           <p className="body-copy">{content.introBody}</p>
-          <a href="#pendidikan" className="btn btn-text">
+          <Link href="/tentang" className="btn btn-text">
             {content.introCta} <span>→</span>
-          </a>
+          </Link>
         </div>
         <figure className="editorial-image intro-image">
           <div className="image-corner"></div>
