@@ -158,43 +158,43 @@ export default async function RekrutmenPage() {
               title: content.rekrutmenTahap1Title || "Pembukaan Pendaftaran",
               state: content.rekrutmenTahap1State || "DIBUKA",
               date: content.rekrutmenTahap1Date || "",
-              active: true,
             },
             {
               tag: content.rekrutmenTahap2Tag || "TAHAP 02",
               title: content.rekrutmenTahap2Title || "Verifikasi Administrasi",
-              state: content.rekrutmenTahap2State || "TERJADWAL",
+              state: content.rekrutmenTahap2State || "DITUTUP",
               date: content.rekrutmenTahap2Date || "",
-              active: false,
             },
             {
               tag: content.rekrutmenTahap3Tag || "TAHAP 03",
               title: content.rekrutmenTahap3Title || "Pelaksanaan Seleksi",
-              state: content.rekrutmenTahap3State || "TERJADWAL",
+              state: content.rekrutmenTahap3State || "DITUTUP",
               date: content.rekrutmenTahap3Date || "",
-              active: false,
             },
             {
               tag: content.rekrutmenTahap4Tag || "TAHAP 04",
               title: content.rekrutmenTahap4Title || "Pengumuman Hasil Seleksi",
-              state: content.rekrutmenTahap4State || "TERJADWAL",
+              state: content.rekrutmenTahap4State || "DITUTUP",
               date: content.rekrutmenTahap4Date || "",
-              active: false,
             },
-          ].map((row) => (
-            <div className={`schedule-row${row.active ? " active" : ""}`} key={row.title}>
-              {row.date ? (
-                <div className="schedule-date">
-                  <span>{row.date}</span>
+          ].map((row) => {
+            const isOpened = (row.state || "").toUpperCase() === "DIBUKA";
+            const displayState = isOpened ? "DIBUKA" : "DITUTUP";
+            return (
+              <div className={`schedule-row${isOpened ? " active" : " closed"}`} key={row.title}>
+                {row.date ? (
+                  <div className="schedule-date">
+                    <span>{row.date}</span>
+                  </div>
+                ) : null}
+                <div className="schedule-detail">
+                  <span>{row.tag}</span>
+                  <strong>{row.title}</strong>
                 </div>
-              ) : null}
-              <div className="schedule-detail">
-                <span>{row.tag}</span>
-                <strong>{row.title}</strong>
+                <div className="schedule-state">{displayState}</div>
               </div>
-              <div className="schedule-state">{row.state}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 

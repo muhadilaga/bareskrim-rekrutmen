@@ -14,7 +14,7 @@ export default function GaleriPage() {
     <section className="page-tab gallery-tab" data-page="gallery">
       {/* GALLERY HERO */}
       <section
-        className="archive-hero"
+        className="archive-hero gallery-hero"
         style={{
           minHeight: "420px",
           padding: "130px 9vw 60px",

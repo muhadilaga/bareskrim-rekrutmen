@@ -2367,6 +2367,12 @@ h2,
     background: rgba(106, 173, 120, 0.08);
 }
 
+.design-root .recruitment-tab .schedule-row.closed .schedule-state{
+    color: rgba(255, 255, 255, 0.42);
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.02);
+}
+
 
 /* =========================================================
    CTA
@@ -2745,15 +2751,16 @@ h2,
     position: relative;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     padding: 145px 9vw 90px;
     overflow: hidden;
     border-bottom: 1px solid var(--border);
     background:
         linear-gradient(
-            90deg,
+            270deg,
             rgba(8,9,9,.98) 0%,
             rgba(8,9,9,.90) 48%,
-            rgba(8,9,9,.45) 100%
+            rgba(8,9,9,.35) 100%
         ),
         url("/design-assets/about-hero.png") center / cover no-repeat;
 }
@@ -2775,7 +2782,8 @@ h2,
 .design-root .about-hero-copy{
     position: relative;
     z-index: 2;
-    max-width: 760px;
+    max-width: 580px;
+    margin-left: auto;
 }
 
 .design-root .about-hero-copy .eyebrow{
@@ -2784,7 +2792,7 @@ h2,
 }
 
 .design-root .about-hero-copy h1{
-    max-width: 800px;
+    max-width: 600px;
     font-family: var(--display);
     font-size: clamp(64px, 7vw, 104px);
     line-height: .9;
@@ -2802,18 +2810,19 @@ h2,
 .design-root .about-hero-mark{
     position: absolute;
     z-index: 2;
-    right: 9vw;
-    bottom: 125px;
-    width: 150px;
-    height: 150px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(45deg);
+    width: 140px;
+    height: 140px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 22px;
+    padding: 20px;
     border: 1px solid rgba(255,255,255,.16);
-    transform: rotate(45deg);
-    background: rgba(8,9,9,.22);
+    background: rgba(8,9,9,.4);
+    backdrop-filter: blur(4px);
 }
 
 .design-root .about-hero-mark img{
@@ -3110,13 +3119,23 @@ h2,
     .design-root .about-hero{
         min-height: 720px;
         padding: 130px 24px 80px;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+    }
+
+    .design-root .about-hero-copy{
+        max-width: 100%;
+        margin-left: 0;
     }
 
     .design-root .about-hero-mark{
-        right: 45px;
-        bottom: 110px;
+        position: static;
+        transform: rotate(45deg);
+        margin: 40px auto 0;
         width: 115px;
         height: 115px;
+        align-self: center;
     }
 
     .design-root .about-hero-mark img{
@@ -3240,6 +3259,18 @@ h2,
             rgba(8,9,9,.55) 100%
         ),
         url("/design-assets/environment.png") center / cover no-repeat;
+}
+
+.design-root .gallery-tab .archive-hero,
+.design-root .gallery-hero{
+    background:
+        linear-gradient(
+            90deg,
+            rgba(8,9,9,.98) 0%,
+            rgba(8,9,9,.92) 50%,
+            rgba(8,9,9,.45) 100%
+        ),
+        url("/design-assets/gallery-hero.png") center / cover no-repeat;
 }
 
 .design-root .archive-hero::after{

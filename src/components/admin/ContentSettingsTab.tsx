@@ -602,9 +602,9 @@ export function ContentSettingsTab({ headers }: ContentSettingsTabProps) {
               <div className="space-y-4">
                 {[
                   { key: "rekrutmenTahap1", defaultTag: "TAHAP 01", defaultTitle: "Pembukaan Pendaftaran", defaultState: "DIBUKA" },
-                  { key: "rekrutmenTahap2", defaultTag: "TAHAP 02", defaultTitle: "Verifikasi Administrasi", defaultState: "TERJADWAL" },
-                  { key: "rekrutmenTahap3", defaultTag: "TAHAP 03", defaultTitle: "Pelaksanaan Seleksi", defaultState: "TERJADWAL" },
-                  { key: "rekrutmenTahap4", defaultTag: "TAHAP 04", defaultTitle: "Pengumuman Hasil Seleksi", defaultState: "TERJADWAL" },
+                  { key: "rekrutmenTahap2", defaultTag: "TAHAP 02", defaultTitle: "Verifikasi Administrasi", defaultState: "DITUTUP" },
+                  { key: "rekrutmenTahap3", defaultTag: "TAHAP 03", defaultTitle: "Pelaksanaan Seleksi", defaultState: "DITUTUP" },
+                  { key: "rekrutmenTahap4", defaultTag: "TAHAP 04", defaultTitle: "Pengumuman Hasil Seleksi", defaultState: "DITUTUP" },
                 ].map((t, idx) => (
                   <div key={t.key} className="grid grid-cols-1 gap-2 rounded border border-white/5 bg-black/20 p-3 sm:grid-cols-4">
                     <div>
@@ -629,13 +629,18 @@ export function ContentSettingsTab({ headers }: ContentSettingsTabProps) {
                     </div>
                     <div>
                       <label className="mb-1 block text-[11px] font-semibold text-[#918d86]">STATUS BADGE</label>
-                      <input
-                        type="text"
-                        value={content[`${t.key}State` as keyof typeof content] as string || ""}
+                      <select
+                        value={
+                          ((content[`${t.key}State` as keyof typeof content] as string) || t.defaultState).toUpperCase() === "DIBUKA"
+                            ? "DIBUKA"
+                            : "DITUTUP"
+                        }
                         onChange={(e) => handleChange(`${t.key}State` as keyof typeof content, e.target.value)}
-                        placeholder={t.defaultState}
-                        className="w-full rounded border border-white/15 bg-black/40 px-2.5 py-1.5 text-xs text-[#eeeae2] focus:border-[#b79b69]"
-                      />
+                        className="w-full rounded border border-white/15 bg-[#121212] px-2.5 py-1.5 text-xs text-[#eeeae2] focus:border-[#b79b69]"
+                      >
+                        <option value="DIBUKA" className="bg-[#18181b] text-emerald-400 font-semibold">DIBUKA</option>
+                        <option value="DITUTUP" className="bg-[#18181b] text-neutral-400 font-semibold">DITUTUP</option>
+                      </select>
                     </div>
                     <div className="sm:col-span-4">
                       <label className="mb-1 block text-[11px] font-semibold text-[#918d86]">
