@@ -781,10 +781,7 @@ h2,
 }
 
 .design-root .education-info{
-    display: grid;
-    grid-template-columns: 42px 1fr;
-
-    gap: 18px;
+    display: block;
 
     padding: 23px 0 28px;
 
@@ -806,7 +803,7 @@ h2,
 }
 
 .design-root .education-info p{
-    max-width: 330px;
+    max-width: 100%;
 
     margin-top: 13px;
 
@@ -814,6 +811,8 @@ h2,
     line-height: 1.75;
 
     color: var(--text-muted);
+    text-align: justify;
+    text-justify: inter-word;
 }
 
 .design-root .education-card:nth-child(1) img{
@@ -1756,7 +1755,7 @@ h2,
     inset: 0;
 
     background:
-        url("/design-assets/hero.png")
+        url("/design-assets/recruitment-hero.png")
         center / cover
         no-repeat;
 
@@ -2879,9 +2878,7 @@ h2,
 
 .design-root .about-principle{
     min-height: 330px;
-    display: grid;
-    grid-template-columns: 35px 1fr;
-    gap: 20px;
+    display: block;
     padding: 38px 35px 38px 0;
 }
 
@@ -2910,11 +2907,13 @@ h2,
 }
 
 .design-root .about-principle div > p:last-child{
-    max-width: 290px;
+    max-width: 100%;
     margin-top: 18px;
     font-size: 11px;
     line-height: 1.8;
     color: var(--text-muted);
+    text-align: justify;
+    text-justify: inter-word;
 }
 
 
@@ -3282,7 +3281,7 @@ h2,
 .design-root .archive-record{
     min-height: 155px;
     display: grid;
-    grid-template-columns: 50px 90px 1fr 110px;
+    grid-template-columns: 80px 1fr auto;
     gap: 30px;
     align-items: center;
     border-bottom: 1px solid var(--border);
@@ -3323,11 +3322,13 @@ h2,
 }
 
 .design-root .archive-record-main p{
-    max-width: 470px;
+    max-width: 100%;
     margin-top: 9px;
     color: var(--text-dim);
     font-size: 10px;
     line-height: 1.65;
+    text-align: justify;
+    text-justify: inter-word;
 }
 
 .design-root .archive-record-status{
@@ -3532,7 +3533,7 @@ h2,
     }
 
     .design-root .archive-record{
-        grid-template-columns: 35px 75px 1fr 80px;
+        grid-template-columns: 60px 1fr auto;
         gap: 18px;
     }
 
