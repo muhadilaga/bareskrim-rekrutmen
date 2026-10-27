@@ -113,18 +113,42 @@ export async function verifyAdminKeyAndDiscordStaff(discordUsername: string): Pr
 > {
   const guildId = CONFIG.discordGuildId?.trim();
   const botToken = CONFIG.discordBotToken?.trim();
-  const query = discordUsername.trim();
+  const clean = discordUsername.trim().replace(/^@+/, "");
 
   if (!botToken || !guildId) {
     return { ok: false, message: "Discord bot token atau guild ID belum dikonfigurasi." };
   }
 
-  if (!query) {
+  if (!clean) {
     return { ok: false, message: "Username Discord wajib diisi." };
   }
 
+  // Jika berupa ID Snowflake (angka 17-20 digit), langsung panggil endpoint get member by ID
+  if (/^\d{17,20}$/.test(clean)) {
+    const res = await fetch(`${DISCORD_API}/guilds/${guildId}/members/${clean}`, {
+      headers: adminHeaders(),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (res.ok) {
+      const member = (await res.json().catch(() => null)) as DiscordMemberSearchResult;
+      if (member?.user?.id && member.roles) {
+        if (!member.roles.includes(STAFF_ROLE_ID)) {
+          return {
+            ok: false,
+            message: `Akses ditolak. Username Discord ini tidak memegang role Personel Staff Pusdik (${STAFF_ROLE_ID}).`,
+          };
+        }
+        return {
+          ok: true,
+          discordUserId: member.user.id,
+          discordUsername: member.user.username || clean,
+        };
+      }
+    }
+  }
+
   const res = await fetch(
-    `${DISCORD_API}/guilds/${guildId}/members/search?query=${encodeURIComponent(query)}&limit=10`,
+    `${DISCORD_API}/guilds/${guildId}/members/search?query=${encodeURIComponent(clean)}&limit=10`,
     { headers: adminHeaders(), signal: AbortSignal.timeout(20_000) }
   );
 
@@ -137,7 +161,7 @@ export async function verifyAdminKeyAndDiscordStaff(discordUsername: string): Pr
   }
 
   const members = (await res.json().catch(() => [])) as DiscordMemberSearchResult[];
-  const lower = query.toLowerCase();
+  const lower = clean.toLowerCase();
   const member =
     members.find((item) => item.user?.username?.toLowerCase() === lower) ??
     members.find((item) => item.nick?.toLowerCase() === lower) ??

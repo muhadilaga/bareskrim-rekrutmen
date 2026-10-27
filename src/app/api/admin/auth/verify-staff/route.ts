@@ -6,13 +6,29 @@ import {
   verifyAdminKeyAndDiscordStaff,
 } from "@/lib/admin-auth";
 import { logAdminAction } from "@/lib/audit";
+import { adminAuthLimiter, clientIp } from "@/lib/rate-limit";
 
 const BodySchema = z.object({
-  adminKey: z.string().trim().min(1),
-  discordUsername: z.string().trim().transform(v => v.replace(/^@+/, "")).pipe(z.string().min(2).max(40)),
+  adminKey: z.string().trim().min(1, "Kunci admin wajib diisi."),
+  discordUsername: z.string().trim().transform(v => v.replace(/^@+/, "")).pipe(z.string().min(2, "Username / ID Discord minimal 2 karakter.").max(40)),
 });
 
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  const limit = adminAuthLimiter.check(ip);
+  if (!limit.ok) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: `Terlalu banyak percobaan masuk admin. Akses dibatasi sementara selama ${Math.ceil(limit.retryAfterSeconds / 60)} menit.`,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      }
+    );
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = BodySchema.safeParse(body);
   if (!parsed.success) {
@@ -21,6 +37,11 @@ export async function POST(req: Request) {
 
   const { adminKey, discordUsername } = parsed.data;
   if (!isAdminKeyValid(adminKey)) {
+    await logAdminAction({
+      action: "ADMIN_KEY_INVALID",
+      target: discordUsername,
+      detail: { reason: "Kunci admin salah." },
+    }).catch(() => {});
     return NextResponse.json({ ok: false, message: "Kunci admin salah." }, { status: 401 });
   }
 
