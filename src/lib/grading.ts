@@ -203,14 +203,15 @@ export function gradeExam(
     }
   }
 
-  const passed = score >= _kkm;
+  // KKM ditiadakan: nilai ujian berapapun tetap LULUS dan berhak tahap interview
+  const passed = true;
   return {
     score,
     maxScore,
     mcqScore,
     essayScore,
-    status: passed ? "LULUS" : "TIDAK_LULUS",
-    passed,
+    status: "LULUS",
+    passed: true,
     details,
   };
 }

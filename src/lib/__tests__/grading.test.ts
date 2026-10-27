@@ -134,9 +134,10 @@ describe("gradeExam", () => {
     expect(result.essayScore).toBe(0);
   });
 
-  it("status LULUS bila score >= kkm, else TIDAK_LULUS", () => {
+  it("status LULUS otomatis tanpa KKM, nilai tetap dihitung", () => {
     const snapshot = [mockQ("1", "MCQ", 10, "A") as any];
     expect(gradeExam(snapshot, { "1": "A" }, 10).passed).toBe(true);
-    expect(gradeExam(snapshot, { "1": "A" }, 11).passed).toBe(false);
+    expect(gradeExam(snapshot, { "1": "A" }, 11).passed).toBe(true);
+    expect(gradeExam(snapshot, { "1": "A" }, 11).status).toBe("LULUS");
   });
 });

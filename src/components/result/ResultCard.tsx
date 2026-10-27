@@ -10,7 +10,7 @@ export function ResultCard({
   resultId,
 }: {
   result: ResultPayload;
-  kkm: number;
+  kkm?: number;
   showAnswers?: boolean;
   resultId?: string;
 }) {
@@ -54,7 +54,7 @@ export function ResultCard({
           {result.score}
         </div>
         <p style={{ fontSize: "13px", color: "var(--casis-muted)", marginTop: "6px" }}>
-          dari {result.maxScore} poin maksimal (Passing Grade: {kkm})
+          dari {result.maxScore} poin maksimal
         </p>
 
         <div style={{ marginTop: "16px", display: "inline-block" }}>
@@ -74,7 +74,7 @@ export function ResultCard({
               letterSpacing: "0.12em",
             }}
           >
-            {passed ? "✓ LOLOS TAHAP AKADEMIK" : "✕ BELUM MEMENUHI PASSING GRADE"}
+            {passed ? "✓ LOLOS TAHAP AKADEMIK (MENUJU TAHAP INTERVIEW)" : "✓ MENYELESAIKAN TAHAP AKADEMIK"}
           </span>
         </div>
 

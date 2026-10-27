@@ -131,6 +131,9 @@
   gap: 16px;
   border-bottom: 1px solid var(--casis-border);
   margin-bottom: 28px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
 }
 
 .casis-root .attendance-tab-btn {
@@ -146,6 +149,7 @@
   text-transform: uppercase;
   cursor: pointer;
   transition: all .15s ease;
+  flex-shrink: 0;
 }
 
 .casis-root .attendance-tab-btn.active {

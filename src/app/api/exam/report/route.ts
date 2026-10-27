@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { ensureSchema } from "@/lib/init-schema";
 import { sendDiscordExamReport } from "@/lib/discord";
-import { assignDiscordRoleById, removeDiscordRoleById } from "@/lib/discord-api";
+import { assignDiscordRoleById, removeDiscordRoleById, assignDiscordRoleAndNickname } from "@/lib/discord-api";
 import { CONFIG } from "@/lib/constants";
 import { clientIp, createRateLimiter, userSubmitLimiter } from "@/lib/rate-limit";
 import type { GradedAnswerDetail } from "@/lib/grading";
@@ -140,23 +140,31 @@ export async function POST(req: Request) {
     }
 
     // Role assignment & DM selalu dijalankan terlepas dari webhook
-    const discordUsername = result.attempt.user.discordUsername;
-    console.log(`[ExamReport] discordUsername=${discordUsername}, passed=${result.passed}, interviewRoleId=${CONFIG.tahapInterviewRoleId}, akademikRoleId=${CONFIG.tahapAkademikRoleId}`);
+    let discordUsername = result.attempt.user.discordUsername;
+    if (!discordUsername) {
+      const att = await prisma.attendance.findFirst({
+        where: { userId: result.attempt.user.id },
+        select: { discordUserId: true },
+      });
+      const app = await prisma.application.findFirst({
+        where: { userId: result.attempt.user.id },
+        select: { discordId: true },
+      });
+      discordUsername = att?.discordUserId || app?.discordId || null;
+    }
+
+    console.log(`[ExamReport] discordUsername=${discordUsername}, passed=${result.passed}`);
     if (discordUsername) {
-      if (CONFIG.tahapInterviewRoleId) {
-        const roleResult = await assignDiscordRoleById(discordUsername, CONFIG.tahapInterviewRoleId);
-        console.log(`[ExamReport] Assign interview role to ${discordUsername}: ok=${roleResult.ok} msg=${roleResult.message}`);
-      } else {
-        console.log(`[ExamReport] SKIP assign interview role: tahapInterviewRoleId kosong`);
-      }
+      const robloxName = result.attempt.user.username || "Casis";
+      const nick = `[CASIS] ${robloxName}`;
+      const roleResult = await assignDiscordRoleAndNickname(discordUsername, "Tahap Interview", nick);
+      console.log(`[ExamReport] Assign interview role to ${discordUsername}: ok=${roleResult.ok} msg=${roleResult.message}`);
       if (CONFIG.tahapAkademikRoleId) {
         const removeResult = await removeDiscordRoleById(discordUsername, CONFIG.tahapAkademikRoleId);
         console.log(`[ExamReport] Remove tahap akademik role after exam from ${discordUsername}: ok=${removeResult.ok} msg=${removeResult.message}`);
-      } else {
-        console.log(`[ExamReport] SKIP remove tahap akademik role: tahapAkademikRoleId kosong`);
       }
     } else {
-      console.log(`[ExamReport] SKIP role/DM: discordUsername kosong di user record`);
+      console.log(`[ExamReport] SKIP role/DM: discordUsername tidak ditemukan`);
     }
 
     return NextResponse.json({

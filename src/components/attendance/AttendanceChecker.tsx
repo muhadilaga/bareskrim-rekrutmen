@@ -24,7 +24,7 @@ interface CasisProfile {
 }
 
 export function AttendanceChecker() {
-  const [activeTab, setActiveTab] = useState<"absen" | "status">("absen");
+  const [activeTab, setActiveTab] = useState<"absen" | "status" | "blacklist">("absen");
   const [attended, setAttended] = useState(false);
   const [noPeriod, setNoPeriod] = useState<boolean | null>(null);
   const [fetchError, setFetchError] = useState(false);
@@ -62,6 +62,26 @@ export function AttendanceChecker() {
     } | null;
     message?: string;
     user?: CasisProfile | null;
+  } | null>(null);
+
+  // Blacklist check state
+  const [blacklistUsername, setBlacklistUsername] = useState("");
+  const [blacklistLoading, setBlacklistLoading] = useState(false);
+  const [blacklistResult, setBlacklistResult] = useState<{
+    searched: boolean;
+    ok: boolean;
+    found?: boolean;
+    source?: string;
+    category?: string;
+    message: string;
+    entry?: {
+      username?: string;
+      reason?: string | null;
+      duration?: string | null;
+      postedAt?: string | null;
+      rawSnippet?: string | null;
+    } | null;
+    checkedUsername?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -186,6 +206,35 @@ export function AttendanceChecker() {
       });
     } finally {
       setChecking(false);
+    }
+  }
+
+  async function handleBlacklistCheck(e: React.FormEvent) {
+    e.preventDefault();
+    const clean = blacklistUsername.trim().replace(/^@+/, "");
+    if (!clean) return;
+    setBlacklistLoading(true);
+    setBlacklistResult(null);
+    try {
+      const res = await fetch(`/api/blacklist/check?username=${encodeURIComponent(clean)}`);
+      const data = await res.json().catch(() => null);
+      if (res.ok && data) {
+        setBlacklistResult({ searched: true, ...data });
+      } else {
+        setBlacklistResult({
+          searched: true,
+          ok: false,
+          message: data?.message || "Gagal memeriksa status blacklist.",
+        });
+      }
+    } catch {
+      setBlacklistResult({
+        searched: true,
+        ok: false,
+        message: "Gagal terhubung ke server. Coba beberapa saat lagi.",
+      });
+    } finally {
+      setBlacklistLoading(false);
     }
   }
 
@@ -476,6 +525,16 @@ export function AttendanceChecker() {
           >
             Cek Hasil Absen & Status Tahap Akademik
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("blacklist");
+              setFeedback(null);
+            }}
+            className={`attendance-tab-btn ${activeTab === "blacklist" ? "active" : ""}`}
+          >
+            Cek Blacklist Pusdik
+          </button>
         </div>
 
         {/* Feedback Alert */}
@@ -741,6 +800,142 @@ export function AttendanceChecker() {
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Cek Blacklist Pusdik */}
+        {activeTab === "blacklist" && (
+          <div>
+            <form onSubmit={handleBlacklistCheck}>
+              <div className="attendance-form-group">
+                <label htmlFor="blacklistRobloxUsername">Username Roblox Casis</label>
+                <input
+                  id="blacklistRobloxUsername"
+                  type="text"
+                  required
+                  value={blacklistUsername}
+                  onChange={(e) => setBlacklistUsername(e.target.value)}
+                  placeholder="Contoh: AresInvestigator"
+                  autoComplete="username"
+                />
+                <small>
+                  Pemeriksaan crosscheck nama secara langsung ke arsip channel Discord Blacklist Pusdik Reserse dan database daftar hitam internal.
+                </small>
+              </div>
+
+              <button
+                type="submit"
+                disabled={blacklistLoading || !blacklistUsername.trim()}
+                className="attendance-submit-btn"
+                style={{ opacity: blacklistLoading ? 0.7 : 1 }}
+              >
+                {blacklistLoading ? "Memeriksa Database & Channel Pusdik..." : "Cek Status Blacklist Pusdik"}
+              </button>
+            </form>
+
+            {blacklistResult && blacklistResult.searched && (
+              <div style={{ marginTop: "20px" }}>
+                <div
+                  style={{
+                    padding: "18px 20px",
+                    borderRadius: "4px",
+                    border: blacklistResult.found
+                      ? "1px solid rgba(220, 80, 80, 0.5)"
+                      : "1px solid rgba(80, 200, 120, 0.5)",
+                    background: blacklistResult.found
+                      ? "rgba(220, 50, 50, 0.08)"
+                      : "rgba(50, 180, 100, 0.08)",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                    <span style={{ fontSize: "18px" }}>
+                      {blacklistResult.found ? "⚠️" : "✓"}
+                    </span>
+                    <strong
+                      style={{
+                        fontSize: "13px",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        color: blacklistResult.found ? "#ff8080" : "#6ee7b7",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {blacklistResult.found ? "TERDETEKSI DALAM CATATAN BLACKLIST" : "BEBAS DARI BLACKLIST"}
+                    </strong>
+                  </div>
+
+                  <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--casis-text)", lineHeight: 1.5 }}>
+                    {blacklistResult.message}
+                  </p>
+
+                  {blacklistResult.found && blacklistResult.entry && (
+                    <div
+                      style={{
+                        marginTop: "14px",
+                        paddingTop: "14px",
+                        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+                        fontSize: "12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                      }}
+                    >
+                      <div>
+                        <span style={{ color: "var(--casis-muted)" }}>Target Username: </span>
+                        <strong style={{ color: "var(--casis-text)" }}>@{blacklistResult.entry.username}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "var(--casis-muted)" }}>Alasan: </span>
+                        <span style={{ color: "#fca5a5" }}>{blacklistResult.entry.reason || "Tidak tercantum"}</span>
+                      </div>
+                      <div>
+                        <span style={{ color: "var(--casis-muted)" }}>Masa Berlaku / Keterangan: </span>
+                        <span style={{ color: "var(--casis-text)" }}>{blacklistResult.entry.duration || "Sesuai ketetapan"}</span>
+                      </div>
+                      {blacklistResult.entry.postedAt && (
+                        <div>
+                          <span style={{ color: "var(--casis-muted)" }}>Waktu Tercatat: </span>
+                          <span style={{ color: "var(--casis-text)" }}>
+                            {new Date(blacklistResult.entry.postedAt).toLocaleString("id-ID", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      {blacklistResult.entry.rawSnippet && (
+                        <div style={{ marginTop: "6px" }}>
+                          <span style={{ color: "var(--casis-muted)", display: "block", marginBottom: "4px" }}>
+                            Cuplikan Bukti / Catatan:
+                          </span>
+                          <div
+                            style={{
+                              background: "rgba(0, 0, 0, 0.45)",
+                              border: "1px solid rgba(255, 255, 255, 0.08)",
+                              padding: "10px 12px",
+                              borderRadius: "3px",
+                              fontFamily: "monospace",
+                              fontSize: "11px",
+                              color: "var(--casis-muted)",
+                              whiteSpace: "pre-wrap",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {blacklistResult.entry.rawSnippet}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {!blacklistResult.found && (
+                    <p style={{ marginTop: "10px", fontSize: "12px", color: "var(--casis-muted)", lineHeight: 1.4 }}>
+                      Username <strong>@{blacklistResult.checkedUsername || blacklistUsername}</strong> bersih dan diizinkan mengikuti seluruh rangkaian seleksi penerimaan Pusdik Reserse Bareskrim Polri.
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </div>

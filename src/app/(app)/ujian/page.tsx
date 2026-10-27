@@ -385,8 +385,8 @@ export default async function ExamPage({ searchParams }: ExamPageProps) {
                     <strong className="spec-val">{CONFIG.examDurationMinutes} Menit</strong>
                   </div>
                   <div className="spec-item">
-                    <span className="spec-label">PASSING GRADE (KKM)</span>
-                    <strong className="spec-val">{activePeriod?.passThreshold ?? 70}%</strong>
+                    <span className="spec-label">STATUS KELULUSAN</span>
+                    <strong className="spec-val text-emerald-400">OTOMATIS INTERVIEW</strong>
                   </div>
                   <div className="spec-item">
                     <span className="spec-label">KOMPOSISI SOAL</span>

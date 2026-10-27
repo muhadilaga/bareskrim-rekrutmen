@@ -5,6 +5,8 @@ import { submitExam, type SubmitExamResult } from "@/lib/exam-service";
 import { prisma } from "@/lib/prisma";
 import { clientIp, submitLimiter, userSubmitLimiter } from "@/lib/rate-limit";
 import { logStudentAction } from "@/lib/audit";
+import { assignDiscordRoleAndNickname } from "@/lib/discord-api";
+import { CONFIG } from "@/lib/constants";
 import {
   requireCurrentCandidateEligibility,
   assertEligibilityStillValid,
@@ -130,6 +132,41 @@ export async function POST(req: Request) {
      attemptId: parsed.data.attemptId,
      detail: { resultId: result.resultId },
    });
+
+   // Otomatis pasang role "Tahap Interview" bagi casis yang menyelesaikan tahap akademik
+   if (CONFIG.discordBotToken && CONFIG.discordGuildId) {
+     void (async () => {
+       try {
+         const discordTarget =
+           user.discordUsername ||
+           (await prisma.attendance.findFirst({
+             where: { userId: user.id },
+             select: { discordUserId: true },
+           }))?.discordUserId ||
+           (await prisma.application.findFirst({
+             where: { userId: user.id },
+             select: { discordId: true },
+           }))?.discordId;
+
+         if (discordTarget) {
+           const robloxName = user.username || "Casis";
+           const nick = `[CASIS] ${robloxName}`;
+           const roleRes = await assignDiscordRoleAndNickname(
+             discordTarget.trim(),
+             "Tahap Interview",
+             nick
+           );
+           if (!roleRes.ok) {
+             console.warn("[ExamSubmit] Gagal pasang role Tahap Interview:", roleRes.message);
+           } else {
+             console.log(`[ExamSubmit] Berhasil pasang role Tahap Interview untuk ${discordTarget}`);
+           }
+         }
+       } catch (roleErr) {
+         console.error("[ExamSubmit] Error assign role Tahap Interview:", roleErr);
+       }
+     })();
+   }
 
    return NextResponse.json({ ok: true, resultId: result.resultId });
   }
