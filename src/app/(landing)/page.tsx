@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getSiteContent } from "@/lib/site-content";
+import { prisma } from "@/lib/prisma";
+import { ArchiveCarousel, type ArchiveItem } from "@/components/landing/ArchiveCarousel";
 
 export const metadata: Metadata = {
   title: "Pusdik Reserse — Penerimaan Calon Siswa 2026",
@@ -13,6 +15,114 @@ export const dynamic = "force-dynamic";
 // Beranda = tab "home" desain asli (index.html).
 export default async function HomePage() {
   const content = await getSiteContent();
+
+  const defaultArchiveItems: ArchiveItem[] = [
+    { angkatan: "ANGKATAN 39", tahun: "2025", gel: "Gelombang 01", status: "SELESAI", sortKey: 3901 },
+    { angkatan: "ANGKATAN 39", tahun: "2025", gel: "Gelombang 02", status: "SELESAI", sortKey: 3902 },
+    { angkatan: "ANGKATAN 40", tahun: "2026", gel: "Gelombang 01", status: "SELESAI", sortKey: 4001 },
+    { angkatan: "ANGKATAN 40", tahun: "2026", gel: "Gelombang 02", status: "SELESAI", sortKey: 4002 },
+  ];
+
+  const archiveMap = new Map<string, ArchiveItem>();
+  for (const item of defaultArchiveItems) {
+    archiveMap.set(`${item.angkatan}-${item.gel}`.toLowerCase(), item);
+  }
+
+  try {
+    const exams = await prisma.examPeriod.findMany({
+      where: { deletedAt: null },
+      select: { name: true, openedAt: true, closedAt: true, isActive: true },
+      orderBy: { openedAt: "asc" },
+    });
+
+    const recs = await prisma.recruitmentPeriod.findMany({
+      where: { deletedAt: null },
+      select: { name: true, code: true, openedAt: true, closedAt: true, isActive: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const parsePeriod = (
+      raw: string,
+      openedAt?: Date | null,
+      closedAt?: Date | null,
+      isActive?: boolean
+    ): ArchiveItem => {
+      let angkatanNum = 0;
+      let angkatanStr = "ANGKATAN";
+      const angkatanMatch = raw.match(/angkatan\s*([0-9A-Za-z]+)/i);
+      if (angkatanMatch?.[1]) {
+        const val = angkatanMatch[1].toUpperCase();
+        if (/^\d+$/.test(val)) {
+          angkatanNum = parseInt(val, 10);
+          angkatanStr = `ANGKATAN ${val}`;
+        } else {
+          angkatanStr = `ANGKATAN ${val}`;
+          if (val === "XXXIX") angkatanNum = 39;
+          else if (val === "XL") angkatanNum = 40;
+          else if (val === "XLI") angkatanNum = 41;
+          else if (val === "XLII") angkatanNum = 42;
+          else if (val === "XLIII") angkatanNum = 43;
+          else if (val === "XLIV") angkatanNum = 44;
+          else if (val === "XLV") angkatanNum = 45;
+        }
+      } else {
+        const num = raw.match(/\d+/);
+        if (num) {
+          angkatanNum = parseInt(num[0], 10);
+          angkatanStr = `ANGKATAN ${num[0]}`;
+        }
+      }
+
+      let gelNum = 1;
+      let gelStr = "Gelombang 01";
+      const gelMatch = raw.match(/gel(?:ombang)?\.?\s*0?(\d+)/i);
+      if (gelMatch?.[1]) {
+        gelNum = parseInt(gelMatch[1], 10);
+        gelStr = `Gelombang 0${gelNum}`;
+      }
+
+      let year = "2026";
+      if (openedAt) {
+        year = new Date(openedAt).getFullYear().toString();
+      } else if (closedAt) {
+        year = new Date(closedAt).getFullYear().toString();
+      } else {
+        const yrMatch = raw.match(/(202\d)/);
+        if (yrMatch) year = yrMatch[1];
+      }
+
+      const sortKey = (angkatanNum || 40) * 100 + gelNum;
+      const status = isActive ? "BERLANGSUNG" : "SELESAI";
+
+      return {
+        angkatan: angkatanStr,
+        tahun: year,
+        gel: gelStr,
+        status,
+        sortKey,
+      };
+    };
+
+    for (const e of exams) {
+      if (!e.name) continue;
+      const parsed = parsePeriod(e.name, e.openedAt, e.closedAt, e.isActive);
+      archiveMap.set(`${parsed.angkatan}-${parsed.gel}`.toLowerCase(), parsed);
+    }
+
+    for (const r of recs) {
+      const raw = r.name || r.code;
+      if (!raw) continue;
+      const parsed = parsePeriod(raw, r.openedAt, r.closedAt, r.isActive);
+      archiveMap.set(`${parsed.angkatan}-${parsed.gel}`.toLowerCase(), parsed);
+    }
+  } catch (err) {
+    console.warn("[page] archive periods query skipped:", err && (err as Error).message);
+  }
+
+  // Sort ascending: angkatan paling lama di kiri, yang baru di kanan
+  const archiveItems = Array.from(archiveMap.values()).sort(
+    (a, b) => (a.sortKey ?? 0) - (b.sortKey ?? 0)
+  );
 
   return (
     <section className="page-tab" data-page="home" style={{ minHeight: "909px" }}>
@@ -220,25 +330,7 @@ export default async function HomePage() {
             Lihat Semua Arsip <span>→</span>
           </Link>
         </div>
-        <div className="archive-grid">
-          {[
-            { angkatan: "ANGKATAN 40", tahun: "2026", gel: "Gelombang 02" },
-            { angkatan: "ANGKATAN 40", tahun: "2026", gel: "Gelombang 01" },
-            { angkatan: "ANGKATAN 39", tahun: "2025", gel: "Gelombang 02" },
-          ].map((item) => (
-            <Link href="/arsip" className="archive-card" key={`${item.angkatan}-${item.gel}`}>
-              <div className="archive-card-top">
-                <span>{item.angkatan}</span>
-                <span>{item.tahun}</span>
-              </div>
-              <strong>{item.gel}</strong>
-              <div className="archive-card-bottom">
-                <small>SELESAI</small>
-                <span>→</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <ArchiveCarousel items={archiveItems} />
       </section>
 
       {/* FINAL CTA */}

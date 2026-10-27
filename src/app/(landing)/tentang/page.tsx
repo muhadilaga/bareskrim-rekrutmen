@@ -104,7 +104,7 @@ export default async function TentangPage() {
       {/* JOURNEY */}
       <section className="about-journey">
         <div className="about-journey-image">
-          <img src="/design-assets/hero.png" alt="Kegiatan di Pusdik Reserse" />
+          <img src="/design-assets/about-journey.png" alt="Kegiatan di Pusdik Reserse" />
           <span>EDUCATION / 2026</span>
         </div>
         <div className="about-journey-copy">

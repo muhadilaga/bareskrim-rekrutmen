@@ -1076,14 +1076,80 @@ h2,
     line-height: .95;
 }
 
+.design-root .archive-carousel-container{
+    position: relative;
+    width: 100%;
+}
+
+.design-root .archive-carousel-controls{
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+}
+
+.design-root .archive-carousel-arrow{
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all .2s ease;
+    user-select: none;
+}
+
+.design-root .archive-carousel-arrow:hover:not(:disabled){
+    border-color: var(--red);
+    background: var(--red-soft);
+    color: var(--red-bright);
+}
+
+.design-root .archive-carousel-arrow:disabled{
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
 .design-root .archive-grid{
-    display: grid;
-    grid-template-columns: repeat(3,1fr);
+    display: flex;
     gap: 18px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding: 4px 2px 18px 2px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.design-root .archive-grid::-webkit-scrollbar{
+    height: 6px;
+}
+
+.design-root .archive-grid::-webkit-scrollbar-track{
+    background: rgba(255, 255, 255, .05);
+    border-radius: 3px;
+}
+
+.design-root .archive-grid::-webkit-scrollbar-thumb{
+    background: rgba(183, 25, 32, .55);
+    border-radius: 3px;
+}
+
+.design-root .archive-grid::-webkit-scrollbar-thumb:hover{
+    background: var(--red-bright);
 }
 
 .design-root .archive-card{
+    flex: 0 0 320px;
+    min-width: 280px;
     min-height: 230px;
+    scroll-snap-align: start;
 
     display: flex;
     flex-direction: column;
@@ -1518,7 +1584,14 @@ h2,
     }
 
     .design-root .archive-grid{
-        grid-template-columns: 1fr;
+        gap: 14px;
+        padding-bottom: 14px;
+    }
+
+    .design-root .archive-card{
+        flex: 0 0 78vw;
+        max-width: 290px;
+        min-height: 210px;
     }
 
 
@@ -2682,7 +2755,7 @@ h2,
             rgba(8,9,9,.90) 48%,
             rgba(8,9,9,.45) 100%
         ),
-        url("/design-assets/hero.png") center / cover no-repeat;
+        url("/design-assets/about-hero.png") center / cover no-repeat;
 }
 
 .design-root .about-hero::after{
@@ -2937,7 +3010,8 @@ h2,
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: saturate(.78);
+    object-position: center;
+    filter: saturate(.85);
 }
 
 .design-root .about-journey-image::after{
