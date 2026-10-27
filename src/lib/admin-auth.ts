@@ -185,4 +185,84 @@ export async function verifyAdminKeyAndDiscordStaff(discordUsername: string): Pr
   };
 }
 
+export async function verifyDiscordOAuthUser(params: {
+  code?: string;
+  redirectUri?: string;
+  accessToken?: string;
+}): Promise<
+  | { ok: true; discordUserId: string; discordUsername: string }
+  | { ok: false; message: string }
+> {
+  let token = params.accessToken?.trim();
+
+  // Jika menerima authorization code, lakukan penukaran code ke access token
+  if (!token && params.code?.trim()) {
+    const clientId = CONFIG.discordClientId;
+    const clientSecret = CONFIG.discordClientSecret;
+    const redirectUri =
+      params.redirectUri?.trim() ||
+      CONFIG.discordRedirectUri ||
+      "https://bareskrimrbx-recruitment.my.id/admin";
+
+    if (!clientId || !clientSecret) {
+      return {
+        ok: false,
+        message: "Discord OAuth2 Client ID atau Client Secret belum dikonfigurasi di environment.",
+      };
+    }
+
+    try {
+      const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          grant_type: "authorization_code",
+          code: params.code.trim(),
+          redirect_uri: redirectUri,
+        }),
+      });
+
+      if (!tokenRes.ok) {
+        const errBody = await tokenRes.text().catch(() => "");
+        return {
+          ok: false,
+          message: `Penukaran kode Discord OAuth gagal (${tokenRes.status}): ${errBody.slice(0, 100)}`,
+        };
+      }
+
+      const tokenJson = (await tokenRes.json()) as { access_token?: string };
+      token = tokenJson.access_token;
+    } catch (e) {
+      return { ok: false, message: `Gagal menghubungi server Discord OAuth: ${String(e)}` };
+    }
+  }
+
+  if (!token) {
+    return { ok: false, message: "Token otorisasi Discord tidak ditemukan." };
+  }
+
+  // Ambil profil pengguna Discord resmi via /users/@me
+  try {
+    const meRes = await fetch(`${DISCORD_API}/users/@me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!meRes.ok) {
+      return { ok: false, message: "Gagal memverifikasi identitas pengguna dari Discord." };
+    }
+
+    const meJson = (await meRes.json()) as { id?: string; username?: string; global_name?: string };
+    if (!meJson?.id) {
+      return { ok: false, message: "ID akun Discord tidak ditemukan dari respon otorisasi." };
+    }
+
+    // Verifikasi keanggotaan dan role Staf Pusdik di guild Pusdik
+    return verifyAdminKeyAndDiscordStaff(meJson.id);
+  } catch (e) {
+    return { ok: false, message: `Gagal memverifikasi akun Discord: ${String(e)}` };
+  }
+}
+
 export { ADMIN_COOKIE, STAFF_ROLE_ID };

@@ -222,11 +222,82 @@ export function AdminPanel() {
   const [qKeywords, setQKeywords] = useState("");
   const [qPoints, setQPoints] = useState(4);
 
-  // Auto-login saat mount jika sudah ada kunci tersimpan di session.
+  // Auto-login saat mount jika sudah ada kunci tersimpan di session atau redirect Discord OAuth.
   const initialCheckRef = useRef(false);
+  const oauthClientIdRef = useRef("");
+
   useEffect(() => {
     if (initialCheckRef.current) return;
     initialCheckRef.current = true;
+
+    // Tangani redirect Discord OAuth (access_token via URL hash atau code via query param)
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      let accessToken = "";
+      let code = "";
+
+      if (hash && hash.includes("access_token=")) {
+        const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
+        accessToken = hashParams.get("access_token") || "";
+      } else if (search && search.includes("code=")) {
+        const searchParams = new URLSearchParams(search);
+        code = searchParams.get("code") || "";
+      }
+
+      if (accessToken || code) {
+        const savedKey = sessionStorage.getItem("admin_key");
+        if (savedKey) {
+          setKey(savedKey);
+          setAuthBusy(true);
+          setMsg({ ok: true, text: "Memverifikasi akun Discord dan role Staf Pusdik... ⏳" });
+          fetch("/api/admin/auth/verify-staff", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              adminKey: savedKey,
+              discordAccessToken: accessToken || undefined,
+              code: code || undefined,
+              redirectUri: window.location.origin + "/admin",
+            }),
+          })
+            .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
+            .then(({ ok, data }) => {
+              if (ok && data.ok) {
+                setVerifiedAdmin(data.verifiedAdmin ?? null);
+                setAuthed(true);
+                sessionStorage.setItem("admin_key", savedKey);
+                if (data.verifiedAdmin?.discordUsername) {
+                  sessionStorage.setItem("admin_staff_discord_username", data.verifiedAdmin.discordUsername);
+                }
+                setMsg({ ok: true, text: `Admin terverifikasi sebagai ${data.verifiedAdmin?.discordUsername}.` });
+                window.history.replaceState({}, document.title, window.location.pathname);
+                load(savedKey);
+              } else {
+                setAuthStep("staff");
+                setMsg({ ok: false, text: data.message || "Verifikasi akun Discord staf gagal." });
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }
+            })
+            .catch(() => {
+              setAuthStep("staff");
+              setMsg({ ok: false, text: "Gagal menghubungi server untuk verifikasi Discord." });
+              window.history.replaceState({}, document.title, window.location.pathname);
+            })
+            .finally(() => {
+              setAuthBusy(false);
+            });
+          return;
+        } else {
+          setAuthStep("key");
+          setMsg({ ok: false, text: "Sesi verifikasi habis. Masukkan kembali Kunci Keamanan Instruktur." });
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+      }
+    }
+
     const savedKey = sessionStorage.getItem("admin_key");
     const savedStaff = sessionStorage.getItem("admin_staff_discord_username");
     if (savedKey) setKey(savedKey);
@@ -308,6 +379,81 @@ export function AdminPanel() {
       console.error("[AdminPanel] load error:", e);
       setAuthed(true);
     }
+  }, [key]);
+
+  const handlePasscodeSubmit = useCallback(async () => {
+    if (!key.trim()) {
+      setMsg({ ok: false, text: "Kunci keamanan instruktur wajib diisi." });
+      return;
+    }
+    setAuthBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/auth/verify-staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminKey: key.trim(), checkKeyOnly: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        setMsg({ ok: false, text: data.message || "Kunci keamanan instruktur salah." });
+        return;
+      }
+      if (data.clientId) {
+        oauthClientIdRef.current = data.clientId;
+      }
+      sessionStorage.setItem("admin_key", key.trim());
+      setAuthStep("staff");
+      setMsg(null);
+    } catch {
+      setMsg({ ok: false, text: "Gagal memeriksa kunci keamanan instruktur." });
+    } finally {
+      setAuthBusy(false);
+    }
+  }, [key]);
+
+  const handleDiscordOAuth = useCallback(async () => {
+    if (!key.trim()) {
+      setAuthStep("key");
+      setMsg({ ok: false, text: "Masukkan kunci keamanan instruktur terlebih dahulu." });
+      return;
+    }
+
+    setAuthBusy(true);
+    sessionStorage.setItem("admin_key", key.trim());
+
+    let clientId = oauthClientIdRef.current;
+    if (!clientId) {
+      try {
+        const res = await fetch("/api/admin/auth/verify-staff");
+        const data = await res.json().catch(() => ({}));
+        if (data?.clientId) {
+          clientId = data.clientId;
+          oauthClientIdRef.current = clientId;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (!clientId) {
+      setMsg({
+        ok: false,
+        text: "Discord Client ID belum tersedia di server. Silakan gunakan verifikasi manual di bawah.",
+      });
+      setAuthBusy(false);
+      return;
+    }
+
+    const redirectUri = window.location.origin + "/admin";
+    const scope = encodeURIComponent("identify");
+    const oauthUrl = `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(
+      clientId
+    )}&response_type=token&scope=${scope}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&prompt=consent`;
+
+    window.location.href = oauthUrl;
   }, [key]);
 
   const verifyStaff = useCallback(async () => {
@@ -529,73 +675,164 @@ export function AdminPanel() {
                   <span className="section-kicker">PORTAL ADMINISTRATOR</span>
                   <h1 className="font-serif">Masuk Admin</h1>
                 </div>
-                <span className="step-indicator">Autentikasi 2-Faktor</span>
+                <span className="step-indicator">
+                  {authStep === "key" ? "Tahap 1/2: Passcode" : "Tahap 2/2: Discord Staf"}
+                </span>
               </div>
 
-              <form
-                className="login-stage active"
-                id="stageTwo"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  verifyStaff();
-                }}
-              >
-                <div style={{ marginBottom: "16px" }}>
-                  <label htmlFor="staffName">DISCORD USERNAME ATAU ID SNOWFLAKE</label>
-                  <input
-                    type="text"
-                    id="staffName"
-                    value={staffDiscordUsername}
-                    onChange={(e) => setStaffDiscordUsername(e.target.value)}
-                    placeholder="Contoh: username atau 147179..."
-                    autoComplete="username"
-                    disabled={authBusy}
-                  />
-                  <p className="input-help">
-                    Harus username atau ID Discord yang memegang role Personel Staff Pusdik.
-                  </p>
-                </div>
+              {authStep === "key" ? (
+                <form
+                  className="login-stage active"
+                  id="stageOne"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handlePasscodeSubmit();
+                  }}
+                >
+                  <div style={{ marginBottom: "16px" }}>
+                    <label htmlFor="adminKey">KUNCI KEAMANAN INSTRUKTUR (PASSCODE)</label>
+                    <div className="password-input">
+                      <input
+                        type={showKey ? "text" : "password"}
+                        id="adminKey"
+                        value={key}
+                        onChange={(e) => setKey(e.target.value)}
+                        placeholder="Masukkan sandi rahasia instruktur"
+                        autoComplete="current-password"
+                        disabled={authBusy}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowKey((v) => !v)}
+                        aria-label={showKey ? "Sembunyikan kunci" : "Tampilkan kunci"}
+                      >
+                        {showKey ? "🙈" : "👁️"}
+                      </button>
+                    </div>
+                    <p className="input-help">Sandi rahasia internal instruktur Pusdik Reserse.</p>
+                  </div>
 
-                <div style={{ marginBottom: "16px" }}>
-                  <label htmlFor="adminKey">KUNCI KEAMANAN INSTRUKTUR (PASSCODE)</label>
-                  <div className="password-input">
-                    <input
-                      type={showKey ? "text" : "password"}
-                      id="adminKey"
-                      value={key}
-                      onChange={(e) => setKey(e.target.value)}
-                      placeholder="Masukkan sandi rahasia instruktur"
-                      autoComplete="current-password"
-                      disabled={authBusy}
-                    />
+                  {msg && (
+                    <p className={`login-error ${msg.ok ? "!text-[#68b478]" : "!text-[#d87575]"}`}>
+                      {msg.text}
+                    </p>
+                  )}
+
+                  <button
+                    className="primary-button"
+                    id="continueLogin"
+                    type="submit"
+                    disabled={authBusy || !key.trim()}
+                    style={{ width: "100%", marginTop: "12px" }}
+                  >
+                    {authBusy ? "Memeriksa Kunci..." : "Lanjut ke Verifikasi Discord"} <span>→</span>
+                  </button>
+                </form>
+              ) : (
+                <div className="login-stage active" id="stageTwo">
+                  <div
+                    style={{
+                      marginBottom: "16px",
+                      padding: "12px",
+                      borderRadius: "4px",
+                      background: "rgba(88, 101, 242, 0.1)",
+                      border: "1px solid rgba(88, 101, 242, 0.3)",
+                      fontSize: "13px",
+                      lineHeight: "1.5",
+                      color: "#c9cdfb",
+                    }}
+                  >
+                    Kunci instruktur terverifikasi. Silakan hubungkan akun Discord resmi staf Anda (model Bloxlink) untuk memvalidasi role Personel Staff Pusdik.
+                  </div>
+
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={handleDiscordOAuth}
+                    disabled={authBusy}
+                    style={{
+                      width: "100%",
+                      marginTop: "4px",
+                      marginBottom: "16px",
+                      background: "#5865F2",
+                      borderColor: "#5865F2",
+                      justifyContent: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span>🔷</span>
+                    <span>{authBusy ? "Membuka Discord..." : "Verifikasi via Discord (Otomatis)"}</span>
+                  </button>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      margin: "16px 0",
+                      color: "var(--muted)",
+                      fontSize: "12px",
+                    }}
+                  >
+                    <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+                    <span>atau verifikasi manual</span>
+                    <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+                  </div>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      verifyStaff();
+                    }}
+                  >
+                    <div style={{ marginBottom: "16px" }}>
+                      <label htmlFor="staffName">DISCORD USERNAME ATAU ID SNOWFLAKE</label>
+                      <input
+                        type="text"
+                        id="staffName"
+                        value={staffDiscordUsername}
+                        onChange={(e) => setStaffDiscordUsername(e.target.value)}
+                        placeholder="Contoh: username atau 147179..."
+                        autoComplete="username"
+                        disabled={authBusy}
+                      />
+                      <p className="input-help">
+                        Harus username atau ID Discord yang memegang role Personel Staff Pusdik.
+                      </p>
+                    </div>
+
+                    {msg && (
+                      <p className={`login-error ${msg.ok ? "!text-[#68b478]" : "!text-[#d87575]"}`}>
+                        {msg.text}
+                      </p>
+                    )}
+
+                    <button
+                      className="primary-button"
+                      id="finishLogin"
+                      type="submit"
+                      disabled={authBusy || !staffDiscordUsername.trim()}
+                      style={{ width: "100%", marginTop: "12px" }}
+                    >
+                      {authBusy ? "Memverifikasi Otoritas Staff..." : "Masuk Panel Administrasi"} <span>→</span>
+                    </button>
+
                     <button
                       type="button"
-                      className="password-toggle"
-                      onClick={() => setShowKey((v) => !v)}
-                      aria-label={showKey ? "Sembunyikan kunci" : "Tampilkan kunci"}
+                      className="back-button"
+                      onClick={() => {
+                        setAuthStep("key");
+                        setMsg(null);
+                      }}
+                      disabled={authBusy}
                     >
-                      {showKey ? "🙈" : "👁️"}
+                      ← Kembali ke Kunci Keamanan
                     </button>
-                  </div>
-                  <p className="input-help">Sandi rahasia internal instruktur Pusdik Reserse.</p>
+                  </form>
                 </div>
-
-                {msg && (
-                  <p className={`login-error ${msg.ok ? "!text-[#68b478]" : "!text-[#d87575]"}`}>
-                    {msg.text}
-                  </p>
-                )}
-
-                <button
-                  className="primary-button"
-                  id="finishLogin"
-                  type="submit"
-                  disabled={authBusy || !key.trim() || !staffDiscordUsername.trim()}
-                  style={{ width: "100%", marginTop: "12px" }}
-                >
-                  {authBusy ? "Memverifikasi Otoritas Staff..." : "Masuk Panel Administrasi"} <span>→</span>
-                </button>
-              </form>
+              )}
             </div>
           </section>
         </main>

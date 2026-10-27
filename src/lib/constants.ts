@@ -17,7 +17,24 @@ let runtimeSettings: Partial<{
   discordBotSecret: string;
   discordWebhookUrl: string;
   discordBlacklistPendidikanChannelId: string;
+  discordClientId: string;
+  discordClientSecret: string;
+  discordRedirectUri: string;
 }> = {};
+
+function extractDiscordClientId(token?: string, explicitId?: string): string {
+  if (explicitId && explicitId.trim()) return explicitId.trim();
+  if (!token) return "";
+  try {
+    const firstPart = token.split(".")[0];
+    if (!firstPart) return "";
+    const decoded = Buffer.from(firstPart, "base64").toString("utf-8");
+    if (/^\d{17,20}$/.test(decoded)) return decoded;
+  } catch {
+    // ignore
+  }
+  return "";
+}
 
 function cleanEnvString(value: string | undefined | null): string {
   const trimmed = (value ?? "").trim();
@@ -69,6 +86,12 @@ function buildConfig() {
       "discordBlacklistPendidikanChannelId",
       cleanEnvString(process.env.DISCORD_BLACKLIST_PENDIDIKAN_CHANNEL_ID)
     ),
+    discordClientId: getEnvOrRuntime(
+      "discordClientId",
+      cleanEnvString(process.env.DISCORD_CLIENT_ID) || extractDiscordClientId(process.env.DISCORD_BOT_TOKEN)
+    ),
+    discordClientSecret: getEnvOrRuntime("discordClientSecret", cleanEnvString(process.env.DISCORD_CLIENT_SECRET)),
+    discordRedirectUri: getEnvOrRuntime("discordRedirectUri", cleanEnvString(process.env.DISCORD_REDIRECT_URI)),
   } as const;
 }
 

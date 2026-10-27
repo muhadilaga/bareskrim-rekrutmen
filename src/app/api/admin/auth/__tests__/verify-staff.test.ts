@@ -127,4 +127,63 @@ describe("POST /api/admin/auth/verify-staff", () => {
       globalThis.fetch = origFetch;
     }
   });
+
+  it("step 1 checkKeyOnly: returns ok: true when adminKey is valid -> 200", async () => {
+    const res = await callRoute({
+      adminKey: TEST_ADMIN_KEY,
+      checkKeyOnly: true,
+    });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.ok).toBe(true);
+    expect(json.message).toContain("Kunci keamanan instruktur valid");
+  });
+
+  it("step 1 checkKeyOnly: returns 401 when adminKey is invalid", async () => {
+    const res = await callRoute({
+      adminKey: "wrong-passcode",
+      checkKeyOnly: true,
+    });
+    expect(res.status).toBe(401);
+    const json = await res.json();
+    expect(json.ok).toBe(false);
+    expect(json.message).toContain("Kunci admin salah");
+  });
+
+  it("step 2 oauth: verifies via discordAccessToken -> 200", async () => {
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockImplementation((url: string | URL | Request) => {
+      const urlStr = String(url);
+      if (urlStr.includes("/users/@me")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: "123456789012345678", username: "staff_oauth" }), { status: 200 })
+        );
+      }
+      if (urlStr.includes("/members/")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              user: { id: "123456789012345678", username: "staff_oauth" },
+              roles: [STAFF_ROLE_ID],
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.resolve(new Response("Not Found", { status: 404 }));
+    });
+
+    try {
+      const res = await callRoute({
+        adminKey: TEST_ADMIN_KEY,
+        discordAccessToken: "fake-discord-access-token",
+      });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.ok).toBe(true);
+      expect(json.verifiedAdmin.discordUsername).toBe("staff_oauth");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
 });
