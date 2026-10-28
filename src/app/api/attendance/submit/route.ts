@@ -18,6 +18,7 @@ import {
 import { evaluateMotivation, verifyCandidateWhitelist } from "@/lib/attendance-eval";
 import { getRobloxUserSummary } from "@/lib/roblox";
 import { ensureCandidateApplication } from "@/lib/application-service";
+import { generateCandidateExamPin } from "@/lib/exam-service";
 
 // TASK 03L.2E.4.6 — Satu-satunya unique constraint pada Attendance yang relevan
 // untuk race absensi (prisma/migrations/.../init_v2_baseline/migration.sql:
@@ -461,6 +462,7 @@ export async function POST(req: Request) {
       roleAssigned,
       roleError,
       roleEligible: evalResult.roleEligible,
+      examPin: evalResult.roleEligible ? generateCandidateExamPin(user.username, period.id) : null,
       motivationStatus: evalResult.status,
       motivationReason: evalResult.reason,
       attendance: {
@@ -469,6 +471,7 @@ export async function POST(req: Request) {
         motivation: attendance.motivation,
         motivationStatus: attendance.motivationStatus,
         roleEligible: attendance.roleEligible,
+        examPin: evalResult.roleEligible ? generateCandidateExamPin(user.username, period.id) : null,
         createdAt: attendance.createdAt.toISOString(),
       },
       user: {

@@ -4,6 +4,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { CONFIG } from "@/lib/constants";
+import { createHmac } from "crypto";
 import { BlacklistCategory, Prisma, VerdictStatus } from "@prisma/client";
 import { checkDiscordRole } from "@/lib/discord-api";
 import {
@@ -170,6 +171,29 @@ function buildResumeSession(
 }
 
 // Mulai / lanjutkan sesi ujian untuk user pada periode aktif
+// In-memory cache untuk bank soal guna mengurangi beban konkurensi database saat ujian serentak
+let questionCache: {
+  timestamp: number;
+  mcqs: any[];
+  essays: any[];
+} | null = null;
+
+async function getCachedQuestions() {
+  const now = Date.now();
+  // Bypass cache pada test environment agar mock Prisma selalu dievaluasi segar
+  if (process.env.NODE_ENV !== "test" && questionCache && now - questionCache.timestamp < 60_000) {
+    return { mcqs: questionCache.mcqs, essays: questionCache.essays };
+  }
+  const [mcqs, essays] = await Promise.all([
+    prisma.question.findMany({ where: { type: "MCQ", isActive: true } }),
+    prisma.question.findMany({ where: { type: "ESSAY", isActive: true } }),
+  ]);
+  if (process.env.NODE_ENV !== "test") {
+    questionCache = { timestamp: now, mcqs, essays };
+  }
+  return { mcqs, essays };
+}
+
 export async function startExamSession(user: User): Promise<ExamSessionResult> {
   await ensureSchema();
 
@@ -326,10 +350,7 @@ export async function startExamSession(user: User): Promise<ExamSessionResult> {
     return buildResumeSession(existing, period);
   }
 
-  const [mcqs, essays] = await Promise.all([
-    prisma.question.findMany({ where: { type: "MCQ", isActive: true } }),
-    prisma.question.findMany({ where: { type: "ESSAY", isActive: true } }),
-  ]);
+  const { mcqs, essays } = await getCachedQuestions();
 
   const mcqCount = period.mcqCount ?? CONFIG.mcqCount;
   const essayCount = period.essayCount ?? CONFIG.essayCount;
@@ -1192,4 +1213,17 @@ export async function getLatestResult(userId: string) {
     },
     orderBy: [{ submittedAt: "desc" }, { id: "desc" }],
   });
+}
+
+/**
+ * Generate 6-digit deterministic PIN unik per casis dan periode.
+ * Hanya diberikan untuk casis yang telah berstatus roleEligible (Tahap Akademik).
+ */
+export function generateCandidateExamPin(username: string, periodId?: string): string {
+  const secret = process.env.JWT_SECRET || "bareskrim-exam-pin-salt-2026";
+  const cleanUser = (username || "").trim().toLowerCase();
+  const cleanPeriod = (periodId || "global").trim();
+  const hash = createHmac("sha256", secret).update(`PIN:${cleanUser}:${cleanPeriod}`).digest("hex");
+  const num = (parseInt(hash.slice(0, 8), 16) % 900000) + 100000;
+  return num.toString();
 }

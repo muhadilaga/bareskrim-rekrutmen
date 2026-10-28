@@ -86,3 +86,7 @@ export function createUserRateLimiter(options: { windowMs: number; max: number }
 
 // 5 submit per menit per user (berbeda dari IP-based submitLimiter)
 export const userSubmitLimiter = createUserRateLimiter({ windowMs: 60_000, max: 5 });
+
+// 10 percobaan verifikasi PIN ujian per menit per akun (cegah brute-force per username)
+export const examPinLimiter = createRateLimiter({ windowMs: 60_000, max: 10 });
+

@@ -11,6 +11,7 @@ interface AttendanceRecord {
   motivationReason?: string | null;
   motivationAttemptCount?: number;
   roleEligible?: boolean;
+  examPin?: string | null;
   createdAt: string;
 }
 
@@ -41,6 +42,7 @@ export function AttendanceChecker() {
     ok: boolean;
     message: string;
     roleEligible?: boolean;
+    examPin?: string | null;
     motivationStatus?: string;
   } | null>(null);
 
@@ -144,6 +146,7 @@ export function AttendanceChecker() {
           ok: true,
           message: json.message,
           roleEligible: json.roleEligible,
+          examPin: json.examPin || json.attendance?.examPin || null,
           motivationStatus: json.motivationStatus,
         });
         if (json.attendance) {
@@ -545,13 +548,35 @@ export function AttendanceChecker() {
             </p>
             <p style={{ margin: "4px 0 0" }}>{feedback.message}</p>
             {feedback.ok && feedback.roleEligible && (
-              <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap gap-2">
-                <Link href="/dashboard" className="attendance-submit-btn" style={{ marginTop: 0, textDecoration: "none", minHeight: "40px", fontSize: "11px", padding: "8px 14px" }}>
-                  Ke Dashboard Casis →
-                </Link>
-                <Link href="/ujian" className="attendance-secondary-btn" style={{ textDecoration: "none", minHeight: "40px", fontSize: "11px", padding: "8px 14px" }}>
-                  Masuk Ruang Ujian →
-                </Link>
+              <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-2">
+                {feedback.examPin && (
+                  <div style={{
+                    background: "rgba(181, 34, 40, 0.2)",
+                    border: "1px solid rgba(181, 34, 40, 0.5)",
+                    borderRadius: "6px",
+                    padding: "10px 14px",
+                    textAlign: "center",
+                    marginBottom: "4px"
+                  }}>
+                    <span style={{ fontSize: "10px", letterSpacing: "0.12em", color: "var(--casis-gold)", display: "block", textTransform: "uppercase", fontWeight: 700 }}>
+                      PIN UJIAN CASIS ANDA (TAHAP AKADEMIK)
+                    </span>
+                    <strong style={{ fontSize: "24px", letterSpacing: "0.25em", color: "#ffffff", display: "block", margin: "4px 0", fontFamily: "monospace" }}>
+                      {feedback.examPin}
+                    </strong>
+                    <span style={{ fontSize: "11px", color: "var(--casis-muted)" }}>
+                      Simpan PIN 6 digit ini untuk verifikasi masuk ke ruang Ujian.
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Link href="/dashboard" className="attendance-submit-btn" style={{ marginTop: 0, textDecoration: "none", minHeight: "40px", fontSize: "11px", padding: "8px 14px" }}>
+                    Ke Dashboard Casis →
+                  </Link>
+                  <Link href="/ujian" className="attendance-secondary-btn" style={{ textDecoration: "none", minHeight: "40px", fontSize: "11px", padding: "8px 14px" }}>
+                    Masuk Ruang Ujian →
+                  </Link>
+                </div>
               </div>
             )}
           </div>
@@ -775,6 +800,27 @@ export function AttendanceChecker() {
                         </strong>
                       </div>
                     </div>
+
+                    {checkResult.attendance.examPin && (
+                      <div style={{
+                        background: "rgba(181, 34, 40, 0.2)",
+                        border: "1px solid rgba(181, 34, 40, 0.5)",
+                        borderRadius: "6px",
+                        padding: "10px 14px",
+                        textAlign: "center",
+                        marginTop: "12px"
+                      }}>
+                        <span style={{ fontSize: "10px", letterSpacing: "0.12em", color: "var(--casis-gold)", display: "block", textTransform: "uppercase", fontWeight: 700 }}>
+                          PIN UJIAN CASIS ANDA (TAHAP AKADEMIK)
+                        </span>
+                        <strong style={{ fontSize: "24px", letterSpacing: "0.25em", color: "#ffffff", display: "block", margin: "4px 0", fontFamily: "monospace" }}>
+                          {checkResult.attendance.examPin}
+                        </strong>
+                        <span style={{ fontSize: "11px", color: "var(--casis-muted)" }}>
+                          Gunakan PIN ini untuk verifikasi masuk ke ruang Ujian.
+                        </span>
+                      </div>
+                    )}
 
                     <div className="flex flex-col sm:flex-row gap-2 mt-4 pt-3 border-t border-white/10">
                       {checkResult.attendance.roleEligible ? (

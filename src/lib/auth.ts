@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getJwtSecret } from "@/lib/constants";
 
@@ -94,6 +95,30 @@ export async function createTrustedSessionCookie(userId: string, robloxId: numbe
     path: "/",
     maxAge: 60 * 60 * 2,
   });
+}
+
+/** Pasang cookie sesi casis portal ke NextResponse. */
+export function attachCasisSessionCookie(response: NextResponse, token: string): void {
+  response.cookies.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24, // 24 jam
+  });
+}
+
+/** Cookie sesi CASIS_PORTAL langsung via next/headers cookies(). */
+export async function createCasisPortalSessionCookie(userId: string, robloxId?: number): Promise<string> {
+  const token = await signCasisPortalSession({ userId, robloxId });
+  cookies().set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24, // 24 jam
+  });
+  return token;
 }
 
 export async function destroySessionCookie(): Promise<void> {

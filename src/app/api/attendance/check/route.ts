@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getRobloxUserSummary } from "@/lib/roblox";
 import { ensureSchema } from "@/lib/init-schema";
+import { generateCandidateExamPin } from "@/lib/exam-service";
 
 export const dynamic = "force-dynamic";
 
@@ -210,6 +211,7 @@ export async function GET(req: Request) {
             motivationReason: attendance.motivationReason,
             motivationAttemptCount: attendance.motivationAttemptCount,
             roleEligible: attendance.roleEligible,
+            examPin: attendance.roleEligible && targetUser ? generateCandidateExamPin(targetUser.username, activePeriod.id) : null,
             createdAt: attendance.createdAt.toISOString(),
           }
         : null,

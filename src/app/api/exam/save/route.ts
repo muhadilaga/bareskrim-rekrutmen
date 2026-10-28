@@ -19,7 +19,10 @@ const SaveSchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const limited = saveLimiter.check(clientIp(req));
+  const user = await getSessionUser(req);
+  // Rate limit berbasis user.id (fallback IP) agar banyak casis di satu Wi-Fi tidak saling blokir
+  const rateLimitKey = user?.id ? `user:${user.id}` : clientIp(req);
+  const limited = saveLimiter.check(rateLimitKey);
   if (!limited.ok) {
     return NextResponse.json(
       { ok: false, message: "Terlalu banyak permintaan save." },
@@ -27,7 +30,6 @@ export async function POST(req: Request) {
     );
   }
 
-  const user = await getSessionUser(req);
   if (!user) {
     return NextResponse.json(
       { ok: false, message: "Silakan login terlebih dahulu." },

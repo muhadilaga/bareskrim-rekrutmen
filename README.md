@@ -9,10 +9,11 @@ Sistem portal seleksi dan evaluasi calon siswa (casis) Pusdik Reserse Bareskrim 
 | Fitur | Keterangan & Arsitektur |
 |---|---|
 | 🎨 **Identitas Visual Pusdik Reserse** | Desain dark editorial premium dengan palet Navy (`#070b12`), Accent Gold (`#d4af37`), dan tipografi *Cinzel* + *Outfit* + *JetBrains Mono*. Bebas dari palet crimson/merah legacy. |
-| 📋 **Portal Casis Mandiri (`/dashboard`)** | Portal presensi apel dan pengecekan hasil seleksi mandiri tanpa ketergantungan OAuth login Roblox. Casis dapat input kehadiran apel dan memeriksa apakah status sudah diverifikasi instruktur serta memperoleh role tahap akademik. |
-| 🛡️ **Pemisahan Panel Admin (`/admin`)** | Halaman admin sepenuhnya terpisah dari rute casis guna mencegah kebocoran otorisasi. Dilindungi autentikasi sesi admin independen (`AUTH_COOKIE_NAME` + `ADMIN_KEY` / verifikasi Discord Staff Pusdik). |
+| 📋 **Portal Casis Mandiri (`/dashboard`)** | Portal presensi apel dan pengecekan hasil seleksi mandiri tanpa ketergantungan OAuth login Roblox. Menyediakan banner PIN Ujian deterministik 6-digit otomatis bagi casis terverifikasi, serta tab publik Cek Blacklist Pusdik. |
+| 🛡️ **Pemisahan Panel Admin (`/admin`)** | Halaman admin sepenuhnya terpisah dari rute casis guna mencegah kebocoran otorisasi. Dilindungi autentikasi 2-tahap instruktur: Passcode Instruktur dan Verifikasi Discord resmi staf Pusdik via Bloxlink OAuth2 / guild role check. |
 | ⚙️ **Konfigurasi Konten Dinamis** | Seluruh detail teks landing page, pengumuman, tahapan timeline seleksi (`/rekrutmen`), kuota angkatan, dan batas waktu periode dapat dikonfigurasi langsung dari Admin Panel tanpa restart server. |
-| 📝 **Ujian Online & Auto-Grading** | Bank soal terisi 20 Pilihan Ganda (4 poin) + 5 Esai (4 poin) = 100 poin. Kunci jawaban dan kata kunci esai tersimpan aman di server (anti-cheat client-side). Dilengkapi fitur *tab-lock monitor*. |
+| 📝 **Ujian Online, Anti-Cheat & Auto-Grading** | Bank soal 20 Pilihan Ganda (4 poin) + 5 Esai (4 poin) = 100 poin dengan in-memory cache 60s. Akses masuk menggunakan PIN 6-digit deterministik. Dilengkapi proteksi anti-cheat switch tab/blur (toleransi 3x dengan threshold durasi 3 detik sebelum auto-submit paksa). Batas KKM ditiadakan; kelulusan murni dari skor hasil ujian dan verifikasi instruktur. |
+| 📱 **Navigasi Mobile Responsif & Fluid Layout** | Dual-layer navigation bar untuk smartphone (`DesignNavbar` + quick scrollable `mobile-subnav` horizontal + drawer dropdown menu), serta fluid typography clamping pada heading hero agar bebas dari pemotongan teks/elipsis pada layar 320px–480px. |
 | 🖼️ **Galeri Dokumentasi & Arsip** | Halaman `/galeri` untuk dokumentasi kegiatan Pusdik Reserse dan `/arsip` untuk rekam jejak lulusan angkatan sebelumnya. |
 | 📊 **Verifikasi Presensi Instruktur** | Instruktur dapat memvalidasi kehadiran casis, mengubah status presensi (`APPROVED`/`PENDING`/`REJECTED`), dan menentukan kelayakan role tahap akademik casis. |
 | 🔒 **Security Hardened & Trust Boundary** | Melewati audit keamanan ketat: pencegahan query injection pada 50 raw SQL queries, proteksi 51 route handlers `/api/admin/*`, dan isolasi token sesi pada endpoint pengecekan presensi publik. |
@@ -28,7 +29,7 @@ Sistem portal seleksi dan evaluasi calon siswa (casis) Pusdik Reserse Bareskrim 
 - **Styling:** CSS Modules / Vanilla CSS Scoped (`casis.css`, `admin.css`, `landing.css`) + Tailwind CSS
 - **Autentikasi & Enkripsi:** JOSE (JWT) dengan cookie HTTP-only terisolasi
 - **Validasi Data:** Zod Schema Validation
-- **Testing:** Vitest (51+ Test Suites, >780 Unit & Integration Tests)
+- **Testing:** Vitest (51 Test Suites, 774 Unit & Integration Tests — 100% Green)
 - **Deployment Platform:** Vercel (Produksi) / PostgreSQL via Supabase Pooler
 
 ---

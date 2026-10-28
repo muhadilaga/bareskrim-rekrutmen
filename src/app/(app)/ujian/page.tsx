@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { startExamSession } from "@/lib/exam-service";
 import { CONFIG } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { ExamForm } from "@/components/exam/ExamForm";
+import { ExamForm, ExamPinGate } from "@/components/exam/ExamForm";
 import { TabLock } from "@/components/exam/TabLock";
 import { isNextRedirectError } from "@/lib/utils";
 import { ensureCandidateApplication } from "@/lib/application-service";
@@ -41,7 +41,25 @@ export default async function ExamPage({ searchParams }: ExamPageProps) {
   try {
     const user = await getSessionUser();
     if (!user) {
-      redirect("/login?callbackUrl=/ujian");
+      return (
+        <div className="casis-root">
+          <header className="student-header">
+            <Link href="/dashboard" className="student-brand" aria-label="Portal Casis Bareskrim">
+              <img src="/design-assets/logo-pusdik.png" alt="" width={34} height={34} />
+              <div>
+                <strong>BARESKRIM POLRI RBX</strong>
+                <span>PUSDIK RESERSE</span>
+              </div>
+            </Link>
+            <div className="student-header-right">
+              <Link href="/dashboard" className="logout-button">DASHBOARD</Link>
+            </div>
+          </header>
+          <main id="casis-main" className="casis-main--dashboard" style={{ padding: "40px 16px 80px", maxWidth: "480px", margin: "0 auto" }}>
+            <ExamPinGate />
+          </main>
+        </div>
+      );
     }
 
     if (user.matraBlocked) {

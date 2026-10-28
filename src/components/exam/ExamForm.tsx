@@ -46,6 +46,17 @@ export function ExamForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [violations, setViolations] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    try {
+      const saved = window.localStorage.getItem(`brk_tab_violations_${attemptId}`);
+      return saved ? parseInt(saved, 10) || 0 : 0;
+    } catch {
+      return 0;
+    }
+  });
+  const [warningModalOpen, setWarningModalOpen] = useState(false);
+  const autoSubmittedForCheatingRef = useRef(false);
   const submittedRef = useRef(false);
   const lastSavedRef = useRef<string>("");
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,42 +247,20 @@ const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
       }
       try {
         window.localStorage.removeItem(`brk_answers_${attemptId}`);
+        window.localStorage.removeItem(`brk_tab_violations_${attemptId}`);
       } catch {
         // abaikan
       }
-       // Kirim laporan Discord di request terpisah (best-effort) agar
-       // respons submit tidak menunggu webhook dan tidak kena timeout.
-       // Retry realtime 3x sebelum disimpan untuk cron retry.
-       if (json.resultId) {
-         const retryDelay = [2000, 4000, 8000];
-         let reportOk = false;
-
-         for (let i = 0; i < retryDelay.length; i++) {
-           try {
-             const res = await fetch("/api/exam/report", {
-               method: "POST",
-               headers: { "Content-Type": "application/json" },
-               credentials: "include",
-               body: JSON.stringify({ resultId: json.resultId }),
-             });
-             const d = await res.json().catch(() => null);
-             console.log("[ExamReport] response:", d);
-             if (d?.ok || !d?.queued) {
-               reportOk = true;
-               break;
-             }
-           } catch {
-             // network error, retry
-           }
-           if (i < retryDelay.length - 1) {
-             await new Promise((r) => setTimeout(r, retryDelay[i]));
-           }
-         }
-
-         if (!reportOk) {
-           console.warn("[ExamReport] All retries failed, queued for cron.");
-         }
-       }
+      // Kirim laporan Discord di background secara asynchronous (non-blocking)
+      // agar casis langsung diarahkan ke /hasil tanpa terhambat latensi Discord.
+      if (json.resultId) {
+        void fetch("/api/exam/report", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ resultId: json.resultId }),
+        }).catch(() => null);
+      }
       router.replace("/hasil");
     } catch {
       setError("Kesalahan jaringan saat mengirim. Coba lagi.");
@@ -283,6 +272,68 @@ const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
   function onExpire() {
     if (!submittedRef.current) void doSubmit();
   }
+
+  // Anti-cheat: deteksi saat casis beralih tab atau membuka aplikasi lain
+  useEffect(() => {
+    if (submittedRef.current) return;
+
+    // Cek apakah sebelumnya sudah mencapai 3 pelanggaran (misal reload halaman)
+    try {
+      const current = parseInt(window.localStorage.getItem(`brk_tab_violations_${attemptId}`) || "0", 10);
+      if (current >= 3 && !submittedRef.current && !autoSubmittedForCheatingRef.current) {
+        setViolations(current);
+        setWarningModalOpen(true);
+        autoSubmittedForCheatingRef.current = true;
+        setTimeout(() => {
+          void doSubmit();
+        }, 1500);
+      }
+    } catch {
+      // ignore
+    }
+
+    let leaveTimestamp = 0;
+
+    function handleVisibilityChange() {
+      if (submittedRef.current) return;
+      if (document.hidden) {
+        // Catat kapan casis meninggalkan tab/aplikasi
+        leaveTimestamp = Date.now();
+      } else {
+        // Casis kembali ke tab
+        const timeAwayMs = leaveTimestamp > 0 ? Date.now() - leaveTimestamp : 0;
+        // False-positive tolerance: Abaikan jika beralih hanya sekejap (< 3000ms),
+        // misal notifikasi masuk, keyboard virtual pop-up, atau orientasi layar ponsel
+        if (leaveTimestamp > 0 && timeAwayMs < 3000) {
+          return;
+        }
+
+        try {
+          const currentCount = parseInt(window.localStorage.getItem(`brk_tab_violations_${attemptId}`) || "0", 10);
+          const newCount = currentCount + 1;
+          window.localStorage.setItem(`brk_tab_violations_${attemptId}`, String(newCount));
+          setViolations(newCount);
+          setWarningModalOpen(true);
+
+          if (newCount >= 3) {
+            if (!submittedRef.current && !autoSubmittedForCheatingRef.current) {
+              autoSubmittedForCheatingRef.current = true;
+              setTimeout(() => {
+                void doSubmit();
+              }, 1500);
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [attemptId]);
 
   return (
     <div style={{ maxWidth: "860px", margin: "0 auto" }}>
@@ -655,6 +706,222 @@ const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
           </div>
         </div>
       )}
+
+      {/* Modal Peringatan Pelanggaran Pindah Tab / Anti-Cheat */}
+      {warningModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.88)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "480px",
+              padding: "28px",
+              background: "#120a0b",
+              border: "2px solid #b52228",
+              borderRadius: "8px",
+              boxShadow: "0 0 30px rgba(181, 34, 40, 0.5)",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: "36px", marginBottom: "12px" }}>⚠️</div>
+            <h3
+              style={{
+                fontFamily: "var(--font-cinzel), serif",
+                fontSize: "18px",
+                fontWeight: 800,
+                color: "#ff6b6b",
+                letterSpacing: "0.08em",
+                margin: 0,
+              }}
+            >
+              {violations >= 3 ? "BATAS PELANGGARAN TERCAPAI" : `PERINGATAN PELANGGARAN (${violations}/3)`}
+            </h3>
+            <div
+              style={{
+                height: "1px",
+                background: "rgba(181, 34, 40, 0.4)",
+                margin: "16px 0",
+              }}
+            />
+            <p
+              style={{
+                fontSize: "14px",
+                lineHeight: "1.7",
+                color: "#f3f4f6",
+                margin: 0,
+              }}
+            >
+              {violations >= 3 ? (
+                <>
+                  Anda telah <strong>3 kali</strong> meninggalkan halaman ujian. Sesuai ketentuan anti-cheat Pusdik Reserse,{" "}
+                  <span style={{ color: "#ff6b6b", fontWeight: 700 }}>
+                    sesi ujian Anda dihentikan dan seluruh jawaban dikirimkan apa adanya ke sistem.
+                  </span>
+                </>
+              ) : (
+                <>
+                  Sistem mendeteksi Anda <strong>meninggalkan tab/aplikasi ujian</strong>. Dilarang membuka Google, tab lain, atau aplikasi bantuan selama ujian berlangsung!
+                  <br />
+                  <br />
+                  <span style={{ color: "var(--casis-gold)", fontWeight: 700 }}>
+                    Sisa toleransi: {Math.max(0, 3 - violations)} kali lagi.
+                  </span>
+                  <br />
+                  Jika mencapai 3 kali, ujian otomatis diselesaikan secara seadanya.
+                </>
+              )}
+            </p>
+            {violations < 3 ? (
+              <button
+                type="button"
+                onClick={() => setWarningModalOpen(false)}
+                style={{
+                  marginTop: "24px",
+                  width: "100%",
+                  padding: "12px",
+                  background: "#b52228",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  cursor: "pointer",
+                }}
+              >
+                SAYA MENGERTI & KEMBALI MENGERJAKAN
+              </button>
+            ) : (
+              <div style={{ marginTop: "20px", color: "var(--casis-gold)", fontSize: "13px", fontWeight: 700 }}>
+                Mengirimkan jawaban seadanya ke server...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Gate form untuk Casis yang belum memiliki sesi saat membuka /ujian.
+ * Meminta verifikasi Username Roblox + PIN 6 Digit (Tahap Akademik).
+ */
+export function ExamPinGate() {
+  const [username, setUsername] = useState("");
+  const [pin, setPin] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    const cleanUser = username.trim();
+    const cleanPin = pin.trim();
+    if (!cleanUser || !cleanPin) {
+      setError("Username Roblox dan PIN 6 digit wajib diisi.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/exam/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: cleanUser, pin: cleanPin }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        window.location.reload();
+      } else {
+        setError(data.message || "Gagal memverifikasi PIN ujian.");
+      }
+    } catch {
+      setError("Terjadi kesalahan koneksi. Silakan periksa jaringan Anda.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="attendance-panel animate-scale-in" style={{ maxWidth: 440, margin: "0 auto" }}>
+      <div className="attendance-header">
+        <span className="attendance-badge">TAHAP AKADEMIK</span>
+        <h2>VERIFIKASI PIN UJIAN</h2>
+        <p>
+          Masukkan Username Roblox dan PIN Ujian 6 digit yang Anda peroleh setelah status absensi terverifikasi.
+        </p>
+      </div>
+
+      {error && (
+        <div className="attendance-feedback error mb-4">
+          <p style={{ fontWeight: 700, margin: 0 }}>⚠️ Verifikasi Gagal</p>
+          <p style={{ margin: "4px 0 0" }}>{error}</p>
+        </div>
+      )}
+
+      <form onSubmit={handleVerify}>
+        <div className="attendance-form-group">
+          <label htmlFor="pinRobloxUsername">Username Roblox</label>
+          <input
+            id="pinRobloxUsername"
+            type="text"
+            required
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Contoh: 4DIBERL4G4"
+            autoComplete="username"
+          />
+        </div>
+
+        <div className="attendance-form-group">
+          <label htmlFor="examPinInput">PIN Ujian (6 Digit)</label>
+          <input
+            id="examPinInput"
+            type="text"
+            required
+            maxLength={6}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+            placeholder="Contoh: 582194"
+            autoComplete="one-time-code"
+            style={{ letterSpacing: "0.25em", fontFamily: "monospace", fontSize: "18px", textAlign: "center" }}
+          />
+          <small>PIN dapat dilihat pada kartu status absensi Anda di Dashboard Casis.</small>
+        </div>
+
+        <button
+          type="submit"
+          className="attendance-submit-btn w-full"
+          disabled={loading}
+          style={{ marginTop: "16px" }}
+        >
+          {loading ? "MEMVERIFIKASI..." : "MASUK RUANG UJIAN →"}
+        </button>
+
+        <div className="mt-4 text-center">
+          <a
+            href="/dashboard"
+            className="text-xs text-gray-400 hover:text-white transition-colors"
+            style={{ textDecoration: "none" }}
+          >
+            ← Kembali ke Dashboard untuk Cek PIN
+          </a>
+        </div>
+      </form>
     </div>
   );
 }
