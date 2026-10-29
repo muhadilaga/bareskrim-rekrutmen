@@ -12,38 +12,23 @@ export interface GalleryItem {
 
 export const GALLERY_ITEMS: GalleryItem[] = [];
 
-const CATEGORIES = [
-  "Semua",
-  "Pendidikan",
-  "Latihan Taktis",
-  "Operasional",
-  "Propaganda",
-  "Kegiatan",
-] as const;
-
 export function GalleryViewer() {
-  const [activeCategory, setActiveCategory] = useState<string>("Semua");
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  const filteredItems =
-    activeCategory === "Semua"
-      ? GALLERY_ITEMS
-      : GALLERY_ITEMS.filter((item) => item.category === activeCategory);
-
   const selectedItem =
-    selectedIndex !== null && filteredItems[selectedIndex]
-      ? filteredItems[selectedIndex]
+    selectedIndex !== null && GALLERY_ITEMS[selectedIndex]
+      ? GALLERY_ITEMS[selectedIndex]
       : null;
 
   const handlePrev = useCallback(() => {
     if (selectedIndex === null) return;
-    setSelectedIndex((prev) => (prev! > 0 ? prev! - 1 : filteredItems.length - 1));
-  }, [selectedIndex, filteredItems.length]);
+    setSelectedIndex((prev) => (prev! > 0 ? prev! - 1 : GALLERY_ITEMS.length - 1));
+  }, [selectedIndex]);
 
   const handleNext = useCallback(() => {
     if (selectedIndex === null) return;
-    setSelectedIndex((prev) => (prev! < filteredItems.length - 1 ? prev! + 1 : 0));
-  }, [selectedIndex, filteredItems.length]);
+    setSelectedIndex((prev) => (prev! < GALLERY_ITEMS.length - 1 ? prev! + 1 : 0));
+  }, [selectedIndex]);
 
   const handleClose = useCallback(() => {
     setSelectedIndex(null);
@@ -62,44 +47,9 @@ export function GalleryViewer() {
 
   return (
     <div className="w-full">
-      {/* Category Filter Pills */}
-      <div className="mb-8 flex flex-wrap items-center gap-2 border-b border-[rgba(255,255,255,0.08)] pb-4">
-        {CATEGORIES.map((cat) => {
-          const isActive = activeCategory === cat;
-          const count =
-            cat === "Semua"
-              ? GALLERY_ITEMS.length
-              : GALLERY_ITEMS.filter((i) => i.category === cat).length;
-          return (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => {
-                setActiveCategory(cat);
-                setSelectedIndex(null);
-              }}
-              className={`flex items-center gap-2 rounded px-3.5 py-1.5 text-xs font-medium tracking-wide transition ${
-                isActive
-                  ? "border border-[#d4af37] bg-[#d4af37]/10 text-[#d4af37]"
-                  : "border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] text-[var(--muted,#a1a1aa)] hover:border-[rgba(255,255,255,0.2)] hover:text-white"
-              }`}
-            >
-              <span>{cat}</span>
-              <span
-                className={`font-mono text-[10px] ${
-                  isActive ? "text-[#d4af37]" : "text-[rgba(255,255,255,0.4)]"
-                }`}
-              >
-                ({count})
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Grid of Images */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredItems.map((item, idx) => (
+        {GALLERY_ITEMS.map((item, idx) => (
           <div
             key={item.id}
             onClick={() => setSelectedIndex(idx)}
@@ -160,7 +110,7 @@ export function GalleryViewer() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-xs text-[var(--muted,#71717a)]">
-                  {selectedIndex! + 1} / {filteredItems.length}
+                  {selectedIndex! + 1} / {GALLERY_ITEMS.length}
                 </span>
                 <button
                   type="button"
@@ -182,7 +132,7 @@ export function GalleryViewer() {
               />
 
               {/* Prev / Next Nav */}
-              {filteredItems.length > 1 && (
+              {GALLERY_ITEMS.length > 1 && (
                 <>
                   <button
                     type="button"
