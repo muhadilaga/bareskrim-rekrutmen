@@ -58,7 +58,7 @@ async function getOrCreateRecruitmentPeriod(
 
   let candidateCode = code;
   let counter = 1;
-  while (await tx.recruitmentPeriod.findUnique({ where: { code: candidateCode }, select: { id: true } })) {
+  while (counter < 20 && (await tx.recruitmentPeriod.findUnique({ where: { code: candidateCode }, select: { id: true } }))) {
     candidateCode = `${code}-${counter++}`;
   }
 
@@ -447,10 +447,19 @@ export async function PATCH(req: Request) {
 
       if (targetState) {
         if (!period.recruitmentPeriodId || period.recruitmentPeriod?.deletedAt !== null) {
-          return NextResponse.json(
-            { ok: false, message: "Akses ujian tidak dapat dibuka karena periode belum terhubung dengan Periode Pendaftaran yang valid." },
-            { status: 400 }
-          );
+          if (body?.autoCreateRecruitment || body?.recruitmentPeriodId === "auto") {
+            const rec = await getOrCreateRecruitmentPeriod(prisma, period.name);
+            await prisma.examPeriod.update({
+              where: { id: periodId },
+              data: { recruitmentPeriodId: rec.id },
+            });
+            period.recruitmentPeriodId = rec.id;
+          } else {
+            return NextResponse.json(
+              { ok: false, message: "Akses ujian tidak dapat dibuka karena periode belum terhubung dengan Periode Pendaftaran yang valid." },
+              { status: 400 }
+            );
+          }
         }
       }
 
@@ -471,10 +480,19 @@ export async function PATCH(req: Request) {
 
       if (targetState) {
         if (!period.recruitmentPeriodId || period.recruitmentPeriod?.deletedAt !== null) {
-          return NextResponse.json(
-            { ok: false, message: "Akses absen tidak dapat dibuka karena periode belum terhubung dengan Periode Pendaftaran yang valid." },
-            { status: 400 }
-          );
+          if (body?.autoCreateRecruitment || body?.recruitmentPeriodId === "auto") {
+            const rec = await getOrCreateRecruitmentPeriod(prisma, period.name);
+            await prisma.examPeriod.update({
+              where: { id: periodId },
+              data: { recruitmentPeriodId: rec.id },
+            });
+            period.recruitmentPeriodId = rec.id;
+          } else {
+            return NextResponse.json(
+              { ok: false, message: "Akses absen tidak dapat dibuka karena periode belum terhubung dengan Periode Pendaftaran yang valid." },
+              { status: 400 }
+            );
+          }
         }
       }
 

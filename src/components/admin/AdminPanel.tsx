@@ -1430,7 +1430,12 @@ export function AdminPanel() {
                             const res = await fetch("/api/admin/period", {
                               method: "PATCH",
                               headers,
-                              body: JSON.stringify({ periodId: p.id, action: "toggleExamOpen", isExamOpen: newExamOpen }),
+                              body: JSON.stringify({
+                                periodId: p.id,
+                                action: "toggleExamOpen",
+                                isExamOpen: newExamOpen,
+                                autoCreateRecruitment: true,
+                              }),
                             });
                             const json = await res.json();
                             setMsg({ ok: json.ok, text: json.message });
@@ -1452,7 +1457,12 @@ export function AdminPanel() {
                             const res = await fetch("/api/admin/period", {
                               method: "PATCH",
                               headers,
-                              body: JSON.stringify({ periodId: p.id, action: "toggleAttendanceOpen", isAttendanceOpen: newAttendanceOpen }),
+                              body: JSON.stringify({
+                                periodId: p.id,
+                                action: "toggleAttendanceOpen",
+                                isAttendanceOpen: newAttendanceOpen,
+                                autoCreateRecruitment: true,
+                              }),
                             });
                             const json = await res.json();
                             setMsg({ ok: json.ok, text: json.message });

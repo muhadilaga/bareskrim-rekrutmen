@@ -4,6 +4,7 @@ import { startExamSession, generateCandidateExamPin } from "@/lib/exam-service";
 import { logStudentAction } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { examPinLimiter } from "@/lib/rate-limit";
+import { ensureCandidateApplication } from "@/lib/application-service";
 
 export async function GET(req: Request) {
   const user = await getSessionUser(req);
@@ -87,8 +88,8 @@ export async function GET(req: Request) {
 
      const activePeriod = await prisma.examPeriod.findFirst({
        where: { isActive: true, deletedAt: null },
-       select: { id: true, name: true, isExamOpen: true },
-     });
+       select: { id: true, name: true, isExamOpen: true, recruitmentPeriodId: true },
+       });
 
      if (!activePeriod) {
        return NextResponse.json(
@@ -135,13 +136,23 @@ export async function GET(req: Request) {
        );
      }
 
-     const attendance = await prisma.attendance.findFirst({
+     let attendance = await prisma.attendance.findFirst({
        where: {
-         userId: user.id,
          periodId: activePeriod.id,
          deletedAt: null,
+         OR: [
+           { userId: user.id },
+           ...(user.discordUsername ? [{ discordUserId: user.discordUsername }] : []),
+         ],
        },
      });
+
+     if (attendance && !attendance.userId && user.id) {
+       await prisma.attendance.update({
+         where: { id: attendance.id },
+         data: { userId: user.id },
+       }).catch(() => null);
+     }
 
      if (!attendance || !attendance.roleEligible) {
        return NextResponse.json(
@@ -151,6 +162,10 @@ export async function GET(req: Request) {
          },
          { status: 403 }
        );
+     }
+
+     if (activePeriod.recruitmentPeriodId) {
+       await ensureCandidateApplication(prisma, user, activePeriod.recruitmentPeriodId).catch(() => null);
      }
 
      const token = await signCasisPortalSession({

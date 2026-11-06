@@ -26,6 +26,10 @@ vi.mock("@/lib/auth", () => ({
   SESSION_COOKIE: "casis_session",
 }));
 
+vi.mock("@/lib/roblox", () => ({
+  getRobloxUserSummary: vi.fn().mockResolvedValue(null),
+}));
+
 import { GET } from "../route";
 
 describe("GET /api/attendance/check — Trust Boundary & Session Isolation", () => {

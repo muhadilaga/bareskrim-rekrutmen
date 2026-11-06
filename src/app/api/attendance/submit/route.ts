@@ -227,6 +227,7 @@ export async function POST(req: Request) {
           isExamOpen: true,
           examStartTime: true,
           examEndTime: true,
+          recruitmentPeriodId: true,
         },
       });
       if (!activePeriod) {
@@ -239,7 +240,7 @@ export async function POST(req: Request) {
     }
 
     // Auto-link/ensure candidate application untuk periode ini bila belum melalui candidate guard (alur publik)
-    if (!ctx && user && period.recruitmentPeriodId) {
+    if (!ctx && user) {
       await ensureCandidateApplication(prisma, user, period.recruitmentPeriodId).catch(() => null);
     }
 

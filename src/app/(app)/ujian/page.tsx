@@ -81,16 +81,26 @@ export default async function ExamPage({ searchParams }: ExamPageProps) {
     }
 
     // Cek absensi user untuk periode ini
-    const attendance = activePeriod
+    let attendance = activePeriod
       ? await prisma.attendance.findFirst({
           where: {
             periodId: activePeriod.id,
             tahap: "AKADEMIK",
-            userId: user.id,
             deletedAt: null,
+            OR: [
+              { userId: user.id },
+              ...(user.discordUsername ? [{ discordUserId: user.discordUsername }] : []),
+            ],
           },
         })
       : null;
+
+    if (attendance && !attendance.userId && user.id) {
+      await prisma.attendance.update({
+        where: { id: attendance.id },
+        data: { userId: user.id },
+      }).catch(() => null);
+    }
 
     // Cek attempt ujian yang sudah ada
     const existingAttempt = activePeriod
