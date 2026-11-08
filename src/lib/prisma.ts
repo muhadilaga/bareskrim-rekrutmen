@@ -34,7 +34,12 @@ function optimizePrismaUrl(url?: string): string {
   if (!url) return "";
   try {
     const parsed = new URL(url);
-    if (parsed.hostname.includes("pooler.supabase.com")) {
+    const isSupabasePooler =
+      parsed.hostname.includes("pooler.supabase.com") ||
+      parsed.port === "6543" ||
+      parsed.searchParams.get("pgbouncer") === "true";
+
+    if (isSupabasePooler) {
       // 1. Switch port from 5432 (Session mode, limit 15 connections)
       //    to 6543 (Transaction mode, built for serverless, handles 1000+ connections).
       if (parsed.port === "5432") {
@@ -42,10 +47,16 @@ function optimizePrismaUrl(url?: string): string {
       }
       // 2. Transaction mode on PgBouncer requires pgbouncer=true to disable prepared statements.
       parsed.searchParams.set("pgbouncer", "true");
-      // 3. In serverless functions, limit connection count to 1 per lambda.
-      parsed.searchParams.set("connection_limit", "1");
-      if (!parsed.searchParams.has("pool_timeout")) {
-        parsed.searchParams.set("pool_timeout", "10");
+      // 3. Pool connection limit per lambda instance: default to 5 to handle concurrent async requests
+      //    without queueing, overridable via PRISMA_CONNECTION_LIMIT.
+      const connLimit = process.env.PRISMA_CONNECTION_LIMIT || "5";
+      parsed.searchParams.set("connection_limit", connLimit);
+      // 4. Pool queue timeout: default to 30s to prevent premature timeout during concurrency bursts.
+      const poolTimeout = process.env.PRISMA_POOL_TIMEOUT || "30";
+      parsed.searchParams.set("pool_timeout", poolTimeout);
+      // 5. Connect timeout default to 15s.
+      if (!parsed.searchParams.has("connect_timeout")) {
+        parsed.searchParams.set("connect_timeout", "15");
       }
       return parsed.toString();
     }
@@ -53,6 +64,32 @@ function optimizePrismaUrl(url?: string): string {
   } catch {
     return url;
   }
+}
+
+/**
+ * Helper retry untuk kueri database kritis saat terjadi lonjakan konkurensi (pool timeout transient).
+ */
+export async function withDbRetry<T>(fn: () => Promise<T>, retries = 2, delayMs = 250): Promise<T> {
+  let lastError: unknown;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      const isPoolOrTransient =
+        msg.includes("Timed out fetching a new connection") ||
+        msg.includes("connection pool") ||
+        msg.includes("Can't reach database server") ||
+        msg.includes("57P01") ||
+        msg.includes("Connection terminated unexpectedly");
+      if (!isPoolOrTransient || i === retries) {
+        throw err;
+      }
+      await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw lastError;
 }
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };

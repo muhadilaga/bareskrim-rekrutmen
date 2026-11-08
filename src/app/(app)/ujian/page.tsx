@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { startExamSession } from "@/lib/exam-service";
 import { CONFIG } from "@/lib/constants";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbRetry } from "@/lib/prisma";
 import { ExamForm, ExamPinGate } from "@/components/exam/ExamForm";
 import { TabLock } from "@/components/exam/TabLock";
 import { isNextRedirectError } from "@/lib/utils";
@@ -69,30 +69,34 @@ export default async function ExamPage({ searchParams }: ExamPageProps) {
     const resolvedParams = searchParams ? await Promise.resolve(searchParams) : {};
     const shouldStart = resolvedParams.start === "1" || resolvedParams.start === "true";
 
-    // Periode seleksi aktif
-    const activePeriod = await prisma.examPeriod.findFirst({
-      where: { isActive: true, deletedAt: null },
-      include: { recruitmentPeriod: true },
-    });
+    // Periode seleksi aktif (dengan retry otomatis bila database pool sedang padat)
+    const activePeriod = await withDbRetry(() =>
+      prisma.examPeriod.findFirst({
+        where: { isActive: true, deletedAt: null },
+        include: { recruitmentPeriod: true },
+      })
+    );
 
     // Auto-ensure candidate application terhubung tanpa token claim manual
     if (activePeriod) {
       await ensureCandidateApplication(prisma, user, activePeriod.recruitmentPeriodId).catch(() => null);
     }
 
-    // Cek absensi user untuk periode ini
+    // Cek absensi user untuk periode ini (dengan retry otomatis)
     let attendance = activePeriod
-      ? await prisma.attendance.findFirst({
-          where: {
-            periodId: activePeriod.id,
-            tahap: "AKADEMIK",
-            deletedAt: null,
-            OR: [
-              { userId: user.id },
-              ...(user.discordUsername ? [{ discordUserId: user.discordUsername }] : []),
-            ],
-          },
-        })
+      ? await withDbRetry(() =>
+          prisma.attendance.findFirst({
+            where: {
+              periodId: activePeriod.id,
+              tahap: "AKADEMIK",
+              deletedAt: null,
+              OR: [
+                { userId: user.id },
+                ...(user.discordUsername ? [{ discordUserId: user.discordUsername }] : []),
+              ],
+            },
+          })
+        )
       : null;
 
     if (attendance && !attendance.userId && user.id) {
@@ -102,23 +106,30 @@ export default async function ExamPage({ searchParams }: ExamPageProps) {
       }).catch(() => null);
     }
 
-    // Cek attempt ujian yang sudah ada
+    // Cek attempt ujian yang sudah ada (dengan retry otomatis)
     const existingAttempt = activePeriod
-      ? await prisma.examAttempt.findFirst({
-          where: {
-            periodId: activePeriod.id,
-            userId: user.id,
-          },
-          include: { result: true },
-        })
+      ? await withDbRetry(() =>
+          prisma.examAttempt.findFirst({
+            where: {
+              periodId: activePeriod.id,
+              userId: user.id,
+            },
+            include: { result: true },
+          })
+        )
       : null;
 
-    // Pangkat grup POLRI & profil Roblox akurat dari grup "POLRI | Kepolisian Republik Indonesia" (14460225)
+    // Pangkat grup POLRI & profil Roblox: utamakan data DB/session, hindari pemanggilan API eksternal bila data sudah ada
     let robloxProfile = null;
-    try {
-      robloxProfile = await getRobloxUserSummary(user.username, CONFIG.policeGroupId);
-    } catch {
-      // Fallback ke data user di DB
+    if (!user.policeGroupRank || !user.avatarUrl) {
+      try {
+        robloxProfile = await Promise.race([
+          getRobloxUserSummary(user.username, CONFIG.policeGroupId),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+        ]);
+      } catch {
+        // Fallback ke data user di DB
+      }
     }
     const policeRank = robloxProfile?.policeGroupRank || user.policeGroupRank || "CASIS";
     const avatarUrl = robloxProfile?.avatarUrl || user.avatarUrl || `https://images.rbxcdn.com/placeholder-avatar.png`;

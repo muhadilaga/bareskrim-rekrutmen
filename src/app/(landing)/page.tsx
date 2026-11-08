@@ -149,10 +149,15 @@ export default async function HomePage() {
           </div>
           <h2>{content.recruitmentTitle}</h2>
           <h3>{content.recruitmentWave}</h3>
-          <div className="status">
-            <span></span>
-            {content.recruitmentStatus}
-          </div>
+          {(() => {
+            const isClosed = content.recruitmentStatus?.toLowerCase().includes("tutup");
+            return (
+              <div className="status" style={isClosed ? { color: "#ef4444" } : undefined}>
+                <span style={isClosed ? { background: "#ef4444" } : undefined}></span>
+                {content.recruitmentStatus}
+              </div>
+            );
+          })()}
           <div className="date">
             {content.recruitmentDates}
           </div>

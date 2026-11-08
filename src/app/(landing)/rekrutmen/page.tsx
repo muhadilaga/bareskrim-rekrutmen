@@ -66,14 +66,20 @@ export default async function RekrutmenPage() {
         <div className="hero-bg" style={{ minHeight: "694px" }}></div>
         <div className="hero-overlay" style={{ minHeight: "694px" }}></div>
         <div className="hero-content">
-          <div className="hero-status">
-            <span style={isPeriodClosed ? { background: "#dc2626" } : undefined}></span>
-            {isPeriodClosed
+          {(() => {
+            const isClosed = isPeriodClosed || content.recruitmentStatus?.toLowerCase().includes("tutup");
+            const statusText = isClosed
               ? "PENDAFTARAN DITUTUP"
               : activePeriod?.isActive || activeRecruitment?.isActive
                 ? "PENDAFTARAN DIBUKA"
-                : content.recruitmentStatus.toUpperCase()}
-          </div>
+                : content.recruitmentStatus.toUpperCase();
+            return (
+              <div className="hero-status" style={isClosed ? { color: "#ef4444" } : undefined}>
+                <span style={isClosed ? { background: "#dc2626" } : undefined}></span>
+                {statusText}
+              </div>
+            );
+          })()}
           <p className="hero-label">{content.rekrutmenKicker}</p>
           <div className="hero-title">
             <span>ANGKATAN</span>

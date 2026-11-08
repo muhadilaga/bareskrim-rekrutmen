@@ -232,12 +232,54 @@ export function ContentSettingsTab({ headers }: ContentSettingsTabProps) {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-[#918d86]">STATUS PENDAFTARAN</label>
-                <input
-                  type="text"
-                  value={content.recruitmentStatus}
-                  onChange={(e) => handleChange("recruitmentStatus", e.target.value)}
-                  className="w-full rounded border border-white/15 bg-black/40 px-3 py-2 text-sm text-[#eeeae2] focus:border-[#b79b69]"
-                />
+                <div className="relative">
+                  <select
+                    value={
+                      content.recruitmentStatus?.toLowerCase().includes("tutup")
+                        ? "Pendaftaran ditutup"
+                        : "Pendaftaran dibuka"
+                    }
+                    onChange={(e) => handleChange("recruitmentStatus", e.target.value)}
+                    className="w-full rounded border px-3 py-2 text-sm font-semibold transition-colors focus:outline-none"
+                    style={{
+                      borderColor: content.recruitmentStatus?.toLowerCase().includes("tutup")
+                        ? "rgba(239, 68, 68, 0.6)"
+                        : "rgba(34, 197, 94, 0.6)",
+                      backgroundColor: content.recruitmentStatus?.toLowerCase().includes("tutup")
+                        ? "rgba(239, 68, 68, 0.12)"
+                        : "rgba(34, 197, 94, 0.12)",
+                      color: content.recruitmentStatus?.toLowerCase().includes("tutup")
+                        ? "#ef4444"
+                        : "#22c55e",
+                    }}
+                  >
+                    <option value="Pendaftaran dibuka" style={{ background: "#18181b", color: "#22c55e" }}>
+                      ● Pendaftaran dibuka (Aktif)
+                    </option>
+                    <option value="Pendaftaran ditutup" style={{ background: "#18181b", color: "#ef4444" }}>
+                      ● Pendaftaran ditutup (Nonaktif)
+                    </option>
+                  </select>
+                </div>
+                <div className="mt-1.5 flex items-center gap-2 text-xs">
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    style={{
+                      backgroundColor: content.recruitmentStatus?.toLowerCase().includes("tutup")
+                        ? "#ef4444"
+                        : "#22c55e",
+                    }}
+                  />
+                  <span
+                    style={{
+                      color: content.recruitmentStatus?.toLowerCase().includes("tutup")
+                        ? "#ef4444"
+                        : "#22c55e",
+                    }}
+                  >
+                    Status: {content.recruitmentStatus?.toLowerCase().includes("tutup") ? "Pendaftaran ditutup (Merah)" : "Pendaftaran dibuka (Hijau)"}
+                  </span>
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-[#918d86]">RENTANG TANGGAL DITAMPILKAN</label>

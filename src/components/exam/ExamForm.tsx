@@ -158,8 +158,8 @@ const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
             bookmarkedQuestions: [...currentBookmarked],
           }),
         });
-        const json = await res.json();
-        if (json.ok) {
+        const json = await res.json().catch(() => ({ ok: false }));
+        if (json && json.ok) {
           lastSavedRef.current = snapshot;
           setSaveStatus("saved");
         } else {
@@ -238,7 +238,12 @@ const [bookmarked, setBookmarked] = useState<Set<string>>(() => {
           })),
         }),
       });
-      const json = await res.json();
+      let json: { ok?: boolean; message?: string; resultId?: string } = { ok: false };
+      try {
+        json = await res.json();
+      } catch {
+        json = { ok: false, message: "Koneksi terputus saat membaca respons server. Silakan klik Kirim Jawaban kembali." };
+      }
       if (!json.ok) {
         setError(json.message ?? "Gagal mengirim jawaban.");
         submittedRef.current = false;
